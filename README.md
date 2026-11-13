@@ -44,7 +44,8 @@ cd apps/web && npm run build
 - `POST /api/agent` is the whole farmer experience. **Multi-crop intake:** "I grow onion and tomato" asks the quantity for each, then the village, readiness and storage, reads it back, and runs nothing before "yes". **Actions:** "where should I sell", "show the forecast", "should I hold", "how sure are you", "book transport", "set hamali to 15", "create the order" (asks yes/no first), "track my order", "switch to Hindi", "start over".
 - **Memory:** the browser keeps a random device id. Returning farmers get "welcome back" with their crops, and saying a crop name switches to it.
 - **Speed:** rules answer first (every turn takes about 5–120 ms on real data). The local LLM is asked only when the rules do not understand, and only its tool name is trusted.
-- **Languages:** EN / हिं / मरा. Agent replies, plan sentences and the whole UI follow the chosen language. Mandi and place names stay as the government data spells them.
+- **Languages:** EN / हिं / मरा. Agent replies, plan sentences and the whole UI follow the chosen language. Mandi, district and state names show in Devanagari where GeoNames has a verified spelling; others keep the government spelling.
+- **Places (offline):** GeoNames gazetteer with 560k villages and towns plus 155k pincodes, about 1 ms per lookup (`scripts/load_gazetteer.py`), with Nominatim as the online fallback. Farmers can say a village, "village, district", a pincode or a Marathi form like पुण्याजवळ.
 - **Voice:** the browser's speech recognition and voice come first. Offline fallbacks run in the backend: Piper TTS (`/api/voice/speak`; hi_IN-priyamvada, mr_IN-google, en_US-amy) and faster-whisper STT (`/api/voice/transcribe`). Models download once into the `models` volume.
 - **Local LLM (optional):** install [Ollama](https://ollama.com), run `ollama pull qwen3:4b`, and the backend uses it automatically via `host.docker.internal:11434`. If it is not running, the agent falls back to rules instantly.
 
@@ -85,5 +86,7 @@ docs/                design spec, plans, architecture, roadmap
 - `Net = revenue − transport − handling − storage − financing − commission (if seller pays) − risk allowance`; spoilage reduces saleable quantity and is not subtracted twice.
 - No Aadhaar, no fabricated prices, offers, phone numbers or capacity; estimates are labelled.
 - Rate limit 60 req/min per client on `/api/*`; admin endpoints need `ADMIN_TOKEN`.
+
+**Product status, rules and roadmap: [docs/PRD.md](docs/PRD.md) (living) · file map: [docs/STRUCTURE.md](docs/STRUCTURE.md).**
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ROADMAP.md](docs/ROADMAP.md) and the [design spec](docs/superpowers/specs/2026-11-13-krishi-x-design.md).

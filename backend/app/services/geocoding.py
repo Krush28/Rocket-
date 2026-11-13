@@ -66,7 +66,14 @@ def _cache(db: Session, row: GeocodeCache):
 def geocode(db: Session, query: str, *, client: httpx.Client | None = None) -> dict | None:
     if not query or not query.strip() or len(query) > MAX_QUERY:  # a whole paragraph is not a place name
         return None
-    return _lookup(db, query, client)[1]
+    from app.services import gazetteer  # offline first: instant, works for villages and pincodes
+    def offline(fuzzy=False):
+        try:
+            return gazetteer.find(db, query, fuzzy)
+        except SQLAlchemyError:
+            db.rollback()
+            return None
+    return offline() or _lookup(db, query, client)[1] or offline(fuzzy=True)
 
 
 def clean_mandi_name(name: str) -> str:

@@ -8,8 +8,9 @@ const card = "rounded-[22px] bg-white p-5 scroll-mt-4";
 const h2 = "font-display text-[20px] font-bold tracking-tight";
 const DED: Record<string, Key> = { transport: "transportCost", handling: "handling", commission: "commission", storage: "storageCost", financing: "financing", risk_allowance: "risk_allowance" };
 const ORDER_SAY: Record<Lang, string> = { en: "create the order", hi: "ऑर्डर बनाओ", mr: "ऑर्डर तयार करा" };
-const short = (k: string) => k.split(", ")[0];
-const rest = (k: string) => k.split(", ").slice(1).join(", ");
+let NAMES: Record<string, string> = {}; // mandi key -> name in the farmer's script (set per render from plan.names)
+const short = (k: string) => (NAMES[k] || k).split(", ")[0];
+const rest = (k: string) => (NAMES[k] || k).split(", ").slice(1).join(", ");
 const word = (k: string, l: Lang) => (isKey(k) ? t(k, l) : k); // codes -> farmer words, unknown codes pass through
 
 type Props = { plan: Plan; lang: Lang; order: Order | null; crops: Crop[]; onSay: (text: string) => void };
@@ -23,6 +24,7 @@ export default function Results({ plan: p, lang, order, crops, onSay }: Props) {
   const live = p.data_mode === "LIVE" && !allStale;
   const failed = p.trace.find((x) => x.status === "failed");
   const prof = p.profile;
+  NAMES = p.names || {};
   const ranked = p.options.filter((o) => o.type !== "hold");
   const km = t("km", lang);
 

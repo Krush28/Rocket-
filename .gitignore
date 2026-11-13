@@ -20,3 +20,6 @@ __pycache__/
 node_modules/
 .next/
 .superpowers/
+
+# heavy downloads (see docs/PRD.md "Heavy assets")
+data/raw/geonames/

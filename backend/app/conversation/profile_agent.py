@@ -13,12 +13,15 @@ from app.services import demo_data, geocoding
 from app.services import llm
 
 REQUIRED = ["crop", "qty", "location", "ready", "can_store"]
-UNIT_KG = {"kg": 1, "kgs": 1, "kilogram": 1, "kilograms": 1, "किलो": 1, "किग्रा": 1, "quintal": 100, "quintals": 100, "qtl": 100,
+UNIT_KG = {"kg": 1, "kgs": 1, "kilo": 1, "kilos": 1, "kilogram": 1, "kilograms": 1, "qtls": 100, "किलो": 1, "किग्रा": 1, "quintal": 100, "quintals": 100, "qtl": 100,
            "क्विंटल": 100, "tonne": 1000, "tonnes": 1000, "ton": 1000, "tons": 1000, "टन": 1000}
-YES = ["yes", "yeah", "yep", "ready", "haan", "han", "ha ", "हां", "हाँ", "हो", "होय", "आहे", "तयार", "correct", "right", "sahi", "सही", "बरोबर", "ok", "okay", "sure"]
-NO = ["no", "not", "nahi", "nahin", "नहीं", "नही", "नाही", "nope", "later", "नको", "नाहीं"]
+YES = ["yes", "yeah", "yep", "y", "ready", "haan", "han", "ha", "haa", "ho", "hoy", "ji", "हां", "हाँ", "हा", "जी", "हो", "होय", "आहे", "तयार", "correct", "right",
+       "sahi", "सही", "बरोबर", "ok", "okay", "sure", "theek", "ठीक"]
+NO = ["no", "n", "na", "not", "nahi", "nahin", "nako", "nai", "नहीं", "नही", "ना", "नाही", "nope", "later", "नको", "नाहीं", "cannot", "can't"]
 DEV = str.maketrans("०१२३४५६७८९", "0123456789")
-MARATHI_MARKERS = ["आहे", "मला", "माझ", "कांदा", "नाही", "तयार", "आहेत", "बटाटा", "टोमॅटो", "होय", "आहेत"]
+MARATHI_MARKERS = ["आहे", "मला", "माझ", "कांदा", "नाही", "आहेत", "बटाटा", "टोमॅटो", "होय", "कुठे", "विकू", "काय", "किती", "करा", "दाखवा", "सांगा",
+                   "शेत", "जवळ", "आणि", "मध्ये", "नको", "पण", "तुम्ही", "आम्ही", "मराठी"]
+HINDI_MARKERS = ["है", "हैं", "में", "क्या", "कहाँ", "कहां", "मेरे", "मेरा", "मुझे", "बेचूँ", "बेचूं", "कितना", "और", "नहीं", "हाँ", "करो", "बताओ", "हिंदी"]
 
 NAMES = {"onion": {"en": "onion", "hi": "प्याज", "mr": "कांदा"}, "tomato": {"en": "tomato", "hi": "टमाटर", "mr": "टोमॅटो"},
          "potato": {"en": "potato", "hi": "आलू", "mr": "बटाटा"}}
@@ -54,8 +57,10 @@ SESSIONS: dict = {}
 
 
 def detect_lang(text: str, current: str | None = None) -> str:
+    """Devanagari is Hindi or Marathi: count marker words; a tie keeps the farmer's current language (so 'कांदा 50' stays Marathi)."""
     if re.search(r"[ऀ-ॿ]", text):
-        return "mr" if any(m in text for m in MARATHI_MARKERS) else "hi"
+        mr, hi = sum(m in text for m in MARATHI_MARKERS), sum(m in text for m in HINDI_MARKERS)
+        return "mr" if mr > hi or (mr == hi and current == "mr") else "hi"
     return current or "en"
 
 
@@ -84,7 +89,7 @@ def _crop(t: str, low: str) -> str | None:
 
 def _geocode(db, place: str) -> dict | None:
     place = place.strip(" .,!?")
-    if not re.search(r"[^\W\d_]", place):
+    if not re.search(r"[^\W\d_]", place) and not re.fullmatch(r"\d{6}", place):  # a name or a pincode
         return None
     if db is not None:
         return geocoding.geocode(db, place)
@@ -99,12 +104,13 @@ def extract(text: str, awaiting: str | None = None, db=None) -> dict:
     crop = _crop(t, low)
     if crop:
         out["crop"] = crop
-    m = re.search(r"(\d+(?:\.\d+)?)\s*(kilograms?|kgs?|quintals?|qtl|tonnes?|tons?|किलो|किग्रा|क्विंटल|टन)?", low)
-    if m and (m.group(2) or awaiting == "qty"):
-        unit = m.group(2) or "kg"
-        val = float(m.group(1))
-        if val > 0:
-            out["qty"] = {"original_qty": val, "original_unit": unit, "qty_kg": val * UNIT_KG[unit]}
+    m = re.search(r"(?<![\w-])(\d+(?:\.\d+)?)\s*(kilograms?|kgs?|kilos?|quintals?|qtls?|tonnes?|tons?|किलो|किग्रा|क्विंटल|टन)?(?!\w)", low)
+    if m:
+        val, unit = float(m.group(1)), m.group(2)
+        if unit and 0 < val <= 10_000_000 / UNIT_KG[unit]:  # 10,000 t cap: larger is a mishearing
+            out["qty"] = qty(val, unit)
+        elif not unit and val > 0 and awaiting == "qty":
+            out["bare_qty"] = val  # a number without a unit: the caller reuses the farmer's last unit or asks
     for key in sorted(demo_data.PLACES, key=len, reverse=True):
         if (key.isascii() and re.search(rf"\b{re.escape(key)}\b", low)) or (not key.isascii() and key in t):
             out["location"] = {"name": key.title() if key.isascii() else key, "lat": demo_data.PLACES[key][0], "lon": demo_data.PLACES[key][1],
@@ -147,6 +153,10 @@ def extract(text: str, awaiting: str | None = None, db=None) -> dict:
     elif re.search(r"best price|wait for|can wait|हो सके तो इंतज़ार", low):
         out["sell_pref"] = "best_price"
     return out
+
+
+def qty(val: float, unit: str) -> dict:
+    return {"original_qty": val, "original_unit": unit, "qty_kg": val * UNIT_KG[unit]}
 
 
 def new_session(sid: str, lang: str = "en") -> dict:

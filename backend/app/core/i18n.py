@@ -108,13 +108,22 @@ def _crop(v: str, lang: str) -> str:
     return NAMES.get(v, {}).get(lang, v)
 
 
+PLACE_PARAMS = {"dest", "mandi", "loc"}
+
+
+def place(name: str) -> str:
+    """Mandi / town name in Devanagari where GeoNames has a verified spelling; otherwise the government spelling stays."""
+    from app.services import gazetteer  # lazy: avoid a DB import at module load
+    return gazetteer.dev_name(name)
+
+
 def tr(s: str, lang: str | None) -> str:
     if lang not in ("hi", "mr") or not s:
         return s
     for rx, hi, mr in _RX:
         m = rx.match(s)
         if m:
-            params = {k: (_crop(v, lang) if k == "crop" else tr(v, lang)) for k, v in m.groupdict().items()}
+            params = {k: (_crop(v, lang) if k == "crop" else place(v) if k in PLACE_PARAMS else tr(v, lang)) for k, v in m.groupdict().items()}
             return (hi if lang == "hi" else mr).format(**params)
     return s
 
@@ -123,6 +132,9 @@ def localize(obj, lang: str | None):
     """Translate every string value in a plan (in place for dicts/lists); English and unknown text pass through."""
     if lang not in ("hi", "mr"):
         return obj
+    if isinstance(obj, dict) and "profile" in obj and "recommendation" in obj:  # a whole plan: display names for every mandi key
+        keys = set((obj.get("prices") or {}).keys()) | {m.get("key") or m.get("name") for m in obj.get("mandis") or []}
+        obj["names"] = {k: place(k) for k in keys if k}
     if isinstance(obj, dict):
         for k, v in obj.items():
             if k not in SKIP_KEYS:

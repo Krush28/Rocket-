@@ -8,7 +8,7 @@ export type Option = {
 };
 export type Decision = { action: string; reason: string; reconsider_on: string | null; expected_incremental?: number; factors?: string[] };
 export type Plan = {
-  profile: Profile; data_mode: "LIVE" | "DEMO"; labels: string; options: Option[];
+  profile: Profile; data_mode: "LIVE" | "DEMO"; labels: string; options: Option[]; names?: Record<string, string>;
   mandis: { name: string; distance_km: number; distance_label: string }[] | null;
   prices: Record<string, { modal: number; min: number; max: number; latest_date: string; age_days: number; stale: boolean; meta: Meta }> | null;
   retail: { city: string; retail_price: number; note: string }[] | null;

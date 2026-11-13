@@ -39,7 +39,8 @@ def crop_label(c: str, lang: str) -> str:
 
 
 def unit_label(u: str, lang: str) -> str:
-    base = {"kgs": "kg", "kilogram": "kg", "kilograms": "kg", "quintals": "quintal", "qtl": "quintal", "tonnes": "tonne", "ton": "tonne", "tons": "tonne"}.get(u.lower(), u.lower())
+    base = {"kgs": "kg", "kilo": "kg", "kilos": "kg", "kilogram": "kg", "kilograms": "kg", "किलो": "kg", "किग्रा": "kg", "quintals": "quintal", "qtl": "quintal",
+            "qtls": "quintal", "क्विंटल": "quintal", "tonnes": "tonne", "ton": "tonne", "tons": "tonne", "टन": "tonne"}.get(u.lower(), u.lower())
     return UNIT.get(lang, {}).get(base, u)
 
 
@@ -47,7 +48,7 @@ def lots_text(lots: dict, lang: str, order=None) -> str:
     out = []
     for c in order or list(lots):
         q = lots[c]
-        kg = q["original_unit"].lower() in ("kg", "kgs", "kilogram", "kilograms", "किलो", "किग्रा")
+        kg = P.UNIT_KG.get(q["original_unit"].lower()) == 1
         out.append(f"{crop_label(c, lang)} {q['original_qty']:g} {unit_label(q['original_unit'], lang)}"
                    + ("" if kg else f" ({q['qty_kg']:,.0f} {unit_label('kg', lang)})"))
     return ", ".join(out)
@@ -76,8 +77,13 @@ def _missing(s):
 def _apply(s, text, aw, db):
     found = False
     segs = [text] if aw == "location" else [x for x in SEP.split(text) if x.strip()]  # "Ponda, Goa" is one place
+    unit = last_unit(s["lots"])
     for seg in segs:
-        f = P.extract(seg, {"qty": "qty", "location": "location"}.get(aw), db=db)
+        f = P.extract(seg, "qty" if aw in ("qty", "crops") else ("location" if aw == "location" else None), db=db)
+        if "qty" in f:
+            unit = f["qty"]["original_unit"]
+        elif "bare_qty" in f and unit:  # "50 quintal onion and 20 potato": the 20 is quintal too
+            f["qty"] = P.qty(f["bare_qty"], unit)
         if "crop" in f:
             if f["crop"] not in s["crops"]:
                 s["crops"].append(f["crop"])
@@ -102,6 +108,10 @@ def _apply(s, text, aw, db):
                 s[k] = f[k]
                 found = True
     return found
+
+
+def last_unit(lots: dict) -> str | None:
+    return next((q["original_unit"] for q in reversed(list(lots.values()))), None)
 
 
 def _reply(s, text, **extra):

@@ -19,7 +19,7 @@ def _strings(x):
 
 
 def test_template_translation_keeps_params():
-    assert i18n.tr("Sell at Mapusa APMC, North Goa, Goa today", "hi") == "आज Mapusa APMC, North Goa, Goa में बेचें"
+    assert i18n.tr("Sell at Mapusa APMC, North Goa, Goa today", "hi") == "आज Mapusa APMC, उत्तर गोवा, गोवा में बेचें"  # state names in Devanagari; unknown names stay
     assert i18n.tr("tomato shelf life is about 7 days", "mr") == "टोमॅटो सुमारे 7 दिवसच टिकतो"
     assert i18n.tr("Pune APMC", "hi") == "Pune APMC"  # names and keys are never touched
     assert i18n.tr("Sell at X today", "en") == "Sell at X today"

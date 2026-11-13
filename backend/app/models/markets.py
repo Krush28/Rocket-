@@ -64,3 +64,26 @@ class MandiPrice(Timestamps, Provenance, Base):
     max_price: Mapped[float | None] = mapped_column(Float)
     modal_price: Mapped[float] = mapped_column(Float)
     unit: Mapped[str] = mapped_column(String(20), default="Rs/quintal")
+
+
+class Place(Base):
+    """Offline India gazetteer (GeoNames, CC-BY 4.0): one row per searchable key (English, ASCII, Devanagari name or pincode)."""
+    __tablename__ = "places"
+    __table_args__ = (Index("ix_places_key", "key"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    key: Mapped[str] = mapped_column(String(160))        # lowercased search key
+    name: Mapped[str] = mapped_column(String(160))       # English name
+    name_dev: Mapped[str | None] = mapped_column(String(160))  # Devanagari name when GeoNames has one
+    admin1: Mapped[str] = mapped_column(String(80), default="")  # state
+    admin2: Mapped[str] = mapped_column(String(120), default="")  # district
+    lat: Mapped[float] = mapped_column(Float)
+    lon: Mapped[float] = mapped_column(Float)
+    population: Mapped[int] = mapped_column(default=0)
+    kind: Mapped[str] = mapped_column(String(8))  # P town/village | A state/district | PIN post office
+
+
+class NameTranslation(Base):
+    """Devanagari spelling of a mandi / district / state name not in the gazetteer (local-LLM transliteration, cached)."""
+    __tablename__ = "name_translations"
+    src: Mapped[str] = mapped_column(String(200), primary_key=True)  # lowercased English name
+    dev: Mapped[str] = mapped_column(String(200))
