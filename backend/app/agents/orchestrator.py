@@ -46,7 +46,8 @@ def run(profile: dict, assumption_override: dict | None = None) -> dict:
             st.setdefault("net", {"options": [], "reference_nearest_mandi_now": None})
             st.setdefault("options", [])
     reco = outputs.get("Recommendation Agent", {}).get("data")
-    return i18n.localize({"profile": profile, "assumptions": {**st["assumptions"], "placeholder_note": costs.PLACEHOLDER}, "trace": trace,
+    from app.core import present
+    return present.clean(i18n.localize({"profile": profile, "assumptions": {**st["assumptions"], "placeholder_note": costs.PLACEHOLDER}, "trace": trace,
             "recommendation": reco, "options": st.get("options", []),
             "mandis": st.get("mandis_list"), "prices": (st.get("price_intel") or {}).get("mandis"), "retail": (st.get("price_intel") or {}).get("retail_context"), "activity": st.get("activity"),
             "forecasts": st.get("forecast_out"), "sell_vs_hold": st.get("sellhold"), "storage": st.get("storage"),
@@ -54,4 +55,4 @@ def run(profile: dict, assumption_override: dict | None = None) -> dict:
             "data_mode": "LIVE" if MD.live() else "DEMO",
             "labels": ("LIVE prices from data.gov.in (Agmarknet). Buyers, warehouses, transporters and the shared-load pool are still DEMO. " if MD.live()
                        else "DEMO DATA: prices, arrivals, buyers, warehouses, transporters are synthetic. ") + "Costs are ESTIMATES unless marked otherwise."},
-        profile.get("lang"))  # farmer-facing sentences in the farmer's language (en/hi/mr)
+        profile.get("lang")))  # farmer-facing sentences in the farmer's language (en/hi/mr); neutral presentation wording

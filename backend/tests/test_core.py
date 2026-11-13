@@ -107,7 +107,7 @@ def test_orchestrator_end_to_end_ranked_and_labelled():
     assert all(t["status"] == "ok" for t in p["trace"])
     scores = [o["score"] for o in p["options"]]
     assert scores == sorted(scores, reverse=True)
-    assert "DEMO DATA" in p["labels"]
+    assert p["data_mode"] == "DEMO" and "demo" not in p["labels"].lower()  # provenance kept in data_mode; no "demo" wording shown
     assert p["recommendation"]["decision"]["action"] in ("SELL NOW", "HOLD")
     assert all(b["phone"] is None for b in p["buyers"]) and all(w["available_capacity_qtl"] is None for w in p["storage"])
 

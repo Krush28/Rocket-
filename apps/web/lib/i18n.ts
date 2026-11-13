@@ -47,7 +47,7 @@ const T = {
   noReco: { en: "Not enough information to recommend a sale", hi: "बिक्री की सलाह देने लायक जानकारी नहीं है", mr: "विक्रीचा सल्ला देण्याइतकी माहिती नाही" },
   noOption: { en: "No feasible selling option was found.", hi: "कोई बिक्री विकल्प नहीं मिला।", mr: "विक्रीचा कोणताही पर्याय सापडला नाही." },
   retailNone: { en: "No verified retail price source is connected yet. Retail prices are never your selling price.", hi: "अभी कोई सत्यापित खुदरा भाव स्रोत नहीं जुड़ा है। खुदरा भाव कभी आपका बिक्री भाव नहीं होता।", mr: "अजून कोणताही खात्रीचा किरकोळ भाव स्रोत जोडलेला नाही. किरकोळ भाव कधीच तुमचा विक्री भाव नसतो." },
-  retailNote: { en: "(DEMO, consumer price, not your selling price)", hi: "(डेमो, ग्राहक भाव, आपका बिक्री भाव नहीं)", mr: "(डेमो, ग्राहक भाव, तुमचा विक्री भाव नाही)" },
+  retailNote: { en: "(consumer price, not your selling price)", hi: "(ग्राहक भाव, आपका बिक्री भाव नहीं)", mr: "(ग्राहक भाव, तुमचा विक्री भाव नाही)" },
   noStorage: { en: "No storage found within 200 km.", hi: "200 किमी के भीतर कोई भंडारण नहीं मिला।", mr: "200 किमीच्या आत साठवण सापडली नाही." },
   perDay: { en: "/qtl/day", hi: "/क्विंटल/दिन", mr: "/क्विंटल/दिवस" },
   week: { en: "7 days ≈ {x}", hi: "7 दिन ≈ {x}", mr: "7 दिवस ≈ {x}" },

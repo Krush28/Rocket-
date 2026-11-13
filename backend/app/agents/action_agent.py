@@ -556,6 +556,8 @@ def _activate(st, crop, lang):
 # ---------------------------------------------------------------- entry point
 def handle(sid: str, text: str, lang: str | None, db) -> dict:
     res = _handle(sid, text, lang, db)
+    from app.core import present
+    res["reply"] = present.text(res.get("reply") or "")
     st, L = STATE.get(sid), res.get("lang", "en")
     if st and st.get("farmer") and st.get("plan"):
         res["crops"] = [{"crop": c, "label": intake.crop_label(c, L), "qty": q["original_qty"], "unit": intake.unit_label(q["original_unit"], L),
