@@ -31,9 +31,9 @@ Base `https://mandi-api.onrender.com/v1` (keyless, 100 req / 15 min / IP). State
 
 ## Phases / checklist (most important first)
 ### P1 Data + forecasting that works
-- [ ] `services/adapters/mandi_api.py`: client (throttled), import latest prices per state×crop into `mandi_prices` (source "mandi-api"), state-average history into `state_price_history`; geocode new mandis with the offline gazetteer.
-- [ ] `repositories/market_data.series`: hybrid series (real + synthetic backfill to 3 years, flagged); `history_source` in meta.
-- [ ] `ml/forecast.py`: add SARIMA (statsmodels SARIMAX) + LightGBM (fallback sklearn HistGradientBoosting) to the backtest gate.
+- [x] `services/adapters/mandi_api.py`: client (throttled), import latest prices per state×crop into `mandi_prices` (source "mandi-api"), state-average history into `state_price_history`; geocode new mandis with the offline gazetteer.
+- [x] `repositories/market_data.series`: hybrid series (real + synthetic backfill to 3 years, flagged); `history_source` in meta.
+- [x] `ml/forecast.py`: add SARIMA (statsmodels SARIMAX) + LightGBM (fallback sklearn HistGradientBoosting) to the backtest gate.
 - [x] Any crop: Hindi/Marathi names + shelf-life/perishability table for ~75 common crops (category defaults for the rest) — `services/crops.py`.
 ### P2 Smart agent (local LLM, Ollama qwen3:4b)
 - [ ] Agentic loop `agents/brain.py`: Ollama `/api/chat` with tools (JSON schemas) → execute deterministic tools → feed results back → final answer in farmer's language. Rules stay as instant fast path for exact commands; LLM handles everything else (free speech intake, multi-step questions, explanations).
@@ -53,3 +53,4 @@ Base `https://mandi-api.onrender.com/v1` (keyless, 100 req / 15 min / IP). State
 ## Status log
 - 2026-11-13: plan written; Mandi API probed (works, short history).
 - 2026-11-14: any-crop support done (crops.py: names, aliases incl. Hinglish/Devanagari, shelf life, hold limits, seasonality). Next: Mandi API importer + hybrid history.
+- 2026-11-14: P1 data done. Mandi API importer (throttled, resumable, 6-hourly background job, `GET /api/admin/jobs`), state history paged by date window (real 2026-07-28..10-16), offline geocoding of new mandis via gazetteer. Hybrid 3-year history (`synthetic` column; prices shown as "today" always come from real rows). Forecast v2: + SARIMA + GBM (LightGBM if installed, else sklearn hist GBM) — full run ~10 s/mandi so it runs in a background worker and is stored in `forecast_cache`; plans use the fast ETS+ridge forecast until then. Tests: 94 pass (conftest disables threads/LLM/hybrid by default). Next: P2 smart agent.

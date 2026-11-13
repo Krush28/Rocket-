@@ -50,10 +50,12 @@ def price_intelligence(st):
     crop, out = st["profile"]["crop"], {}
     for name in st["mandis"]:
         df = MD.series(crop, name)
-        age = (date.today() - df["date"].iloc[-1].date()).days
-        last3 = df["modal"].iloc[-3:]
-        rec = {"mandi": name, "latest_date": str(df["date"].iloc[-1].date()), "age_days": age, "modal": float(last3.median()),
-               "min": float(df["min"].iloc[-1]), "max": float(df["max"].iloc[-1]), "arrivals_t": None if np.isnan(df["arrivals_t"].iloc[-1]) else float(df["arrivals_t"].iloc[-1]),
+        rl = MD.real_only(df)  # "today's price" only from real observations, never from the backfill
+        age = (date.today() - rl["date"].iloc[-1].date()).days
+        last3 = rl["modal"].iloc[-3:]
+        rec = {"mandi": name, "latest_date": str(rl["date"].iloc[-1].date()), "age_days": age, "modal": float(last3.median()),
+               "min": float(rl["min"].iloc[-1]), "max": float(rl["max"].iloc[-1]), "real_days": int(len(rl)),
+               "demo_history": bool(len(rl) < len(df)), "arrivals_t": None if np.isnan(df["arrivals_t"].iloc[-1]) else float(df["arrivals_t"].iloc[-1]),
                "avg7": round(float(df["modal"].iloc[-7:].mean())), "avg30": round(float(df["modal"].iloc[-30:].mean())),
                "trend_30d_pct": round((df["modal"].iloc[-1] / df["modal"].iloc[-30] - 1) * 100, 1) if len(df) >= 30 else None,
                "history": [[str(d.date()), float(v)] for d, v in zip(df["date"].iloc[-90:], df["modal"].iloc[-90:])],

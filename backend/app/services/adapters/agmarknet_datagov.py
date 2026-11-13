@@ -68,15 +68,16 @@ def _insert(s):
     return insert
 
 
-def upsert(rows: list[dict], observed_at: datetime | None = None) -> int:
+def upsert(rows: list[dict], observed_at: datetime | None = None, source: str = SOURCE, source_url: str | None = None,
+           kind: str = "government_api") -> int:
     """Idempotent write of parsed rows; creates mandis/commodities on first sight. Returns rows written."""
     if not rows:
         return 0
     obs = observed_at or datetime.now(timezone.utc)
     with database.SessionLocal() as s:
-        src = s.scalar(select(DataSource).where(DataSource.name == SOURCE))
+        src = s.scalar(select(DataSource).where(DataSource.name == source))
         if not src:
-            src = DataSource(name=SOURCE, kind="government_api", url=f"https://data.gov.in/resource/{RESOURCE}",
+            src = DataSource(name=source, kind=kind, url=source_url or f"https://data.gov.in/resource/{RESOURCE}",
                              licence_note="Government Open Data License - India")
             s.add(src)
             s.flush()

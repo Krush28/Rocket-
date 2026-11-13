@@ -24,5 +24,7 @@ def series(crop: str = Query(max_length=120), mandi_key: str = Query(max_length=
     if df.empty:
         raise HTTPException(404, "no prices for this crop at this mandi")
     df = df.tail(days)
-    return {"label": MD.source_label(), "verification": MD.verification(), "unit": "Rs/quintal",
+    syn = df["synthetic"].tolist() if "synthetic" in df.columns else [False] * len(df)
+    return {"label": MD.source_label(), "verification": MD.verification(), "unit": "Rs/quintal", "synthetic": syn,
+            "history_note": MD.DEMO_HISTORY if any(syn) else None,
             "history": [[str(d.date()), float(v)] for d, v in zip(df["date"], df["modal"])], "forecast": F.forecast(crop, mandi_key)}

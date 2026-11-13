@@ -52,3 +52,10 @@ def refresh(x_admin_token: str | None = Header(default=None)):
         raise HTTPException(400, "DATA_GOV_API_KEY is not set")
     F.forecast.cache_clear()
     return adapters.refresh()
+
+
+@router.get("/jobs")
+def jobs():
+    """Background import status (Mandi API refresh): read-only, no token needed."""
+    from app.services.adapters import mandi_api
+    return {"mandi_api": mandi_api.status()}

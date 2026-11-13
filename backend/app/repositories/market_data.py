@@ -1,24 +1,29 @@
 """One place agents read mandis and prices from. LIVE when mandi_prices has any row (real data only, never padded with demo
 values); DEMO otherwise (Rocket's labelled synthetic series). Mandi key = "<market>, <district>, <state>" in LIVE mode."""
+import os
 import re
+import zlib
 from functools import lru_cache
 from datetime import datetime, timezone
 
+import numpy as np
 import pandas as pd
 from sqlalchemy import func, select
 
 from app.db import database
-from app.models import Commodity, Mandi, MandiPrice
+from app.models import Commodity, Mandi, MandiPrice, StatePriceHistory
 from app.services import demo_data as D
 from app.services.adapters import agmarknet_datagov as adapters
 
 LIVE_SOURCE = "data.gov.in Agmarknet daily price (official)"
 COLS = ["date", "modal", "min", "max", "arrivals_t"]
+HIST_DAYS = 3 * 365  # hybrid history length (forecasting needs >= 120 days; the gate backtests on it)
+DEMO_HISTORY = "DEMO HISTORY: real mandi prices + Mandi-API state averages, older days a seasonal backfill anchored to them"
 
 
 def clear() -> None:
     """Reads are cached for speed (a plan re-reads the same series many times); call after any price import or geocode."""
-    for f in (live, mandis_with_prices, series, crop_median, crop_catalogue):
+    for f in (live, mandis_with_prices, series, real_series, _state_hist, crop_median, crop_catalogue):
         f.cache_clear()
 
 
@@ -43,9 +48,67 @@ def mandis_with_prices(crop: str) -> list[dict]:
 
 @lru_cache(maxsize=4096)
 def series(crop: str, key: str) -> pd.DataFrame:
-    """Daily modal/min/max (Rs/quintal); median across varieties and grades per day. Empty frame if unknown."""
+    """Daily modal/min/max (Rs/quintal) used for trends and forecasting. LIVE: the mandi's real rows, extended to HIST_DAYS by
+    `_hybrid` (column `synthetic` marks every day that is not this mandi's own observation). Empty if the mandi has no real row."""
     if not live():
         return D.series(crop, key) if crop in D.CROPS and key in D.MANDIS else pd.DataFrame(columns=COLS)
+    real = real_series(crop, key)
+    if real.empty or os.getenv("KRISHIX_HYBRID_HISTORY", "1") == "0":
+        return real.assign(synthetic=False)
+    return _hybrid(crop, key, real)
+
+
+def real_only(df: pd.DataFrame) -> pd.DataFrame:
+    return df[~df["synthetic"]] if "synthetic" in df.columns else df
+
+
+@lru_cache(maxsize=512)
+def _state_hist(crop: str, state: str) -> pd.Series:
+    with database.SessionLocal() as s:
+        rows = s.execute(select(StatePriceHistory.price_date, StatePriceHistory.avg_modal)
+                         .where(StatePriceHistory.commodity_key == crop, StatePriceHistory.state == state)).all()
+    if not rows:
+        return pd.Series(dtype=float)
+    return pd.Series([r[1] for r in rows], index=pd.to_datetime([r[0] for r in rows])).sort_index()
+
+
+def _hybrid(crop: str, key: str, real: pd.DataFrame) -> pd.DataFrame:
+    """Real days stay exactly as observed. Other days: the state-average shape scaled to this mandi, then a seasonal + AR(1) series
+    (crop seasonality from services/crops.py) whose level is pinned to the real points (log-residual interpolation). Deterministic per key."""
+    from app.services import crops as CR
+    p = CR.params(crop)
+    rng = np.random.default_rng(zlib.crc32(f"{crop}|{key}".encode()))
+    end = real["date"].max()
+    idx = pd.date_range(end - pd.Timedelta(days=HIST_DAYS - 1), end, freq="D")
+    known = pd.Series(np.nan, index=idx)
+    known.loc[real["date"]] = real["modal"].values
+    is_real = known.notna().values
+    sh = _state_hist(crop, key.rsplit(", ", 1)[-1])
+    if len(sh):
+        both = sh.reindex(real["date"]).values
+        ok = ~np.isnan(both)
+        ratio = float(np.median(real["modal"].values[ok] / both[ok])) if ok.any() else float(real["modal"].iloc[-1] / sh.iloc[-1])
+        fill = (sh * ratio).reindex(idx)
+        known = known.where(known.notna(), fill)
+    t = idx.dayofyear.values
+    ar = np.zeros(len(idx))
+    for i in range(1, len(idx)):
+        ar[i] = 0.97 * ar[i - 1] + rng.normal(0, p["vol"])
+    synth = p["amp"] * np.sin(2 * np.pi * (t - p.get("phase", 0)) / 365) + ar + np.cumsum(rng.normal(0, p["vol"] / 6, len(idx)))
+    k = known.notna().values
+    resid = np.interp(np.arange(len(idx)), np.flatnonzero(k), np.log(known.values[k]) - synth[k])
+    modal = np.where(k, known.values, np.exp(synth + resid))
+    spread = float(np.clip(np.nanmedian((real["max"] - real["min"]) / real["modal"]) / 2, 0.05, 0.4)) if len(real) else 0.15
+    out = pd.DataFrame({"date": idx, "modal": np.round(modal), "min": np.round(modal * (1 - spread)), "max": np.round(modal * (1 + spread)),
+                        "arrivals_t": np.nan, "synthetic": ~is_real})
+    r = real.set_index("date")
+    out.loc[is_real, ["min", "max"]] = r.loc[idx[is_real], ["min", "max"]].values
+    return out
+
+
+@lru_cache(maxsize=4096)
+def real_series(crop: str, key: str) -> pd.DataFrame:
+    """Only this mandi's own observed rows (median across varieties/grades per day)."""
     parts = key.rsplit(", ", 2)
     if len(parts) != 3:
         return pd.DataFrame(columns=COLS)

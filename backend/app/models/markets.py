@@ -1,7 +1,7 @@
 """Commodity catalogue, mandis, wholesale prices and their data provenance."""
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Date, DateTime, Float, ForeignKey, Index, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -87,3 +87,29 @@ class NameTranslation(Base):
     __tablename__ = "name_translations"
     src: Mapped[str] = mapped_column(String(200), primary_key=True)  # lowercased English name
     dev: Mapped[str] = mapped_column(String(200))
+
+
+class StatePriceHistory(Base):
+    """State-average daily price per crop from the Mandi API (`/prices/history` without market). Shapes the hybrid history."""
+    __tablename__ = "state_price_history"
+    __table_args__ = (UniqueConstraint("state", "commodity_key", "price_date"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    state: Mapped[str] = mapped_column(String(80))
+    commodity_key: Mapped[str] = mapped_column(String(160))
+    price_date: Mapped[date] = mapped_column(Date)
+    avg_modal: Mapped[float] = mapped_column(Float)
+    avg_min: Mapped[float | None] = mapped_column(Float)
+    avg_max: Mapped[float | None] = mapped_column(Float)
+    data_points: Mapped[int] = mapped_column(default=0)
+
+
+class ForecastCache(Base):
+    """Full backtested forecast (all models) per crop x mandi x last price date. Computed in the background; plans read it instantly."""
+    __tablename__ = "forecast_cache"
+    __table_args__ = (UniqueConstraint("crop", "mandi", "last_date", "version"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    crop: Mapped[str] = mapped_column(String(160))
+    mandi: Mapped[str] = mapped_column(String(300))
+    last_date: Mapped[date] = mapped_column(Date)
+    version: Mapped[str] = mapped_column(String(20))
+    payload: Mapped[dict] = mapped_column(JSON)

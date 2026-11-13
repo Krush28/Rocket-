@@ -25,7 +25,9 @@ def assess(st: dict) -> dict:
     elif age > 3:
         score -= 0.10; neg.append(f"prices are up to {age} days old")
 
-    hist = min((len(MD.series(crop, m)) for m in usable), default=0)
+    hist = min((len(MD.real_only(MD.series(crop, m))) for m in usable), default=0)
+    if any(len(MD.real_only(MD.series(crop, m))) < len(MD.series(crop, m)) for m in usable):
+        neg.append("forecast history is partly a demo backfill")
     if hist >= 365:
         score += 0.15; pos.append(f"{hist} days of price history")
     elif hist >= 120:

@@ -26,6 +26,8 @@ def _warm():
     tts.warm()
     from app.services import llm
     llm.warm()
+    from app.services.adapters import mandi_api  # live prices + history from the keyless Mandi API, refreshed every 6 h (resumable)
+    mandi_api.start_background()
 
 
 @app.get("/health")

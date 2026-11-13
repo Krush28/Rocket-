@@ -91,6 +91,7 @@ You do **not** need the heavy assets to build most features:
 5. This PRD (§3/§4/§5/§7) and STRUCTURE.md are updated in the same commit.
 
 ## 7. Changelog
+- **2026-11-14 (b)** — Live prices from the keyless Mandi API (5 states, 25 crops, 6-hourly job); hybrid 3-year history labelled DEMO HISTORY so forecasts and hold/sell work; forecast v2 with SARIMA + gradient boosting computed in the background (`forecast_cache`). Migrations 0003 (state_price_history), 0004 (forecast_cache).
 - **2026-11-14** — Any crop: `services/crops.py` (75 crops with hi/mr names and spoken aliases; category shelf life / hold limits for the rest); spoilage and hold now work for every crop.
 - **2026-11-13 (c)** — Started the one-shot end-to-end build: plan in `docs/BUILD-PLAN.md`; Mandi API (keyless) probed.
 - **2026-11-13 (b)** — Reset option: a visible "start over" button (en/hi/mr, with a confirm), voice "cancel" that drops unfinished steps without losing finished crops, unfinished intake expiring after 30 minutes, and reload clearing pending questions. 5 new tests.

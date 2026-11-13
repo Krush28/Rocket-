@@ -30,7 +30,7 @@ backend/
   app/db/database.py      engine, SessionLocal, Base
   app/models/             core.py (users, farmer profile/inventory, conversation sessions, geocode cache, audit)
                           markets.py (data sources, commodities, mandis, mandi_prices, places, name_translations)
-  migrations/versions/    0001 phase-1 schema (+PostGIS geog) · 0002 gazetteer (places, name_translations)
+  migrations/versions/    0001 phase-1 schema (+PostGIS geog) · 0002 gazetteer (places, name_translations) · 0003 state_price_history · 0004 forecast_cache
   app/repositories/       market_data.py (LIVE DB vs DEMO, cached reads; clear() after imports)
                           farmers.py (device memory) · sessions.py (conversation state)
   app/conversation/       profile_agent.py (extract slots, yes/no, language detect, units, NAMES)
@@ -40,7 +40,7 @@ backend/
                           set_location, assumptions, orders; replies dict R in en/hi/mr; STATE = in-memory cache)
   app/services/           crops.py (every crop: hi/mr names, aliases, shelf life, seasonality) · costs.py (ALL money maths) · spoilage.py · confidence.py · logistics.py (OR-Tools)
                           geocoding.py (gazetteer first, Nominatim cached, fuzzy last) · gazetteer.py (GeoNames load/find/dev_name/romanize)
-                          adapters/agmarknet_datagov.py (CSV/API import) · orders.py (demo order state machine, SQLite)
+                          adapters/agmarknet_datagov.py (CSV/API import) · adapters/mandi_api.py (keyless Mandi API, background job) · orders.py (demo order state machine, SQLite)
                           llm.py (Ollama, optional) · tts.py (Piper) · speech.py (faster-whisper) · demo_data.py (DEMO only) · geo.py
   app/ml/forecast.py      baselines, ETS, lag-Ridge + backtest gate
   app/api/routes/         agent · chat (/api/chat, /api/plan) · market (meta, forecast, series) · orders · admin (import/refresh, X-Admin-Token) · voice
