@@ -137,7 +137,6 @@ def test_orders_flow_and_guards(tmp_path, monkeypatch):
 
 def test_live_adapter_parse_and_live_mode(tmp_path, monkeypatch):
     from app.services.adapters import agmarknet_datagov as adapters
-    monkeypatch.setattr(adapters, "DB", tmp_path / "live.db")
     assert not adapters.live_mode()
     good = {"state": "Maharashtra", "district": "Nashik", "market": "Lasalgaon", "commodity": "Onion", "variety": "Other", "grade": "FAQ",
             "arrival_date": "12/11/2026", "min_price": "1500", "max_price": "2100", "modal_price": "1900"}
@@ -162,10 +161,9 @@ def test_live_adapter_parse_and_live_mode(tmp_path, monkeypatch):
 
 def test_import_csv_backfill(tmp_path, monkeypatch):
     from app.services.adapters import agmarknet_datagov as adapters
-    monkeypatch.setattr(adapters, "DB", tmp_path / "live.db")
     f = tmp_path / "x.csv"
     f.write_text("Market,State,Commodity,Arrival_Date,Min Price,Max Price,Modal Price\nPune,Maharashtra,Onion,10/11/2026,1500,2000,1800\nPune,Maharashtra,Onion,11/11/2026,1500,2000,0\n")
-    assert adapters.import_csv(str(f)) == 1  # zero-price row dropped
+    assert adapters.import_csv(str(f))["rows_upserted"] == 1  # zero-price row dropped
     (tmp_path / "bad.csv").write_text("a,b\n1,2\n")
     with pytest.raises(ValueError):
         adapters.import_csv(str(tmp_path / "bad.csv"))
@@ -173,18 +171,16 @@ def test_import_csv_backfill(tmp_path, monkeypatch):
 
 def test_import_csv_agmarknet_style_headers(tmp_path, monkeypatch):
     from app.services.adapters import agmarknet_datagov as adapters
-    monkeypatch.setattr(adapters, "DB", tmp_path / "live.db")
     f = tmp_path / "a.csv"
     f.write_text("State Name,District Name,Market Name,Variety,Group,Commodity,Grade,Min Price (Rs./Quintal),Max Price (Rs./Quintal),Modal Price (Rs./Quintal),Price Date\n"
                  "Maharashtra,Nashik,Lasalgaon,Red,Vegetables,Onion,FAQ,1500,2100,1900,13 Nov 2026\n")
-    assert adapters.import_csv(str(f)) == 1
+    assert adapters.import_csv(str(f))["rows_upserted"] == 1
     assert adapters.live_df("onion", "Lasalgaon APMC")["modal"].iloc[0] == 1900
 
 
 def test_csv_watcher_imports_once_then_again_on_new_file(tmp_path, monkeypatch):
     import os
     from app.services.adapters import agmarknet_datagov as adapters
-    monkeypatch.setattr(adapters, "DB", tmp_path / "live.db")
     d = tmp_path / "dl"; d.mkdir()
     f = d / "9ef84268-d588-465a-a308-a864a43d0070.csv"
     f.write_text("State,District,Market,Commodity,Variety,Grade,Arrival_Date,Min_x0020_Price,Max_x0020_Price,Modal_x0020_Price\nMaharashtra,Nashik,Lasalgaon APMC,Onion,Red,FAQ,13/11/2026,1500,2100,1900\n")

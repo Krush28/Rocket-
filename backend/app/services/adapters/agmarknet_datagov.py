@@ -1,18 +1,21 @@
-"""Live data adapter: official data.gov.in Agmarknet daily mandi prices (needs your free DATA_GOV_API_KEY).
-Rows are snapshotted into SQLite so history accumulates day by day; `import_csv` backfills history from an Agmarknet/CEDA export.
+"""Live data adapter: official data.gov.in Agmarknet daily mandi prices (API with DATA_GOV_API_KEY, or the portal's CSV download).
+Rows go into mandi_prices (verification_status="official") so history accumulates day by day; `import_csv` also backfills exports.
 No captcha bypass, no scraping. In live mode mandis with no live rows are EXCLUDED (never filled with demo values)."""
 import os
-import sqlite3
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import httpx
 import pandas as pd
+from sqlalchemy import exists, select
 
-DB = Path(__file__).resolve().parents[3] / "live_prices.db"
-RESOURCE = os.getenv("DATA_GOV_RESOURCE", "9ef84268-d588-465a-a308-a864a43d0070")  # current daily prices (id unverified; override via env)
+from app.db import database
+from app.models import AuditLog, Commodity, DataSource, Mandi, MandiPrice
+
+RESOURCE = os.getenv("DATA_GOV_RESOURCE", "9ef84268-d588-465a-a308-a864a43d0070")  # "Current Daily Price ... (Mandi)", verified 2026-11-13
 URL = "https://api.data.gov.in/resource/{}"
+SOURCE = "data.gov.in 9ef84268 (Agmarknet daily prices)"
 COMMODITY = {"onion": "Onion", "tomato": "Tomato", "potato": "Potato"}
 STATES = ["Maharashtra", "Goa", "Karnataka"]
 ALIASES = {"Lasalgaon APMC": ["lasalgaon"], "Pimpalgaon Baswant APMC": ["pimpalgaon"], "Nashik APMC": ["nashik", "nasik"],
@@ -32,42 +35,81 @@ def api_key() -> str | None:
     return None
 
 
-def _con():
-    c = sqlite3.connect(DB)
-    c.execute("""create table if not exists prices(market text, state text, district text, commodity text, variety text, grade text,
-                 date text, min_price real, max_price real, modal_price real, fetched text,
-                 primary key(market, state, commodity, variety, grade, date))""")
-    c.execute("create table if not exists imported(path text, mtime real, rows int, at text, primary key(path, mtime))")
-    return c
-
-
 def live_mode() -> bool:
-    if not DB.exists():
-        return False
-    with _con() as c:
-        return c.execute("select count(*) from prices").fetchone()[0] > 0
+    with database.SessionLocal() as s:
+        return bool(s.scalar(select(exists().where(MandiPrice.id.isnot(None)))))
+
+
+def commodity_key(name: str) -> str:
+    return " ".join(str(name).lower().split())
+
+
+def _txt(v) -> str:
+    return "" if v is None or (isinstance(v, float) and pd.isna(v)) else str(v).strip()
 
 
 def parse_record(r: dict) -> dict | None:
     """One API record -> normalised row, or None if unusable (missing/NA/non-positive prices, bad date)."""
     try:
         modal = float(r["modal_price"])
-        date = datetime.strptime(str(r["arrival_date"]), "%d/%m/%Y").date().isoformat()
+        d = datetime.strptime(str(r["arrival_date"]), "%d/%m/%Y").date().isoformat()
         lo, hi = float(r.get("min_price") or modal), float(r.get("max_price") or modal)
     except (KeyError, ValueError, TypeError):
         return None
-    if modal <= 0:
+    if not modal > 0 or pd.isna(lo) or pd.isna(hi):
         return None
-    return dict(market=r.get("market", ""), state=r.get("state", ""), district=r.get("district", ""), commodity=str(r.get("commodity", "")).lower(),
-                variety=r.get("variety", ""), grade=r.get("grade", ""), date=date, min_price=lo, max_price=hi, modal_price=modal)
+    name = _txt(r.get("commodity"))
+    return dict(market=_txt(r.get("market")), state=_txt(r.get("state")), district=_txt(r.get("district")), commodity=commodity_key(name),
+                commodity_name=name, variety=_txt(r.get("variety")), grade=_txt(r.get("grade")), date=d, min_price=lo, max_price=hi, modal_price=modal)
 
 
-def upsert(rows: list[dict]) -> int:
-    now = datetime.now(timezone.utc).isoformat()
-    with _con() as c:
-        c.executemany("insert or replace into prices values(:market,:state,:district,:commodity,:variety,:grade,:date,:min_price,:max_price,:modal_price,:fetched)",
-                      [{**r, "fetched": now} for r in rows])
-    return len(rows)
+def _insert(s):
+    if s.bind.dialect.name == "postgresql":
+        from sqlalchemy.dialects.postgresql import insert
+    else:
+        from sqlalchemy.dialects.sqlite import insert
+    return insert
+
+
+def upsert(rows: list[dict], observed_at: datetime | None = None) -> int:
+    """Idempotent write of parsed rows; creates mandis/commodities on first sight. Returns rows written."""
+    if not rows:
+        return 0
+    obs = observed_at or datetime.now(timezone.utc)
+    with database.SessionLocal() as s:
+        src = s.scalar(select(DataSource).where(DataSource.name == SOURCE))
+        if not src:
+            src = DataSource(name=SOURCE, kind="government_api", url=f"https://data.gov.in/resource/{RESOURCE}",
+                             licence_note="Government Open Data License - India")
+            s.add(src)
+            s.flush()
+        com = {c.key: c.id for c in s.scalars(select(Commodity))}
+        man = {(m.name, m.district, m.state): m.id for m in s.scalars(select(Mandi))}
+        for r in rows:
+            if r["commodity"] not in com:
+                c = Commodity(name=r.get("commodity_name") or r["commodity"].title(), key=r["commodity"])
+                s.add(c)
+                s.flush()
+                com[c.key] = c.id
+            mk = (r["market"], r["district"], r["state"])
+            if mk not in man:
+                m = Mandi(name=mk[0], district=mk[1], state=mk[2])
+                s.add(m)
+                s.flush()
+                man[mk] = m.id
+        vals = {}
+        for r in rows:  # last row wins within one batch, same as the unique key
+            k = (man[(r["market"], r["district"], r["state"])], com[r["commodity"]], r["variety"], r["grade"], date.fromisoformat(r["date"]))
+            vals[k] = dict(mandi_id=k[0], commodity_id=k[1], variety=k[2], grade=k[3], price_date=k[4], min_price=r["min_price"],
+                           max_price=r["max_price"], modal_price=r["modal_price"], source_id=src.id, observed_at=obs, verification_status="official")
+        ins = _insert(s)
+        batch = list(vals.values())
+        for i in range(0, len(batch), 1000):
+            stmt = ins(MandiPrice).values(batch[i:i + 1000])
+            s.execute(stmt.on_conflict_do_update(index_elements=["mandi_id", "commodity_id", "variety", "grade", "price_date"],
+                                                 set_={c: stmt.excluded[c] for c in ("min_price", "max_price", "modal_price", "observed_at")}))
+        s.commit()
+    return len(vals)
 
 
 def _get(key: str, params: dict, tries: int = 3):
@@ -116,9 +158,9 @@ def refresh(crops=None, states=None) -> dict:
     return {"rows_upserted": n, "errors": errs}
 
 
-def import_csv(path: str) -> int:
-    """Backfill from an Agmarknet/CEDA CSV export. Needs columns for market, state, commodity, date and modal price."""
-    df = pd.read_csv(path)
+def import_csv(path: str) -> dict:
+    """Backfill from a data.gov.in / Agmarknet / CEDA CSV. Needs market, state, commodity, date and modal price columns."""
+    df = pd.read_csv(path, dtype=str, keep_default_na=False)
     low = {c.lower().strip(): c for c in df.columns}
 
     def pick(*names):  # exact header first, then "starts with" (e.g. "Modal Price (Rs./Quintal)")
@@ -129,25 +171,37 @@ def import_csv(path: str) -> int:
              gr=pick("grade"), dist=pick("district", "district name"))
     if any(m[k] is None for k in ("market", "state", "commodity", "date", "md")):
         raise ValueError(f"CSV is missing required columns; found {list(df.columns)}")
-    rows = []
-    for _, r in df.iterrows():
-        rec = parse_record({"market": r[m["market"]], "state": r[m["state"]], "district": r[m["dist"]] if m["dist"] else "", "commodity": r[m["commodity"]],
-                            "variety": r[m["var"]] if m["var"] else "", "grade": r[m["gr"]] if m["gr"] else "",
-                            "arrival_date": pd.to_datetime(r[m["date"]], dayfirst=True).strftime("%d/%m/%Y"),
-                            "min_price": r[m["mn"]] if m["mn"] else None, "max_price": r[m["mx"]] if m["mx"] else None, "modal_price": r[m["md"]]})
-        if rec:
-            rows.append(rec)
-    return upsert(rows)
+    dates = pd.to_datetime(df[m["date"]], dayfirst=True, errors="coerce", format="mixed")
+    col = lambda k: df[m[k]] if m[k] else pd.Series([""] * len(df))  # noqa: E731
+    recs = [parse_record({"market": a, "state": b, "district": c, "commodity": d, "variety": e, "grade": f,
+                          "arrival_date": dt.strftime("%d/%m/%Y") if not pd.isna(dt) else "", "min_price": g or None, "max_price": h or None, "modal_price": i})
+            for a, b, c, d, e, f, dt, g, h, i in zip(col("market"), col("state"), col("dist"), col("commodity"), col("var"), col("gr"),
+                                                     dates, col("mn"), col("mx"), col("md"))]
+    rows = [r for r in recs if r]
+    obs = datetime.fromtimestamp(Path(path).stat().st_mtime, timezone.utc)
+    n = upsert(rows, observed_at=obs)
+    return {"rows_read": len(df), "rows_upserted": n, "rows_skipped": len(df) - len(rows)}
 
 
 def watch_dirs() -> list[Path]:
-    """Folders scanned for the daily data.gov.in CSV (override with KRISHIMITRA_WATCH_DIRS, separated by ';')."""
-    env = os.getenv("KRISHIMITRA_WATCH_DIRS")
+    """Folders scanned for the daily data.gov.in CSV (override with KRISHIX_WATCH_DIRS, separated by ';')."""
+    env = os.getenv("KRISHIX_WATCH_DIRS")
     if env:
         return [Path(x) for x in env.split(";") if x.strip()]
     dl = Path.home() / "Downloads"
     root = Path(__file__).resolve().parents[4]
-    return list(dict.fromkeys([dl, dl / "mandiproject", root, root / "data" / "raw"]))
+    return list(dict.fromkeys([dl, dl / "mandiproject", root / "data" / "raw", Path("/data/raw")]))
+
+
+def _seen(path: str, mtime: float) -> bool:
+    with database.SessionLocal() as s:
+        return bool(s.scalar(select(exists().where(AuditLog.action == "csv_import", AuditLog.entity_id == f"{mtime}", AuditLog.entity == path))))
+
+
+def _log_import(path: str, mtime: float, report: dict):
+    with database.SessionLocal() as s:
+        s.add(AuditLog(actor="system", action="csv_import", entity=path, entity_id=f"{mtime}", detail=report))
+        s.commit()
 
 
 def scan_and_import(dirs=None, pattern: str = "9ef84268*.csv") -> list[dict]:
@@ -158,38 +212,35 @@ def scan_and_import(dirs=None, pattern: str = "9ef84268*.csv") -> list[dict]:
             continue
         for f in sorted(d.glob(pattern)):
             mt = f.stat().st_mtime
-            with _con() as c:
-                if c.execute("select 1 from imported where path=? and mtime=?", (str(f), mt)).fetchone():
-                    continue
+            if _seen(str(f), mt):
+                continue
             try:
-                n = import_csv(str(f))
+                rep = import_csv(str(f))
             except Exception as e:  # unreadable/partial download: try again next scan
                 done.append({"file": str(f), "error": str(e)})
                 continue
-            with _con() as c:
-                c.execute("insert or replace into imported values(?,?,?,?)", (str(f), mt, n, datetime.now(timezone.utc).isoformat()))
-            done.append({"file": str(f), "rows": n})
+            _log_import(str(f), mt, rep)
+            done.append({"file": str(f), "rows": rep["rows_upserted"]})
     return done
 
 
 def last_import() -> dict | None:
-    if not DB.exists():
-        return None
-    with _con() as c:
-        r = c.execute("select path, rows, at from imported order by at desc limit 1").fetchone()
-    return {"file": Path(r[0]).name, "rows": r[1], "at": r[2]} if r else None
+    with database.SessionLocal() as s:
+        r = s.scalars(select(AuditLog).where(AuditLog.action == "csv_import").order_by(AuditLog.id.desc())).first()
+    return {"file": Path(r.entity).name, "rows": (r.detail or {}).get("rows_upserted"), "at": r.at.isoformat() if r.at else None} if r else None
 
 
 def live_df(crop: str, mandi: str) -> pd.DataFrame:
-    """Daily series for one of our mandis from live rows (median across varieties/grades per day). Empty if none."""
+    """Daily series for one of Rocket's demo-named mandis from live rows (median across varieties/grades). Empty if none.
+    shortcut: alias match on Rocket's 9 mandi names; replaced by repositories.market_data for all-India mandis."""
     from app.services.demo_data import MANDIS
     empty = pd.DataFrame(columns=["date", "modal", "min", "max", "arrivals_t"])
-    if not DB.exists():
-        return empty
-    with _con() as c:
-        rows = c.execute("select market,date,min_price,max_price,modal_price from prices where commodity=? and state=?", (crop, MANDIS[mandi][2])).fetchall()
+    with database.SessionLocal() as s:
+        rows = s.execute(select(Mandi.name, MandiPrice.price_date, MandiPrice.min_price, MandiPrice.max_price, MandiPrice.modal_price)
+                         .join(Mandi, Mandi.id == MandiPrice.mandi_id).join(Commodity, Commodity.id == MandiPrice.commodity_id)
+                         .where(Commodity.key == crop, Mandi.state == MANDIS[mandi][2])).all()
     al = ALIASES.get(mandi, [mandi.split()[0].lower()])
-    df = pd.DataFrame([r for r in rows if any(a in r[0].lower() for a in al)], columns=["market", "date", "min", "max", "modal"])
+    df = pd.DataFrame([tuple(r) for r in rows if any(a in r[0].lower() for a in al)], columns=["market", "date", "min", "max", "modal"])
     if df.empty:
         return empty
     df["date"] = pd.to_datetime(df["date"])
@@ -198,10 +249,10 @@ def live_df(crop: str, mandi: str) -> pd.DataFrame:
     return g.sort_values("date").reset_index(drop=True)
 
 
-if __name__ == "__main__":  # python -m app.adapters refresh | import <file.csv>
+if __name__ == "__main__":  # python -m app.services.adapters.agmarknet_datagov refresh | import <file.csv>
     if len(sys.argv) > 1 and sys.argv[1] == "refresh":
         print(refresh())
     elif len(sys.argv) > 2 and sys.argv[1] == "import":
-        print({"rows_upserted": import_csv(sys.argv[2])})
+        print(import_csv(sys.argv[2]))
     else:
-        print("usage: python -m app.adapters refresh | import <file.csv>")
+        print("usage: python -m app.services.adapters.agmarknet_datagov refresh | import <file.csv>")
