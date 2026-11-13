@@ -15,7 +15,7 @@ export type Plan = {
   sell_vs_hold: { decision: Decision; holds?: Option[]; skipped?: { days: number; why: string }[] } | null;
   storage: { name: string; distance_km: number; rate_qtl_day: number; availability: string; verification: string; est_cost_7d: number; cost_label: string }[] | null;
   transport: { destination: string; distance_km: number; options: { transporter: string; vehicle: string; total: number; per_qtl: number; quote_status: string }[] }[] | null;
-  recommendation: { best: Option; decision: Decision; explanation: string; reconsider_on: string | null } | null;
+  recommendation: { best?: Option; decision?: Decision; explanation?: string; reconsider_on?: string | null; reason?: string } | null;
   trace: { agent: string; status: string; error?: string }[];
 };
 export type Profile = { crop: string; qty_kg: number; original_qty: number; original_unit: string; location: { name: string }; ready: boolean; can_store: boolean };
@@ -42,5 +42,7 @@ export async function transcribe(audio: Blob): Promise<string> {
   fd.append("file", audio, "recording.webm");
   const r = await fetch(`${API}/api/voice/transcribe`, { method: "POST", body: fd });
   if (!r.ok) throw new Error("Voice typing is not available here. Please type instead.");
-  return ((await r.json()).text as string) || "";
+  const said = (((await r.json()).transcript as string) || "").trim(); // backend: services/speech.py returns {transcript, ...}
+  if (!said) throw new Error("I could not hear that. Please try again or type.");
+  return said;
 }

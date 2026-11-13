@@ -194,6 +194,8 @@ def _turn(s: dict, text: str, lang: str | None, db) -> dict:
     s["lang"] = lang or detect_lang(text, s["lang"])
     L = s["lang"]
     s["history"].append(("farmer", text))
+    if s["state"] == "confirmed":  # already confirmed (e.g. a client retry): no new market run; start a new lot for that
+        return _reply(s, START[L])
     if first or (not text and not s["slots"]):
         s["awaiting"] = "crop"
         return _reply(s, GREET[L] + Q["crop"][L])
@@ -204,7 +206,7 @@ def _turn(s: dict, text: str, lang: str | None, db) -> dict:
             s["slots"].update(found)
             s["state"] = "collecting"
         elif yn is True:
-            s["state"] = "confirmed"
+            s["state"], s["awaiting"] = "confirmed", None
             return _reply(s, START[L], done=True)
         else:
             s["state"] = "collecting"

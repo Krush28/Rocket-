@@ -6,7 +6,7 @@ import { t, type Lang } from "@/lib/i18n";
 import { listen, speak } from "@/lib/speech";
 
 type Msg = { who: "farmer" | "assistant"; text: string };
-const newId = () => "kx" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const newId = () => crypto.randomUUID(); // the session id is the only key to this farmer's profile: keep it unguessable
 const EXAMPLES = ["200 quintal onion near Niphad", "1000 kg tomato near Ponda, Goa"];
 
 export default function Assistant({ onConfirmed }: { onConfirmed: (r: ChatReply, lang: Lang) => void }) {

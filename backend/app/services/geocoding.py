@@ -6,12 +6,14 @@ import time
 
 import httpx
 from sqlalchemy import select, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models import GeocodeCache, Mandi
 
 MIN_INTERVAL = 1.0
+MAX_QUERY = 200  # geocode_cache.query is String(300)
 UA = "KRISHI-X/0.1 (mandi price intelligence; dev)"
 _last = 0.0
 SUFFIX = re.compile(r"\b(apmc|a\.p\.m\.c\.?|mandi|market yard|market|\(f&v\)|f&v|\(.*?\))", re.I)
@@ -45,17 +47,24 @@ def _lookup(db: Session, query: str, client: httpx.Client | None):
         if own:
             client.close()
     if not res:
-        db.add(GeocodeCache(query=key, status="not_found"))
-        db.commit()
+        _cache(db, GeocodeCache(query=key, status="not_found"))
         return ("miss", None)
     lat, lon = float(res[0]["lat"]), float(res[0]["lon"])
-    db.add(GeocodeCache(query=key, lat=lat, lon=lon, display_name=res[0].get("display_name"), status="approximate"))
-    db.commit()
+    _cache(db, GeocodeCache(query=key, lat=lat, lon=lon, display_name=(res[0].get("display_name") or "")[:400], status="approximate"))
     return ("hit", {"name": query.strip(), "lat": lat, "lon": lon, "status": "approximate"})
 
 
+def _cache(db: Session, row: GeocodeCache):
+    """A cache write must never fail the farmer's turn (e.g. a concurrent insert of the same query)."""
+    try:
+        db.add(row)
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+
 def geocode(db: Session, query: str, *, client: httpx.Client | None = None) -> dict | None:
-    if not query or not query.strip():
+    if not query or not query.strip() or len(query) > MAX_QUERY:  # a whole paragraph is not a place name
         return None
     return _lookup(db, query, client)[1]
 

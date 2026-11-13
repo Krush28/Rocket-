@@ -12,9 +12,9 @@ from app.repositories import market_data as MD
 
 app = FastAPI(title="KRISHI-X API", version="0.2.0",
               description="Voice-first mandi price intelligence: net realization, sell vs hold, storage and transport.")
+app.middleware("http")(ratelimit.middleware)  # registered first = inner layer, so CORS headers also reach 429 responses
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=False,
                    allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-Admin-Token"])
-app.middleware("http")(ratelimit.middleware)
 for r in (chat.router, market.router, orders.router, admin.router, voice.router):
     app.include_router(r, prefix="/api")
 

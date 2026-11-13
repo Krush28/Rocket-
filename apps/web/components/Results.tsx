@@ -15,8 +15,9 @@ export default function Results({ reply, lang, onRestart }: { reply: ChatReply; 
   const p = reply.plan!;
   const best = p.recommendation?.best;
   const decision = p.recommendation?.decision ?? p.sell_vs_hold?.decision;
-  const live = p.data_mode === "LIVE";
   const firstPrice = p.prices ? Object.values(p.prices)[0] : undefined;
+  const allStale = !!p.prices && Object.values(p.prices).every((x) => x.stale);
+  const live = p.data_mode === "LIVE" && !allStale;
   const failed = p.trace.find((x) => x.status === "failed");
   const [order, setOrder] = useState<string>("");
   const prof = p.profile;
@@ -29,7 +30,7 @@ export default function Results({ reply, lang, onRestart }: { reply: ChatReply; 
           <span className="font-display text-[22px] font-extrabold tracking-tight">KRISHI-X</span>
           <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-semibold tracking-wide ${live ? "bg-okbg text-forest" : "bg-note text-ink"}`}>
             <span className={`h-2 w-2 rounded-full ${live ? "bg-[#2E7D4F]" : "bg-mustard"}`} />
-            {live ? `LIVE PRICES · ${firstPrice?.latest_date ?? ""}` : "DEMO DATA"}
+            {live ? `LIVE PRICES · ${firstPrice?.latest_date ?? ""}` : allStale && p.data_mode === "LIVE" ? `OLD PRICES · ${firstPrice?.latest_date ?? ""}` : "DEMO DATA"}
           </span>
         </header>
 
@@ -49,7 +50,7 @@ export default function Results({ reply, lang, onRestart }: { reply: ChatReply; 
         ) : (
           <section className="rounded-[28px] bg-forest p-6 text-cream">
             <h1 className="font-display text-[24px] font-bold">Not enough information to recommend a sale</h1>
-            <p className="mt-2 text-[17px] text-sage">{failed?.error ?? "No feasible selling option was found."}</p>
+            <p className="mt-2 text-[17px] text-sage">{p.recommendation?.reason ?? failed?.error ?? "No feasible selling option was found."}</p>
           </section>
         )}
 

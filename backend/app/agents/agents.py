@@ -290,7 +290,13 @@ def _opt(kind, label, dest, o, km, when, conf, age, risks, downside=None, tr=Non
 def recommendation(st):
     opts = st["options"]
     if not opts:
-        return {"data": {"status": "insufficient_information"}, "meta": meta("recommendation", "estimate", error="no feasible options")}
+        prices = st.get("prices") or {}
+        if prices and all(p["stale"] for p in prices.values()):
+            latest = max(p["latest_date"] for p in prices.values())
+            reason = f"All nearby prices are older than {STALE_DAYS} days (latest {latest}). Import today's prices before deciding."
+        else:
+            reason = "No feasible selling option with fresh prices was found."
+        return {"data": {"status": "insufficient_information", "reason": reason}, "meta": meta("recommendation", "estimate", error=reason)}
     best, sh = opts[0], st["sellhold"]["decision"]
     near = st["net"]["reference_nearest_mandi_now"]
     top_mandi_now = next((o for o in opts if o["type"] == "mandi_now"), None)
