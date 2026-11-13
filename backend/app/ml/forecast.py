@@ -11,7 +11,7 @@ from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
-from app.services import demo_data
+from app.repositories import market_data as MD
 from app.core.meta import meta
 
 HORIZONS = [1, 3, 7, 15, 30]
@@ -113,8 +113,8 @@ def _evaluate(bt: pd.DataFrame) -> dict:
 
 @lru_cache(maxsize=256)
 def forecast(crop: str, mandi: str) -> dict:
-    df = demo_data.series(crop, mandi)
-    base_meta = meta(demo_data.source_label(crop, mandi), "live" if demo_data.live_mode_on() else "demo", updated=demo_data.last_updated(crop, mandi) if len(df) else None)
+    df = MD.series(crop, mandi)
+    base_meta = meta(MD.source_label(), MD.verification(), updated=MD.last_updated(crop, mandi) if len(df) else None)
     if len(df) < MIN_HISTORY:
         return {"status": "insufficient_data", "crop": crop, "mandi": mandi, "meta": {**base_meta, "error": f"only {len(df)} observations"}}
     s = daily(df)

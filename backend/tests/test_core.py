@@ -145,16 +145,24 @@ def test_live_adapter_parse_and_live_mode(tmp_path, monkeypatch):
     assert adapters.parse_record({**good, "modal_price": "0"}) is None
     adapters.upsert([adapters.parse_record(good), adapters.parse_record({**good, "variety": "Red", "modal_price": "2100"})])
     assert adapters.live_mode()
-    df = adapters.live_df("onion", "Lasalgaon APMC")
+    from app.db import database
+    from app.models import Mandi
+    from app.repositories import market_data as MD
+    with database.SessionLocal() as s:  # geocoded mandis only take part in ranking
+        m = s.query(Mandi).one()
+        m.lat, m.lon, m.geo_status = 20.14, 74.24, "approximate"
+        s.commit()
+    key = "Lasalgaon, Nashik, Maharashtra"
+    df = MD.series("onion", key)
     assert len(df) == 1 and df["modal"].iloc[0] == 2000  # median across varieties
-    assert adapters.live_df("onion", "Pune APMC").empty
+    assert MD.series("onion", "Pune APMC").empty
     # live mode never fills other mandis with demo values; short history -> explicit insufficient_data
     forecast.forecast.cache_clear()
-    assert forecast.forecast("onion", "Lasalgaon APMC")["status"] == "insufficient_data"
+    assert forecast.forecast("onion", key)["status"] == "insufficient_data"
     prof = {"crop": "onion", "qty_kg": 5000, "original_qty": 50, "original_unit": "quintal", "location": {"name": "Niphad", "lat": 20.08, "lon": 74.11},
             "ready": True, "can_store": False, "lang": "en"}
     p = orchestrator.run(prof)
-    assert p["data_mode"] == "LIVE" and [m["name"] for m in p["mandis"]] == ["Lasalgaon APMC"]
+    assert p["data_mode"] == "LIVE" and [m["name"] for m in p["mandis"]] == [key]
     assert p["recommendation"]["decision"]["action"] == "SELL NOW"  # no reliable forecast -> holding unsupported
     forecast.forecast.cache_clear()
 
@@ -175,7 +183,8 @@ def test_import_csv_agmarknet_style_headers(tmp_path, monkeypatch):
     f.write_text("State Name,District Name,Market Name,Variety,Group,Commodity,Grade,Min Price (Rs./Quintal),Max Price (Rs./Quintal),Modal Price (Rs./Quintal),Price Date\n"
                  "Maharashtra,Nashik,Lasalgaon,Red,Vegetables,Onion,FAQ,1500,2100,1900,13 Nov 2026\n")
     assert adapters.import_csv(str(f))["rows_upserted"] == 1
-    assert adapters.live_df("onion", "Lasalgaon APMC")["modal"].iloc[0] == 1900
+    from app.repositories import market_data as MD
+    assert MD.series("onion", "Lasalgaon, Nashik, Maharashtra")["modal"].iloc[0] == 1900
 
 
 def test_csv_watcher_imports_once_then_again_on_new_file(tmp_path, monkeypatch):

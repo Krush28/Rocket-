@@ -10,6 +10,7 @@ from app.ml import forecast as F
 from app.services import logistics
 from app.services.geo import road_km
 from app.core.meta import meta
+from app.repositories import market_data as MD
 
 DEMO_SRC = f"{D.DEMO} (synthetic)"
 STALE_DAYS = 7
@@ -30,25 +31,25 @@ def _rk(st, a, b):
 
 # 2 ---------------------------------------------------------------- Mandi Discovery
 def mandi_discovery(st):
-    farm, out = _farm(st), []
-    for name, (lat, lon, state, _) in D.MANDIS.items():
-        if not D.has_data(st["profile"]["crop"], name):
-            continue  # live mode: no data for this mandi -> excluded, never filled with demo values
-        km = _rk(st, farm, (lat, lon))
-        out.append({"name": name, "state": state, "lat": lat, "lon": lon, "distance_km": round(km, 1), "distance_label": "ESTIMATE (straight-line x road factor)",
-                    "schedule": "Mon-Sat (DEMO, unverified)", "trading_status": "unknown (not verified)"})
+    farm, crop, out = _farm(st), st["profile"]["crop"], []
+    # shortcut: Python haversine scan over at most ~1,700 mandis; move to PostGIS ST_DWithin on mandis.geog when it gets slow
+    for m in MD.mandis_with_prices(crop):  # live mode: only mandis with real rows, never padded with demo values
+        km = _rk(st, farm, (m["lat"], m["lon"]))
+        out.append({"name": m["key"], "market": m["name"], "district": m["district"], "state": m["state"], "lat": m["lat"], "lon": m["lon"],
+                    "distance_km": round(km, 1), "distance_label": "ESTIMATE (straight-line x road factor)",
+                    "schedule": "not verified" if MD.live() else "Mon-Sat (DEMO, unverified)", "trading_status": "unknown (not verified)"})
     out = sorted([m for m in out if m["distance_km"] <= 450], key=lambda m: m["distance_km"])[:7]
     if not out:
-        raise RuntimeError("no price data for this crop at any known mandi (run a data refresh)")
+        raise RuntimeError(f"no mandi with {crop} prices within 450 km of the farm")
     st["mandis"] = {m["name"]: m for m in out}
-    return {"data": out, "meta": meta(D.source_label(st["profile"]["crop"], out[0]["name"]) + "; coordinates approximate and unverified", "live" if D.live_mode_on() else "demo")}
+    return {"data": out, "meta": meta(MD.source_label() + "; coordinates approximate (geocoded)", MD.verification())}
 
 
 # 4 ---------------------------------------------------------------- Price Intelligence
 def price_intelligence(st):
     crop, out = st["profile"]["crop"], {}
     for name in st["mandis"]:
-        df = D.series(crop, name)
+        df = MD.series(crop, name)
         age = (date.today() - df["date"].iloc[-1].date()).days
         last3 = df["modal"].iloc[-3:]
         rec = {"mandi": name, "latest_date": str(df["date"].iloc[-1].date()), "age_days": age, "modal": float(last3.median()),
@@ -57,9 +58,12 @@ def price_intelligence(st):
                "trend_30d_pct": round((df["modal"].iloc[-1] / df["modal"].iloc[-30] - 1) * 100, 1) if len(df) >= 30 else None,
                "history": [[str(d.date()), float(v)] for d, v in zip(df["date"].iloc[-90:], df["modal"].iloc[-90:])],
                "stale": age > STALE_DAYS, "unit": "Rs/quintal", "price_basis": "median of last 3 observed modal prices",
-               "meta": meta(D.source_label(crop, name), "live" if D.live_mode_on() else "demo", updated=D.last_updated(crop, name))}
+               "meta": meta(MD.source_label(), MD.verification(), updated=MD.last_updated(crop, name))}
         out[name] = rec
     st["prices"] = out
+    if MD.live():  # no real retail source connected yet: show nothing rather than a markup guess on real prices
+        return {"data": {"mandis": out, "retail_context": []},
+                "meta": meta(MD.source_label(), "official", note="Retail prices: no verified source connected yet.")}
     # retail = consumer-market context ONLY, never a farmer price
     base = float(np.mean([p["avg7"] for p in out.values()]))
     retail = [{"city": c, "retail_price": round(base * (1 + mk)), "unit": "Rs/quintal-equivalent",
@@ -70,7 +74,7 @@ def price_intelligence(st):
 def market_activity(st):
     out = {}
     for name in st["mandis"]:
-        a = D.series(st["profile"]["crop"], name)["arrivals_t"]
+        a = MD.series(st["profile"]["crop"], name)["arrivals_t"]
         if a.isna().all():
             out[name] = {"arrivals_7d_t": None, "arrivals_30d_t": None, "change_pct": None, "signal": "arrivals not available from this source"}
             continue
@@ -78,12 +82,14 @@ def market_activity(st):
         ch = (r7 / r30 - 1) * 100
         out[name] = {"arrivals_7d_t": round(r7, 1), "arrivals_30d_t": round(r30, 1), "change_pct": round(ch),
                      "signal": "arrivals rising (price pressure down)" if ch > 10 else "arrivals falling (price support up)" if ch < -10 else "arrivals steady"}
+    if MD.live():
+        return {"data": out, "meta": meta(MD.source_label(), "official", note="This source publishes no arrivals.")}
     return {"data": out, "meta": meta(DEMO_SRC + " arrivals", "demo", note="Arrivals are demo values, not a live feed.")}
 
 
 # 3 ---------------------------------------------------------------- Buyer Discovery
 def buyer_discovery(st):
-    if D.live_mode_on():  # never mix invented offers with real prices
+    if MD.live():  # never mix invented offers with real prices
         return {"data": [], "meta": meta("none", "unverified", note="No real buyer offers are connected. Demo buyers are hidden in LIVE mode.")}
     crop, qtl, farm, out = st["profile"]["crop"], _qtl(st), _farm(st), []
     base = np.mean([p["avg7"] for p in st["prices"].values()])
@@ -163,6 +169,9 @@ def price_forecast(st):
     for n in cands:
         out[n] = F.forecast(crop, n)
     st["forecasts"] = out
+    if MD.live():
+        return {"data": out, "meta": meta(MD.source_label() + " + ETS / lag-Ridge / baselines", "official",
+                                          note="Forecasts need about 120 days of history per mandi; shown only when they beat baselines in backtests.")}
     return {"data": out, "meta": meta(DEMO_SRC + " + ETS / lag-Ridge / baselines", "demo",
                                       note="Backtested on a synthetic series: accuracy here says nothing about real mandis.")}
 
@@ -175,13 +184,16 @@ def sell_vs_hold(st):
         d = costs.decide(None, [])
         return {"data": {"decision": d}, "meta": meta("costs.py", "estimate", error="no fresh price")}
     dest, sell = rows[0]
-    cprops = D.CROPS[crop]
+    cprops = MD.crop_params(crop)
     fc = st["forecasts"].get(dest, {})
     holds, skipped = [], []
     farm, m = _farm(st), st["mandis"][dest]
     stores = [None] if prof["can_store"] else []
     stores += [w for w in st["storage"]]
     for days in HOLD_DAYS:
+        if cprops is None:
+            skipped.append({"days": days, "why": f"no shelf-life data for {crop}; hold not evaluated"})
+            continue
         if days > cprops["max_hold_days"]:
             skipped.append({"days": days, "why": f"{crop} shelf life is about {cprops['max_hold_days']} days"})
             continue
@@ -269,7 +281,7 @@ def _opt(kind, label, dest, o, km, when, conf, age, risks, downside=None, tr=Non
     return {"type": kind, "label": label, "destination": dest, "price": o["price"], "saleable_qty": o["saleable_qty"], "gross_revenue": o["gross_revenue"],
             "deductions": ded, "total_deductions": tot, "net": net, "net_downside": downside, "score": round(net - pen), "distance_km": km,
             "transport_cost": tr if tr is not None else ded.get("transport"), "expected_selling_time": when, "forecast_confidence": conf or "n/a (current price)",
-            "data_freshness_days": age, "expected_loss_qty": o["expected_loss_qty"], "risks": risks, "verification": "LIVE PRICE / ESTIMATED COSTS" if (D.live_mode_on() and kind != "direct_buyer") else "DEMO DATA / ESTIMATE",
+            "data_freshness_days": age, "expected_loss_qty": o["expected_loss_qty"], "risks": risks, "verification": "LIVE PRICE / ESTIMATED COSTS" if (MD.live() and kind != "direct_buyer") else "DEMO DATA / ESTIMATE",
             "hold_days": o.get("days")}
 
 

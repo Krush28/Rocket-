@@ -18,9 +18,6 @@ URL = "https://api.data.gov.in/resource/{}"
 SOURCE = "data.gov.in 9ef84268 (Agmarknet daily prices)"
 COMMODITY = {"onion": "Onion", "tomato": "Tomato", "potato": "Potato"}
 STATES = ["Maharashtra", "Goa", "Karnataka"]
-ALIASES = {"Lasalgaon APMC": ["lasalgaon"], "Pimpalgaon Baswant APMC": ["pimpalgaon"], "Nashik APMC": ["nashik", "nasik"],
-           "Pune APMC": ["pune"], "Vashi (Navi Mumbai) APMC": ["vashi", "navi mumbai"], "Kolhapur APMC": ["kolhapur"],
-           "Belagavi APMC": ["belgaum", "belagavi"], "Mapusa Market": ["mapusa"], "Margao Market": ["margao", "madgaon"]}
 
 
 def api_key() -> str | None:
@@ -230,23 +227,6 @@ def last_import() -> dict | None:
     return {"file": Path(r.entity).name, "rows": (r.detail or {}).get("rows_upserted"), "at": r.at.isoformat() if r.at else None} if r else None
 
 
-def live_df(crop: str, mandi: str) -> pd.DataFrame:
-    """Daily series for one of Rocket's demo-named mandis from live rows (median across varieties/grades). Empty if none.
-    shortcut: alias match on Rocket's 9 mandi names; replaced by repositories.market_data for all-India mandis."""
-    from app.services.demo_data import MANDIS
-    empty = pd.DataFrame(columns=["date", "modal", "min", "max", "arrivals_t"])
-    with database.SessionLocal() as s:
-        rows = s.execute(select(Mandi.name, MandiPrice.price_date, MandiPrice.min_price, MandiPrice.max_price, MandiPrice.modal_price)
-                         .join(Mandi, Mandi.id == MandiPrice.mandi_id).join(Commodity, Commodity.id == MandiPrice.commodity_id)
-                         .where(Commodity.key == crop, Mandi.state == MANDIS[mandi][2])).all()
-    al = ALIASES.get(mandi, [mandi.split()[0].lower()])
-    df = pd.DataFrame([tuple(r) for r in rows if any(a in r[0].lower() for a in al)], columns=["market", "date", "min", "max", "modal"])
-    if df.empty:
-        return empty
-    df["date"] = pd.to_datetime(df["date"])
-    g = df.groupby("date").agg(modal=("modal", "median"), min=("min", "min"), max=("max", "max")).reset_index()
-    g["arrivals_t"] = float("nan")  # this resource has no arrivals column
-    return g.sort_values("date").reset_index(drop=True)
 
 
 if __name__ == "__main__":  # python -m app.services.adapters.agmarknet_datagov refresh | import <file.csv>
