@@ -27,6 +27,7 @@ explanations; all numbers come from `costs.py`, `forecast.py`, `logistics.py`.
 2. Pull prices: `python -m app.adapters refresh` (or `POST /api/admin/refresh`). Optional backfill from an Agmarknet/CEDA export: `python -m app.adapters import file.csv`.
 3. Once any live row exists the app switches to LIVE mode automatically. Mandis with no live rows are excluded (never filled with demo values). Snapshots are stored in `backend/live_prices.db`.
 4. The daily feed has no arrivals column and only today's prices, so forecasts show "insufficient data" until about 120 days of history exist (accumulate daily or import a CSV). The resource id `9ef84268-...` is unverified: override with `DATA_GOV_RESOURCE`.
+Daily routine without an API key: click **Download** (CSV) on the data.gov.in resource page. The server watches `~/Downloads` (and `~/Downloads/mandiproject`; override with `KRISHIMITRA_WATCH_DIRS`) and auto-imports any new `9ef84268*.csv` within ~30 s. Force a check: `POST /api/admin/scan`. Put `DATA_GOV_API_KEY=...` in `backend/.env` (gitignored) to also auto-refresh every 3 h; the shared public sample key is rate-limited, use your own.
 Agmarknet 2.0's own API requires a captcha, so it is not scraped.
 
 ## What is real and what is not

@@ -20,11 +20,24 @@ ALIASES = {"Lasalgaon APMC": ["lasalgaon"], "Pimpalgaon Baswant APMC": ["pimpalg
            "Belagavi APMC": ["belgaum", "belagavi"], "Mapusa Market": ["mapusa"], "Margao Market": ["margao", "madgaon"]}
 
 
+def api_key() -> str | None:
+    """DATA_GOV_API_KEY from the environment, else from backend/.env (gitignored). Never logged."""
+    if os.getenv("DATA_GOV_API_KEY"):
+        return os.getenv("DATA_GOV_API_KEY")
+    env = Path(__file__).resolve().parents[1] / ".env"
+    if env.exists():
+        for line in env.read_text(encoding="utf-8").splitlines():
+            if line.strip().startswith("DATA_GOV_API_KEY="):
+                return line.split("=", 1)[1].strip().strip('"').strip("'") or None
+    return None
+
+
 def _con():
     c = sqlite3.connect(DB)
     c.execute("""create table if not exists prices(market text, state text, district text, commodity text, variety text, grade text,
                  date text, min_price real, max_price real, modal_price real, fetched text,
                  primary key(market, state, commodity, variety, grade, date))""")
+    c.execute("create table if not exists imported(path text, mtime real, rows int, at text, primary key(path, mtime))")
     return c
 
 
@@ -57,14 +70,31 @@ def upsert(rows: list[dict]) -> int:
     return len(rows)
 
 
+def _get(key: str, params: dict, tries: int = 3):
+    """GET with backoff: the API is slow and rate-limits (HTTP 429, and shared public keys hit it constantly)."""
+    import time
+    last = None
+    for i in range(tries):
+        try:
+            r = httpx.get(URL.format(RESOURCE), timeout=60, params={"api-key": key, **params})
+            if r.status_code != 429:
+                return r
+            last = r
+        except httpx.TimeoutException as e:
+            last = e
+        time.sleep(4 * 3 ** i)
+    if isinstance(last, Exception):
+        raise RuntimeError(f"data.gov.in timed out after {tries} tries")
+    return last
+
+
 def fetch(crop: str, state: str, key: str | None = None, page: int = 500, max_pages: int = 20) -> list[dict]:
-    key = key or os.getenv("DATA_GOV_API_KEY")
+    key = key or api_key()
     if not key:
         raise RuntimeError("DATA_GOV_API_KEY is not set (free key: data.gov.in -> My Account)")
     out, offset = [], 0
     for _ in range(max_pages):
-        r = httpx.get(URL.format(RESOURCE), timeout=30, params={"api-key": key, "format": "json", "offset": offset, "limit": page,
-                                                                "filters[state]": state, "filters[commodity]": COMMODITY[crop]})
+        r = _get(key, {"format": "json", "offset": offset, "limit": page, "filters[state]": state, "filters[commodity]": COMMODITY[crop]})
         if r.status_code != 200:
             raise RuntimeError(f"data.gov.in returned HTTP {r.status_code}: {r.text[:160]}")
         recs = r.json().get("records", [])
@@ -108,6 +138,45 @@ def import_csv(path: str) -> int:
         if rec:
             rows.append(rec)
     return upsert(rows)
+
+
+def watch_dirs() -> list[Path]:
+    """Folders scanned for the daily data.gov.in CSV (override with KRISHIMITRA_WATCH_DIRS, separated by ';')."""
+    env = os.getenv("KRISHIMITRA_WATCH_DIRS")
+    if env:
+        return [Path(x) for x in env.split(";") if x.strip()]
+    dl = Path.home() / "Downloads"
+    return list(dict.fromkeys([dl, dl / "mandiproject", Path(__file__).resolve().parents[3]]))
+
+
+def scan_and_import(dirs=None, pattern: str = "9ef84268*.csv") -> list[dict]:
+    """Import any not-yet-imported data.gov.in price CSV (same resource-id filename the portal's Download button gives)."""
+    done = []
+    for d in dirs or watch_dirs():
+        if not d.is_dir():
+            continue
+        for f in sorted(d.glob(pattern)):
+            mt = f.stat().st_mtime
+            with _con() as c:
+                if c.execute("select 1 from imported where path=? and mtime=?", (str(f), mt)).fetchone():
+                    continue
+            try:
+                n = import_csv(str(f))
+            except Exception as e:  # unreadable/partial download: try again next scan
+                done.append({"file": str(f), "error": str(e)})
+                continue
+            with _con() as c:
+                c.execute("insert or replace into imported values(?,?,?,?)", (str(f), mt, n, datetime.now(timezone.utc).isoformat()))
+            done.append({"file": str(f), "rows": n})
+    return done
+
+
+def last_import() -> dict | None:
+    if not DB.exists():
+        return None
+    with _con() as c:
+        r = c.execute("select path, rows, at from imported order by at desc limit 1").fetchone()
+    return {"file": Path(r[0]).name, "rows": r[1], "at": r[2]} if r else None
 
 
 def live_df(crop: str, mandi: str) -> pd.DataFrame:

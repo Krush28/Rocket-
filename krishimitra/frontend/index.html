@@ -6,115 +6,185 @@
 <title>KrishiMitra - Know your real take-home</title>
 <style>
 :root{
-  --bg:#f6f1e7; --card:#fffdf8; --ink:#23301f; --muted:#6b705c; --line:#e4dccb;
-  --green:#2f6b3a; --green2:#4f8f4b; --leaf:#e3efdc; --earth:#a4622d; --sun:#e0a526; --red:#b3402e; --redbg:#f7e1db; --amberbg:#fbf0d2;
-  --shadow:0 1px 2px rgba(60,50,20,.08),0 6px 18px rgba(60,50,20,.06);
+  color-scheme:light;
+  --bg:#EEEDE4; --card:#fff; --ink:#11221A; --muted:#55635B; --line:#ECEAE0; --fill:#DEDCCF;
+  --green:#0F3D2E; --green2:#2E7D4F; --mint:#7BD389; --leaf:#DCEBDD; --on:#F3F1E8; --sun:#F2B01E; --sunbg:#F9E3A6; --sunink:#3A2A00;
+  --paper:#F3F1E8; --dash:#C9C6B4; --red:#B03A2E; --redbg:#FBE4E0; --earth:#6B4A00; --amberbg:#FCE9B2; --forest2:#1C5A43;
+  --disp:"Bricolage Grotesque","Instrument Sans","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+  --font:"Instrument Sans","Noto Sans Devanagari","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
-  --bg:#16190f; --card:#1f2417; --ink:#eef0e2; --muted:#a3a98f; --line:#343b27; --green:#7fc17a; --green2:#9bd196; --leaf:#26331f;
-  --earth:#d99a63; --sun:#f0c04b; --red:#ef8a76; --redbg:#3a2420; --amberbg:#362f16; --shadow:none;}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,"Noto Sans","Noto Sans Devanagari",sans-serif}
-button{font:inherit;cursor:pointer}
-.wrap{max-width:1180px;margin:0 auto;padding:0 16px 80px}
-header{display:flex;align-items:center;gap:12px;padding:14px 0;flex-wrap:wrap}
-.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:26px;letter-spacing:.3px;color:var(--green)}
-.logo small{display:block;font-size:13px;font-weight:500;color:var(--muted);letter-spacing:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--font);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .16s var(--ease),filter .2s,background .2s}
+button:active:not(:disabled){transform:scale(.97)}
+.wrap{max-width:1360px;margin:0 auto;padding:0 40px 72px}
+header{display:flex;align-items:center;gap:12px;padding:24px 0;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:12px;font-family:var(--disp);font-weight:800;font-size:26px;letter-spacing:-.03em}
+.logo small{display:none}
 .spacer{flex:1}
-.pill{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 14px;font-size:14px;color:var(--ink)}
-.pill.on{background:var(--green);color:#fff;border-color:var(--green)}
-.demo{background:var(--amberbg);color:var(--earth);border:1px solid var(--sun);font-weight:700;border-radius:8px;padding:4px 10px;font-size:13px}
-.banner{background:var(--amberbg);border:1px solid var(--sun);border-radius:12px;padding:10px 14px;font-size:14px;margin-bottom:16px}
-.grid{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:20px;align-items:start}
-@media(max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
-.grid>*,section.dash>*,.card{min-width:0}
-section.dash{grid-template-columns:minmax(0,1fr)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
-.card h2{margin:0 0 10px;font-size:19px}
-.card h3{margin:14px 0 6px;font-size:16px}
+.seg{display:inline-flex;background:var(--fill);border-radius:12px;padding:3px}
+.pill{border:0;background:transparent;color:var(--ink);border-radius:9px;padding:7px 14px;font-size:14px;font-weight:500;min-height:36px}
+.seg .pill.on{background:#fff;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.pill.ghost{background:var(--fill);border-radius:999px;padding:7px 16px}
+.pill[aria-pressed=false]{opacity:.6}
+.demo{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:var(--amberbg);color:var(--earth);font-weight:600;font-size:12px;letter-spacing:.05em}
+.demo:before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.demo.live{background:var(--leaf);color:var(--green)}.demo.live:before{background:var(--green2)}
+.banner{display:none}
+.grid{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+#assistant{flex:1 1 340px;max-width:400px;position:sticky;top:16px}
+.main{flex:999 1 500px;min-width:0;display:flex;flex-direction:column;gap:28px}
+@media(max-width:900px){#assistant{max-width:none;position:static;flex-basis:100%}}
+.card{background:var(--card);border-radius:28px;padding:30px 32px;animation:rise .5s var(--ease) both}
+@keyframes rise{from{transform:translateY(10px)}to{transform:none}}
+.card h2{margin:0 0 6px;font-family:var(--disp);font-weight:700;font-size:24px;letter-spacing:-.02em;line-height:1.2}
+.card h3{margin:22px 0 8px;font-size:17px;font-weight:600}
 .muted{color:var(--muted);font-size:14px}
-#chat{height:300px;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:4px 2px}
-.msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:16px;white-space:pre-wrap}
-.msg.k{background:var(--leaf);border-bottom-left-radius:4px;align-self:flex-start}
-.msg.f{background:var(--green);color:#fff;border-bottom-right-radius:4px;align-self:flex-end}
-.microw{display:flex;gap:10px;align-items:center;margin:12px 0 6px}
-.mic{width:76px;height:76px;border-radius:50%;border:0;background:var(--green);color:#fff;display:grid;place-items:center;box-shadow:0 6px 18px rgba(47,107,58,.35);flex:none}
-.mic.rec{background:var(--red);animation:pulse 1.1s infinite}
-@keyframes pulse{50%{box-shadow:0 0 0 14px rgba(179,64,46,.15)}}
-.mic svg{width:34px;height:34px}
-input[type=text],input[type=number],select{width:100%;min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 12px;font:inherit}
-.send{min-height:48px;border-radius:12px;border:0;background:var(--earth);color:#fff;padding:0 18px;font-weight:600}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.chip{background:var(--card);border:1px dashed var(--green2);color:var(--green);border-radius:999px;padding:7px 12px;font-size:14px}
+a{color:var(--green)}
+/* assistant */
+#assistant{padding:28px;display:flex;flex-direction:column;gap:14px}
+#chat{max-height:236px;min-height:120px;overflow:auto;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin}
+.msg{max-width:88%;padding:11px 16px;font-size:16px;line-height:1.4;white-space:pre-wrap;animation:rise .3s var(--ease) both}
+.msg.k{background:var(--bg);border-radius:20px 20px 20px 6px;align-self:flex-start}
+.msg.f{background:var(--green);color:var(--on);border-radius:20px 20px 6px 20px;align-self:flex-end}
+.stage{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 0 4px}
+.micw{display:grid;justify-items:center;gap:6px;flex:none}
+.mic{width:96px;height:96px;border-radius:50%;border:0;background:var(--sun);color:var(--ink);display:grid;place-items:center;box-shadow:0 0 0 10px #F9E3A6,0 0 0 22px #FCF0CB;margin:14px 0 10px}
+.mic.rec{background:var(--red);color:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 14px #F9E3A6,0 0 0 30px #FCF0CB}}
+.mic svg{width:38px;height:38px}
+#micCap{font-weight:600;font-size:16px}
+.micnote{font-size:14px}
+.row-in{display:flex;gap:10px}
+input[type=text],input[type=number],select{width:100%;min-height:52px;border-radius:16px;border:1.5px solid #D6D4C6;background:#fff;color:var(--ink);padding:0 16px;font:inherit;outline:0;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--green2)}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%2355635B' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:38px}
+.send{min-height:52px;width:52px;flex:none;border-radius:50%;border:0;background:var(--sun);color:var(--ink);display:grid;place-items:center;font-size:0}
+.send svg{width:22px;height:22px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--bg);color:var(--ink);border:0;border-radius:22px;padding:8px 16px;min-height:44px;font-size:15px;line-height:1.25;text-align:left}
 .chip:hover{background:var(--leaf)}
-.hero{background:linear-gradient(135deg,var(--green),#3d7d45);color:#fff;border:0}
-.hero .big{font-size:44px;font-weight:800;line-height:1.1;margin:4px 0}
-.hero .sub{opacity:.92;font-size:15px}
-.kv{display:flex;gap:22px;flex-wrap:wrap;margin-top:12px}
-.kv div{font-size:13px;opacity:.9}.kv b{display:block;font-size:18px}
-.btn{border:0;border-radius:12px;padding:12px 18px;font-weight:700;background:var(--sun);color:#2a2100;min-height:48px}
-.btn.alt{background:var(--card);color:var(--green);border:1px solid var(--green)}
-.btn.sm{padding:6px 12px;min-height:36px;font-size:14px}
-.tag{display:inline-block;border-radius:8px;padding:2px 8px;font-size:12px;font-weight:700;margin-right:4px;border:1px solid var(--line)}
-.tag.demo{background:var(--amberbg);color:var(--earth);border-color:var(--sun)}
-.tag.est{background:var(--leaf);color:var(--green)}
-.tag.warn{background:var(--redbg);color:var(--red)}
-.badge{display:inline-block;border-radius:999px;padding:4px 14px;font-weight:800;font-size:15px}
-.badge.SELL{background:var(--sun);color:#2a2100}.badge.HOLD{background:var(--green);color:#fff}.badge.INSUFFICIENT{background:var(--redbg);color:var(--red)}
+#welcome ol{padding-left:20px;margin:6px 0 0;display:grid;gap:8px}
+.qf{display:grid;grid-template-columns:1fr 1fr;gap:12px}.qf .full{grid-column:1/-1}
+.qf label.chk{display:flex;align-items:center;gap:10px;min-height:44px}
+.qf input[type=checkbox]{width:22px;height:22px;accent-color:var(--green2)}
+label.f{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 6px 2px}
+/* settlement slip */
+.slip{background:var(--green);color:var(--on);border-radius:32px;padding:40px 44px;display:flex;gap:40px;flex-wrap:wrap;animation:rise .5s var(--ease) both}
+.slip .l{flex:1 1 360px;min-width:0}
+.eyebrow{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#A9C9B4;font-weight:600}
+.slip h1{margin:10px 0 0;font-family:var(--disp);font-weight:700;font-size:30px;letter-spacing:-.02em;line-height:1.15}
+.slip .lead{margin-top:28px;font-size:14px;color:#A9C9B4}
+.slip .big{font-family:var(--disp);font-weight:800;font-size:clamp(48px,7vw,84px);letter-spacing:-.045em;line-height:1;color:#fff;margin-top:4px}
+.wf{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:26px;background:var(--forest2);gap:3px}
+.wf-keep{background:var(--mint)}.wf-cost{background:var(--sun);min-width:4px}
+.wf-l{display:flex;justify-content:space-between;font-size:13px;color:#A9C9B4;margin-top:8px}
+.actions{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
+.btn{border:0;background:var(--sun);color:var(--ink);font-weight:700;border-radius:999px;padding:0 28px;min-height:52px;font-size:16px}
+.btn:hover{filter:brightness(1.05)}.btn:disabled{opacity:.5}
+.btn.ghost{background:transparent;color:var(--on);border:1.5px solid #3B6F59;font-weight:600}
+.btn.alt{background:var(--bg);color:var(--ink);font-weight:600}
+.btn.sm{min-height:40px;padding:0 18px;font-size:14px}
+.ledger{flex:1 1 300px;min-width:0;background:var(--paper);color:var(--ink);border-radius:22px;padding:26px 28px;display:flex;flex-direction:column}
+.ledger .cap{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.ledger .ln{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1.5px dashed var(--dash)}
+.ledger .ln.c{color:var(--muted)}
+.ledger .tot{display:flex;justify-content:space-between;padding:14px 0 4px;font-size:20px;font-weight:700;font-family:var(--disp)}
+.ledger .fine{margin-top:auto;padding-top:18px;font-size:13px;color:var(--muted);line-height:1.45}
+/* verdict */
+.two{display:flex;gap:28px;flex-wrap:wrap}.two>*{flex:1 1 320px;min-width:0}
+.badge{display:inline-block;border-radius:999px;padding:5px 14px;font-weight:700;font-size:14px;letter-spacing:.04em;vertical-align:middle;margin-left:10px}
+.badge.SELL{background:var(--amberbg);color:var(--earth)}.badge.HOLD{background:var(--leaf);color:var(--green)}.badge.INSUFFICIENT{background:var(--redbg);color:var(--red)}
+.win{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;text-align:center;margin-top:16px}
+.win>div{background:var(--paper);border-radius:14px;padding:12px 4px;color:#7A857E;min-width:0}
+.win b{display:block;font-weight:700;font-size:15px}.win span{font-size:12px;display:block;overflow-wrap:anywhere}
+.win .now{background:var(--leaf);color:var(--green)}
+.win .up{background:var(--leaf);color:var(--green)}.win .dn{background:var(--redbg);color:var(--red)}
+.real{background:var(--sunbg);color:var(--sunink)}
+.real .cap{font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.real ul{margin:14px 0 0;padding-left:20px;display:grid;gap:8px}
+.tag{display:inline-block;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.04em;margin-right:4px;background:var(--bg);color:var(--muted)}
+.tag.demo{background:var(--amberbg);color:var(--earth)}.tag.est{background:var(--leaf);color:var(--green)}.tag.warn{background:var(--redbg);color:var(--red)}
+/* tabs */
+.tabs{position:sticky;top:10px;z-index:5;display:flex;gap:4px;background:rgba(222,220,207,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:4px;border-radius:999px;overflow-x:auto}
+.tabs{scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:1 0 auto;min-height:44px;border-radius:999px;border:0;background:transparent;color:var(--ink);padding:0 20px;font-weight:500;font-size:15px}
+.tabs button.on{background:var(--green);color:var(--on);font-weight:600}
+.panel{display:grid;grid-template-columns:minmax(0,1fr);gap:28px;margin-top:20px}.panel>*,.main>*{min-width:0}
+/* ranked list */
+.opts{margin-top:10px;display:flex;flex-direction:column}
+.opt{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:16px;align-items:center;padding:18px 0;border-top:1.5px solid var(--line);cursor:pointer}
+.opt:hover .ot{color:var(--green2)}
+.opt .rk{width:40px;height:40px;border-radius:50%;background:var(--line);display:grid;place-items:center;font-weight:700}
+.opt.best .rk{background:var(--green);color:var(--on)}
+.opt .ot{font-weight:600}
+.opt .on{text-align:right;display:grid}.opt .on b{font-family:var(--disp);font-weight:700;font-size:24px;letter-spacing:-.01em}
+.opt .on .neg{color:var(--red)}
+.opt .od{grid-column:1/-1;padding:4px 0 0 60px;display:grid;gap:8px;font-size:15px}
+.mbar{height:6px;border-radius:3px;background:var(--line);margin-top:10px;max-width:420px;overflow:hidden}.mbar i{display:block;height:100%;background:#9DB8A4;border-radius:3px}.opt.best .mbar i{background:var(--green2)}
+.stack{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:6px 0;background:var(--line);gap:2px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted)}.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
 table{width:100%;border-collapse:collapse;font-size:15px}
-th,td{padding:9px 8px;text-align:right;border-bottom:1px solid var(--line);vertical-align:top}
-th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:600}
+th,td{padding:12px 8px;text-align:right;border-bottom:1.5px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.04em}
 th:first-child,td:first-child,td.l,th.l{text-align:left}
-tr.opt{cursor:pointer}tr.opt:hover{background:var(--leaf)}
-tr.best td{background:var(--leaf)}
 .scroll{overflow-x:auto}
-.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
-.mini{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--card)}
-.mini h4{margin:0 0 4px;font-size:16px}
-.stack{display:flex;height:16px;border-radius:8px;overflow:hidden;margin:8px 0;background:var(--line)}
-.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px}
-section.dash{margin-top:20px;display:grid;gap:18px}
-.tl{list-style:none;margin:8px 0;padding:0}
-.tl li{padding:6px 0 6px 20px;border-left:3px solid var(--green2);margin-left:6px;position:relative;font-size:15px}
-.tl li:before{content:"";position:absolute;left:-8px;top:12px;width:13px;height:13px;border-radius:50%;background:var(--green)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.mini{background:var(--paper);border-radius:20px;padding:18px;display:grid;gap:4px;align-content:start}
+.mini h4{margin:0 0 2px;font-family:var(--disp);font-size:18px}
+.row{display:flex;justify-content:space-between;gap:8px;font-size:15px}
+details{border-top:1.5px solid var(--line);padding:14px 0 0;margin-top:14px}
+summary{cursor:pointer;font-weight:600;font-size:15px;list-style:none}summary::-webkit-details-marker{display:none}
+summary:after{content:"›";float:right;transform:rotate(90deg);color:var(--muted);font-size:20px;line-height:1}
+.tl{list-style:none;margin:12px 0;padding:0}
+.tl li{padding:6px 0 10px 22px;border-left:2px solid var(--dash);margin-left:6px;position:relative}
+.tl li:before{content:"";position:absolute;left:-7px;top:11px;width:12px;height:12px;border-radius:50%;background:var(--green2);box-shadow:0 0 0 3px #fff}
 .trace{display:flex;flex-wrap:wrap;gap:6px}
-.trace span{font-size:12px;border-radius:999px;padding:3px 10px;background:var(--leaf);color:var(--green)}
-.trace span.bad{background:var(--redbg);color:var(--red)}
-label.f{display:block;font-size:13px;color:var(--muted);margin:6px 0 2px}
-details summary{cursor:pointer;font-weight:600}
-svg text{fill:var(--muted);font-size:11px}
-.sr{position:absolute;left:-9999px}
-.hidden{display:none}
-:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.trace span{font-size:12px;border-radius:999px;padding:4px 11px;background:var(--leaf);color:var(--green);font-weight:600}.trace span.bad{background:var(--redbg);color:var(--red)}
+.work{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:12px}
+.work li{display:flex;align-items:center;gap:12px;color:var(--muted);transition:color .3s}
+.work .dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--dash);transition:all .3s var(--ease)}
+.work li.done{color:var(--ink)}.work li.done .dot{background:var(--green2);border-color:var(--green2);box-shadow:inset 0 0 0 3px #fff}
+.typing{display:inline-flex;gap:4px;padding:14px 16px}.typing i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:bl 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes bl{0%,80%,100%{opacity:.25}40%{opacity:1}}
+svg text{fill:var(--muted);font-size:11px;font-family:var(--font)}
+.hidden{display:none!important}
+:focus-visible{outline:3px solid rgba(46,125,79,.5);outline-offset:2px}
+@media(max-width:700px){.wrap{padding:0 14px 60px}.slip{padding:28px 22px;gap:28px}.card{padding:22px 20px;border-radius:24px}.logo{font-size:22px}.qf{grid-template-columns:1fr}.opt{grid-template-columns:36px minmax(0,1fr)}.opt .on{grid-column:2;text-align:left}.opt .od{padding-left:0}.win span{font-size:11px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="wrap">
 <header>
   <div class="logo">
-    <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect x="4" y="30" width="32" height="5" rx="2.5" fill="#a4622d"/><rect x="18" y="8" width="4" height="23" fill="#2f6b3a"/><path d="M6 14h28" stroke="#2f6b3a" stroke-width="3" stroke-linecap="round"/><path d="M6 14l-4 9h8zM34 14l-4 9h8z" fill="#e0a526"/><circle cx="20" cy="8" r="3.5" fill="#2f6b3a"/></svg>
+    <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><rect width="44" height="44" rx="12" fill="#0F3D2E"/><g stroke="#F2B01E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="translate(9 9)"><path d="M13 4v17M8 22h10M4 9h18"/><path d="M4 9l-2.5 6h5zM22 9l-2.5 6h5z"/></g></svg>
     <div><span id="appname">KrishiMitra</span><small id="tagline">Know what you will really take home</small></div>
   </div>
   <div class="spacer"></div>
   <span class="demo" id="modePill" title="Data mode">DEMO DATA</span>
-  <button class="pill on" data-lang="en">EN</button><button class="pill" data-lang="hi">हिं</button><button class="pill" data-lang="mr">मरा</button>
-  <button class="pill" id="speakBtn" aria-pressed="true">🔊 Voice on</button>
+  <div class="seg" role="group" aria-label="Language"><button class="pill on" data-lang="en">EN</button><button class="pill" data-lang="hi">हिं</button><button class="pill" data-lang="mr">मरा</button></div>
+  <button class="pill ghost" id="resetBtn">Start over</button>
+  <button class="pill ghost" id="speakBtn" aria-pressed="true">Voice on</button>
 </header>
 <div class="banner" id="banner"><b>DEMO DATA.</b> Prices, arrivals, buyers, warehouses and transporters here are synthetic samples so you can see how KrishiMitra thinks. Costs are estimates you can edit. Nothing is a real quote, offer or guaranteed price.</div>
 
 <div class="grid">
-  <div class="card" id="assistant">
-    <h2 id="h-assist">Talk to KrishiMitra</h2>
+  <aside class="card" id="assistant">
+    <h2 id="h-assist">Ask by voice</h2>
     <div id="chat" aria-live="polite"></div>
-    <div class="microw">
-      <button class="mic" id="mic" aria-label="Speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
-      <div style="flex:1"><input type="text" id="txt" placeholder="Type here, or press the mic" aria-label="Message"></div>
-      <button class="send" id="send">Send</button>
+    <div class="stage">
+      <div class="micw"><button class="mic" id="mic" aria-label="Speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button><span id="micCap">Tap to speak</span></div>
     </div>
-    <div class="muted" id="micnote"></div>
+    <div class="row-in"><input type="text" id="txt" placeholder="Or type here" aria-label="Message"><button class="send" id="send" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+    <div class="muted micnote" id="micnote"></div>
     <div class="chips" id="chips"></div>
-  </div>
+  </aside>
+  <main class="main">
   <div id="right">
     <div class="card" id="welcome">
       <h2>What KrishiMitra answers</h2>
@@ -126,21 +196,32 @@ svg text{fill:var(--muted);font-size:11px}
         <li>If I hold or move it: which storage and transport?</li>
       </ol>
       <p class="muted">Start by telling KrishiMitra your crop, quantity and village. Market work begins only after you confirm what KrishiMitra understood.</p>
+      <h3 id="qf-h">Prefer a form?</h3>
+      <form class="qf" id="qf" autocomplete="off">
+        <div><label class="f" for="q_crop" id="l_crop">Crop</label><select id="q_crop"><option value="onion">Onion</option><option value="tomato">Tomato</option><option value="potato">Potato</option></select></div>
+        <div><label class="f" for="q_qty" id="l_qty">Quantity</label><div style="display:flex;gap:6px"><input type="number" id="q_qty" min="1" step="any" value="200" required><select id="q_unit" style="max-width:138px"><option value="100">quintal</option><option value="1">kg</option><option value="1000">tonne</option></select></div></div>
+        <div class="full"><label class="f" for="q_place" id="l_place">Village / town</label><select id="q_place"></select></div>
+        <label class="chk"><input type="checkbox" id="q_ready" checked><span id="l_ready">Ready to sell now</span></label>
+        <label class="chk"><input type="checkbox" id="q_store"><span id="l_store">I can store it</span></label>
+        <div class="full"><button class="btn" type="submit" id="q_go" style="width:100%">Get my best option</button></div>
+      </form>
+      <div class="muted" id="qerr" role="alert"></div>
     </div>
   </div>
+  <section id="dash"></section>
+  </main>
 </div>
-<section class="dash" id="dash"></section>
 </div>
 
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const inr=n=>n==null?"-":"₹"+Math.round(n).toLocaleString("en-IN");
+const inr=n=>n==null?"-":(n<0?"−":"")+"₹"+Math.abs(Math.round(n)).toLocaleString("en-IN");
 const S={sid:null,lang:"en",speak:true,plan:null,order:null,mandi:null,rec:null,listening:false};
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const LOC={en:"en-IN",hi:"hi-IN",mr:"mr-IN"};
 const UI={
-  en:{assist:"Talk to KrishiMitra",send:"Send",ph:"Type here, or press the mic",tag:"Know what you will really take home",best:"Best option",net:"Estimated net earnings",gross:"Gross",costs:"Costs",order:"Create sale order"},
+  en:{assist:"Ask by voice",send:"Send",ph:"Type here, or press the mic",tag:"Know what you will really take home",best:"Best option",net:"Estimated net earnings",gross:"Gross",costs:"Costs",order:"Create sale order"},
   hi:{assist:"कृषिमित्र से बात करें",send:"भेजें",ph:"यहाँ लिखें या माइक दबाएँ",tag:"जानिए हाथ में असल में कितना आएगा",best:"सबसे अच्छा विकल्प",net:"अनुमानित शुद्ध कमाई",gross:"कुल बिक्री",costs:"खर्च",order:"बिक्री ऑर्डर बनाएँ"},
   mr:{assist:"कृषिमित्रशी बोला",send:"पाठवा",ph:"इथे लिहा किंवा माइक दाबा",tag:"प्रत्यक्षात हातात किती येईल ते जाणा",best:"सर्वोत्तम पर्याय",net:"अंदाजित निव्वळ कमाई",gross:"एकूण विक्री",costs:"खर्च",order:"विक्री ऑर्डर तयार करा"}};
 const CHIPS={
@@ -150,15 +231,17 @@ const CHIPS={
 
 function applyLang(){
   const u=UI[S.lang];document.documentElement.lang=S.lang;
-  $("#h-assist").textContent=u.assist;$("#send").textContent=u.send;$("#txt").placeholder=u.ph;$("#tagline").textContent=u.tag;
+  $("#h-assist").textContent=u.assist;$("#send").setAttribute("aria-label",u.send);$("#txt").placeholder=u.ph;$("#tagline").textContent=u.tag;
   $$("[data-lang]").forEach(b=>b.classList.toggle("on",b.dataset.lang===S.lang));
   $("#chips").innerHTML=CHIPS[S.lang].map(c=>`<button class="chip">${esc(c)}</button>`).join("");
   $$("#chips .chip").forEach(b=>b.onclick=()=>send(b.textContent));
   $("#micnote").textContent=SR?"":"Voice input needs Chrome or Edge. Typing works everywhere.";
+  const set=(id,k)=>{const e=$(id);if(e)e.textContent=t(k)};
+  set("#micCap","tap");set("#resetBtn","startover");set("#qf-h","quick");set("#l_crop","crop");set("#l_qty","qty");set("#l_place","place");set("#l_ready","ready");set("#l_store","store");set("#q_go","go");
   if(S.plan)renderPlan(S.plan);
 }
 $$("[data-lang]").forEach(b=>b.onclick=()=>{S.lang=b.dataset.lang;applyLang()});
-$("#speakBtn").onclick=e=>{S.speak=!S.speak;e.target.setAttribute("aria-pressed",S.speak);e.target.textContent=S.speak?"🔊 Voice on":"🔇 Voice off";if(!S.speak)speechSynthesis.cancel()};
+$("#speakBtn").onclick=e=>{S.speak=!S.speak;e.target.setAttribute("aria-pressed",S.speak);e.target.textContent=S.speak?"Voice on":"Voice off";if(!S.speak)speechSynthesis.cancel()};
 
 function say(text){ if(!S.speak||!window.speechSynthesis)return; speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(text);u.lang=LOC[S.lang];u.rate=.95;speechSynthesis.speak(u)}
@@ -168,15 +251,17 @@ async function api(path,body){
   const j=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error(j.detail||r.statusText);return j}
 
+function typing(on){let e=$("#typing");if(on&&!e){e=document.createElement("div");e.id="typing";e.className="msg k typing";e.innerHTML="<i></i><i></i><i></i>";$("#chat").appendChild(e);$("#chat").scrollTop=1e9}else if(!on&&e)e.remove()}
 async function send(text){
   text=(text??$("#txt").value).trim(); if(!text&&S.sid)return;
   if(text)bubble("f",text); $("#txt").value="";
+  typing(true); if(S.state==="confirming"&&/^(yes|y|ok|okay|haan|हाँ|हां|होय)/i.test(text))showWorking();
   try{
     const r=await api("/api/chat",{session_id:S.sid,text,lang:/[ऀ-ॿ]/.test(text)?null:S.lang});
-    S.sid=r.session_id; if(r.lang&&r.lang!==S.lang){S.lang=r.lang;applyLang()}
+    typing(false); S.sid=r.session_id; S.state=r.state; if(r.lang&&r.lang!==S.lang){S.lang=r.lang;applyLang()}
     bubble("k",r.reply); say(r.reply);
-    if(r.plan){S.plan=r.plan;renderPlan(r.plan)}
-  }catch(e){bubble("k","Sorry, something went wrong: "+e.message)}
+    if(r.plan){S.plan=r.plan;renderPlan(r.plan)}else stopWorking();
+  }catch(e){typing(false);stopWorking();bubble("k","Sorry, something went wrong: "+e.message)}
 }
 $("#send").onclick=()=>send(); $("#txt").onkeydown=e=>{if(e.key==="Enter")send()};
 let rec=null;
@@ -184,8 +269,8 @@ $("#mic").onclick=()=>{
   if(!SR){alert("Voice input needs Chrome or Edge. Please type instead.");return}
   if(S.listening){rec&&rec.stop();return}
   speechSynthesis.cancel(); rec=new SR(); rec.lang=LOC[S.lang]; rec.interimResults=false;
-  rec.onstart=()=>{S.listening=true;$("#mic").classList.add("rec")};
-  rec.onend=()=>{S.listening=false;$("#mic").classList.remove("rec")};
+  rec.onstart=()=>{S.listening=true;$("#mic").classList.add("rec");$("#micCap").textContent=t("listening")};
+  rec.onend=()=>{S.listening=false;$("#mic").classList.remove("rec");$("#micCap").textContent=t("tap")};
   rec.onerror=e=>{bubble("k","I could not hear you ("+e.error+"). You can also type.")};
   rec.onresult=e=>send(e.results[0][0].transcript); rec.start();
 };
@@ -226,76 +311,142 @@ function dedBar(d){const t=Object.values(d).reduce((a,b)=>a+b,0)||1;
   return `<div class="stack">${Object.entries(d).filter(([,v])=>v>0).map(([k,v])=>`<div title="${k} ${inr(v)}" style="width:${v/t*100}%;background:${COL[k]||"#999"}"></div>`).join("")}</div>
   <div class="legend">${Object.entries(d).filter(([,v])=>v>0).map(([k,v])=>`<span><i style="background:${COL[k]||"#999"}"></i>${esc(k.replace("_"," "))} ${inr(v)}</span>`).join("")}</div>`}
 
+// ---------- i18n for section labels (hi/mr best-effort, en fallback)
+const T={
+ en:{compare:"Compare",forecast:"Forecast",logistics:"Storage & transport",order:"Order",sellhold:"Sell now or hold?",options:"Options ranked by estimated net earnings",mandis:"Nearby mandis",storage:"Cold storage nearby",transport:"Transport",buyers:"Buyers",startover:"Start over",tap:"Tap to speak",listening:"Listening… tap to stop",quick:"Prefer a form?",go:"Get my best option",crop:"Crop",qty:"Quantity",place:"Village / town",ready:"Ready to sell now",store:"I can store it",keep:"You keep about",costsw:"costs",SELL:"SELL NOW",HOLD:"HOLD",INSUFFICIENT:"NOT ENOUGH INFO",extra:"Extra net earnings versus selling now",working:"KrishiMitra's agents are working",best:"BEST",vsbest:"vs best",est:"estimated net",open:"Tap for cost breakdown"},
+ hi:{compare:"तुलना",forecast:"भाव अनुमान",logistics:"भंडारण व ढुलाई",order:"ऑर्डर",sellhold:"अभी बेचें या रोकें?",options:"अनुमानित शुद्ध कमाई के अनुसार विकल्प",mandis:"पास की मंडियाँ",storage:"पास के कोल्ड स्टोरेज",transport:"ढुलाई",buyers:"खरीदार",startover:"नए सिरे से शुरू करें",tap:"बोलने के लिए दबाएँ",listening:"सुन रहा हूँ… रोकने के लिए दबाएँ",quick:"फ़ॉर्म चाहिए?",go:"मेरा सबसे अच्छा विकल्प दिखाएँ",crop:"फसल",qty:"मात्रा",place:"गाँव / शहर",ready:"अभी बिक्री के लिए तैयार",store:"मैं माल रख सकता हूँ",keep:"आपके हाथ में लगभग",costsw:"खर्च",SELL:"अभी बेचें",HOLD:"रोकें",INSUFFICIENT:"जानकारी कम है",extra:"अभी बेचने की तुलना में अतिरिक्त कमाई",working:"एजेंट काम कर रहे हैं",best:"सबसे अच्छा",vsbest:"सबसे अच्छे से",est:"अनुमानित शुद्ध",open:"खर्च का ब्यौरा देखें"},
+ mr:{compare:"तुलना",forecast:"भाव अंदाज",logistics:"साठवण व वाहतूक",order:"ऑर्डर",sellhold:"आत्ता विका की थांबा?",options:"अंदाजित निव्वळ कमाईनुसार पर्याय",mandis:"जवळच्या मंडई",storage:"जवळचे कोल्ड स्टोरेज",transport:"वाहतूक",buyers:"खरेदीदार",startover:"पुन्हा सुरू करा",tap:"बोलण्यासाठी दाबा",listening:"ऐकत आहे… थांबवण्यासाठी दाबा",quick:"फॉर्म हवा?",go:"माझा सर्वोत्तम पर्याय दाखवा",crop:"पीक",qty:"प्रमाण",place:"गाव / शहर",ready:"आता विक्रीसाठी तयार",store:"मी माल साठवू शकतो",keep:"तुमच्या हातात सुमारे",costsw:"खर्च",SELL:"आत्ता विका",HOLD:"थांबा",INSUFFICIENT:"माहिती अपुरी",extra:"आत्ता विकण्याच्या तुलनेत अतिरिक्त कमाई",working:"एजंट काम करत आहेत",best:"सर्वोत्तम",vsbest:"सर्वोत्तमपेक्षा",est:"अंदाजित निव्वळ",open:"खर्चाचा तपशील पाहा"}};
+Object.assign(T.en,{settle:"Settlement estimate",grossl:"Gross sale",keepl:"You keep",real:"What is real here",locked:"locked",now:"Now",youtake:"You take home about",kept:"kept",read:"Read aloud"});
+Object.assign(T.hi,{settle:"निपटान अनुमान",grossl:"कुल बिक्री",keepl:"आपके हाथ में",real:"यहाँ क्या असली है",locked:"बंद",now:"अभी",youtake:"आप घर ले जाएँगे लगभग",kept:"बचत",read:"सुनिए"});
+Object.assign(T.mr,{settle:"निपटारा अंदाज",grossl:"एकूण विक्री",keepl:"तुमच्या हातात",real:"इथे काय खरे आहे",locked:"बंद",now:"आत्ता",youtake:"तुम्ही घरी न्याल सुमारे",kept:"बचत",read:"ऐका"});
+const t=k=>(T[S.lang]&&T[S.lang][k])||T.en[k];
+
 // ---------- plan render
+const AGENTS=["Mandi Discovery","Price Intelligence","Market Activity","Buyers","Cold Storage","Transport","Shared Load","Price Forecast","Sell vs Hold","Net Realization","Recommendation"];
+function showWorking(){
+  $("#right").innerHTML=`<div class="card"><h2>${t("working")}…</h2><ul class="work">${AGENTS.map((a,i)=>`<li id="wk${i}"><span class="dot"></span>${a} Agent</li>`).join("")}</ul></div>`;
+  let i=0; S.workTimer=setInterval(()=>{ if(i<AGENTS.length){$("#wk"+i)?.classList.add("done");i++} },260);
+}
+function stopWorking(){clearInterval(S.workTimer)}
+
+function showTab(name){
+  S.tab=name;
+  $$(".tabs button").forEach(b=>{const on=b.dataset.tab===name;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});
+  $$(".panel").forEach(p=>p.classList.toggle("hidden",p.dataset.panel!==name));
+}
+
 function renderPlan(p){
+  stopWorking();
   const u=UI[S.lang], r=p.recommendation;
-  if(!r){$("#dash").innerHTML=`<div class="card">Not enough data to recommend: ${esc(p.trace.filter(t=>t.status!=="ok").map(t=>t.agent+": "+t.error).join("; "))}</div>`;return}
-  const b=r.best, sh=p.sell_vs_hold, dec=r.decision, dest=sh.destination;
+  if(!r){$("#right").innerHTML=`<div class="card">Not enough data to recommend: ${esc(p.trace.filter(x=>x.status!=="ok").map(x=>x.agent+": "+x.error).join("; "))}</div>`;$("#dash").innerHTML="";return}
+  const b=r.best, sh=p.sell_vs_hold, dec=r.decision, dest=sh.destination, pr=p.profile, a=p.assumptions;
   if(!S.mandi||!p.forecasts?.[S.mandi])S.mandi=dest;
-  $("#welcome").classList.add("hidden");
-  const pr=p.profile;
-  $("#right").innerHTML=`<div class="card hero">
-    <div class="sub">${u.best} · ${esc(pr.original_qty)} ${esc(pr.original_unit)} ${esc(pr.crop)} · ${esc(pr.location.name)}</div>
-    <div class="sub" style="margin-top:6px;font-size:17px;font-weight:600">${esc(b.label)}</div>
-    <div class="big">${inr(b.net)}</div><div class="sub">${u.net}</div>
-    <div class="kv"><div>${u.gross}<b>${inr(b.gross_revenue)}</b></div><div>${u.costs}<b>${inr(b.total_deductions)}</b></div><div>Distance<b>${b.distance_km} km</b></div><div>Forecast confidence<b>${esc(b.forecast_confidence)}</b></div><div>Data age<b>${b.data_freshness_days} d</b></div></div>
-    <p style="margin:12px 0 4px">${esc(r.explanation)}</p>
-    <div class="sub">${r.estimated_gain_vs_nearest_mandi_today!=null?`Model-estimated gain vs selling at the nearest mandi today: <b>${inr(r.estimated_gain_vs_nearest_mandi_today)}</b> (an estimate, not a measured result). `:""}Reconsider on <b>${esc(r.reconsider_on||"-")}</b>.</div>
-    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="mkOrder">${u.order}</button><button class="btn alt" id="speakReco">🔊 Read aloud</button></div>
-  </div>`;
-  $("#mkOrder").onclick=()=>createOrder(b); $("#speakReco").onclick=()=>say(r.explanation);
   const cls=dec.action.startsWith("SELL")?"SELL":dec.action==="HOLD"?"HOLD":"INSUFFICIENT";
-  const a=p.assumptions;
+  const keepPct=Math.max(0,Math.round(b.net/(b.gross_revenue||1)*100));
+  const LBL={transport:"Transport",commission:"Commission",handling:"Handling (hamali)",storage:"Storage",financing:"Financing cost",risk_allowance:"Risk allowance"};
+  const lines=Object.entries(b.deductions||{}).filter(([,v])=>v>0).map(([k,v])=>`<div class="ln c"><span>− ${esc(LBL[k]||k)}</span><span>${inr(v)}</span></div>`).join("");
+  const holdBy={}; sh.holds.forEach(h=>holdBy[h.days]=h);
+  const skipBy={}; sh.skipped.forEach(s=>skipBy[s.days]=s.why);
+  const win=[3,7,15,30].map(d=>{const h=holdBy[d];
+    if(h){const x=h.net-sh.sell_now.net;return `<div class="${x>=0?"up":"dn"}" title="Extra net vs selling now"><b>${d} d</b><span>${(x>=0?"+":"")+inr(x)}</span></div>`}
+    return `<div title="${esc(skipBy[d]||"")}"><b>${d} d</b><span>${t("locked")}</span></div>`}).join("");
+  const live=p.data_mode==="LIVE", pdate=p.prices[dest]?.latest_date||"";
+  $("#right").innerHTML=`
+  <section class="slip">
+    <div class="l">
+      <div class="eyebrow">${esc(pr.original_qty)} ${esc(pr.original_unit)} ${esc(pr.crop)} · ${esc(pr.location.name)}</div>
+      <h1>${esc(b.label)}</h1>
+      <div class="lead">${t("youtake")}</div>
+      <div class="big">${inr(b.net)}</div>
+      <div class="wf" role="img" aria-label="${u.gross} ${inr(b.gross_revenue)}, ${u.costs} ${inr(b.total_deductions)}, ${u.net} ${inr(b.net)}"><div class="wf-keep" style="width:${keepPct}%"></div><div class="wf-cost" style="width:${100-keepPct}%"></div></div>
+      <div class="wf-l"><span>${keepPct}% ${t("kept")}</span><span>${u.costs} ${inr(b.total_deductions)}</span></div>
+      <div class="actions"><button class="btn" id="mkOrder">${u.order}</button><button class="btn ghost" id="speakReco">${t("read")}</button></div>
+    </div>
+    <div class="ledger">
+      <div class="cap">${t("settle")}</div>
+      <div class="ln" style="margin-top:12px"><span>${t("grossl")} · ${(Math.round(b.saleable_qty*10)/10).toLocaleString("en-IN")} quintal at ${inr(b.price)}</span><b>${inr(b.gross_revenue)}</b></div>
+      ${lines}
+      <div class="tot"><span>= ${t("keepl")}</span><span>${inr(b.net)}</span></div>
+      <div class="fine">Costs are estimates with editable placeholder rates. The mandi's modal price is not a guaranteed price for your lot. ${b.distance_km} km · data ${b.data_freshness_days===0?"from today":b.data_freshness_days+" d old"}.</div>
+    </div>
+  </section>
+  <section class="two">
+    <div class="card"><h2>${t("sellhold")}<span class="badge ${cls}">${esc(t(cls))}${dec.hold_days?" · "+dec.hold_days+" d":""}</span></h2>
+      <p style="margin:12px 0 0">${esc(dec.reason)}</p>
+      <div class="win"><div class="now"><b>${t("now")}</b><span>${t("best")}</span></div>${win}</div>
+      <div class="muted" style="margin-top:12px">${t("extra")}. Locked windows open when a reliable forecast exists. Reconsider on ${esc(r.reconsider_on||"-")}.</div>
+      <details><summary>How this is calculated</summary><p class="muted">Sell now: ${esc(sh.formulas.sell_now)}.<br>Hold: ${esc(sh.formulas.hold)}.<br>HOLD only if the extra net beats 2% of the sell-now net and the chance of the price ending below today's is 40% or less. All maths is plain code, not an AI guess.</p></details>
+    </div>
+    <div class="card real"><div class="cap">${t("real")}</div><ul>
+      <li>Mandi prices: ${live?"LIVE, data.gov.in"+(pdate?", "+esc(pdate):""):"DEMO DATA (synthetic)"}</li>
+      <li>Costs: estimates, rates are editable</li>
+      <li>Warehouses, transporters, buyers: demo only</li></ul></div>
+  </section>`;
+  $("#mkOrder").onclick=()=>createOrder(b); $("#speakReco").onclick=()=>say(r.explanation);
+
+  const best=p.options[0];
   $("#dash").innerHTML=`
-  <div class="card"><h2>Sell now or hold? <span class="badge ${cls}">${esc(dec.action)}${dec.hold_days?" · "+dec.hold_days+" days":""}</span></h2>
-    <p>${esc(dec.reason)}</p>
-    <div class="muted">Extra net earnings versus selling now at ${esc(dest)} (after storage, extra transport, loss and financing). Forecasts are not guarantees.</div>
-    ${sh.holds.length?divBars(sh.sell_now,sh.holds):'<p class="muted">No hold option is supported by a reliable forecast.</p>'}
-    ${sh.skipped.length?`<details><summary>Why some hold windows were skipped</summary><ul>${sh.skipped.map(s=>`<li>${s.days} days: ${esc(s.why)}</li>`).join("")}</ul></details>`:""}
-    <details><summary>How this is calculated</summary><p class="muted">Sell now: ${esc(sh.formulas.sell_now)}.<br>Hold: ${esc(sh.formulas.hold)}.<br>HOLD is recommended only if the extra net exceeds 2% of the sell-now net and the chance of the price ending below today's is 40% or less. All money maths is plain code, not an AI guess.</p></details>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    ${[["compare","compare"],["forecast","forecast"],["logistics","logistics"],["order","order"]].map(([k,l])=>`<button role="tab" data-tab="${k}">${t(l)}</button>`).join("")}
+  </nav>
+  <div class="panel" data-panel="compare">
+    <div class="card"><h2>${t("options")}</h2><p class="muted">${t("open")}. The highest modal price is not automatically the best option.</p>
+      <div class="opts">${p.options.map((o,i)=>`<article class="opt ${i?"":"best"}" data-i="${i}" tabindex="0" role="button" aria-expanded="false">
+        <div class="rk">${o.rank}</div>
+        <div class="ob"><div class="ot">${esc(o.label)} ${i?"":`<span class="tag est">${t("best")}</span>`}</div>
+          <div class="muted">${esc(o.expected_selling_time)} · ${o.distance_km} km · forecast: ${esc(o.forecast_confidence)}</div>
+          <div class="mbar"><i style="width:${Math.max(4,Math.round(o.net/(best.net||1)*100))}%"></i></div></div>
+        <div class="on"><b>${inr(o.net)}</b><span class="muted ${i?"neg":""}">${i?`${inr(o.net-best.net)} ${t("vsbest")}`:t("est")}</span></div>
+        <div class="od hidden">${dedBar(o.deductions)}<div class="muted">${u.gross} ${inr(o.gross_revenue)} · ${u.costs} ${inr(o.total_deductions)} · ${esc(o.verification)}</div>
+          <div><b>Risks:</b> ${o.risks.map(esc).join(" · ")}</div><div class="muted">Data age ${o.data_freshness_days} d · expected loss ${o.expected_loss_qty} kg${o.net_downside!=null?" · downside net "+inr(o.net_downside):""}</div></div></article>`).join("")}</div></div>
+    <div class="card"><h2>${t("mandis")} ${p.data_mode==="LIVE"?'<span class="tag est">LIVE · data.gov.in</span>':'<span class="tag demo">DEMO DATA</span>'}</h2><div class="scroll"><table>
+      <tr><th class="l">Mandi</th><th>Distance</th><th>Modal</th><th>Min–Max</th><th>Arrivals (t)</th><th class="l">Market signal</th><th>Updated</th></tr>
+      ${p.mandis.map(m=>{const x=p.prices[m.name],ac=p.activity[m.name];return `<tr><td class="l">${esc(m.name)}<br><span class="muted">${esc(m.schedule)}</span></td><td>${m.distance_km} km</td><td><b>${inr(x.modal)}</b>/qtl</td><td>${inr(x.min)}–${inr(x.max)}</td><td>${x.arrivals_t??"n/a"}</td><td class="l">${esc(ac.signal)}</td><td>${x.age_days===0?"today":x.age_days+" d ago"}${x.stale?' <span class="tag warn">STALE</span>':""}</td></tr>`}).join("")}
+    </table></div>
+    <h3>Retail context (not what you receive)</h3><div class="cols" id="retail"></div></div>
   </div>
-  <div class="card"><h2>Ranked options by estimated net realization</h2><div class="scroll"><table>
-    <tr><th class="l">#</th><th class="l">Option</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Distance</th><th>When</th><th>Forecast</th></tr>
-    ${p.options.map((o,i)=>`<tr class="opt ${i?"":"best"}" data-i="${i}"><td class="l">${o.rank}</td><td class="l">${esc(o.label)}<br><span class="tag demo">DEMO</span><span class="tag est">ESTIMATE</span></td><td>${inr(o.gross_revenue)}</td><td>${inr(o.total_deductions)}</td><td><b>${inr(o.net)}</b></td><td>${o.distance_km} km</td><td>${esc(o.expected_selling_time)}</td><td>${esc(o.forecast_confidence)}</td></tr>
-    <tr class="hidden" id="d${i}"><td colspan="8" class="l">${dedBar(o.deductions)}<b>Risks:</b> ${o.risks.map(esc).join(" · ")}<br><span class="muted">Data age ${o.data_freshness_days} d · expected weight/quality loss ${o.expected_loss_qty} kg${o.net_downside!=null?" · downside net "+inr(o.net_downside):""}</span></td></tr>`).join("")}
-  </table></div><p class="muted">Click a row for its cost breakdown. Ranking: ${esc(p.options.length?"net earnings, minus a penalty for forecast-dependent downside":"")}. The highest modal price is not automatically the best option.</p></div>
-  <div class="card"><h2>Price forecast</h2>
-    <label class="f" for="fm">Mandi</label><select id="fm">${Object.keys(p.forecasts||{}).map(m=>`<option ${m===S.mandi?"selected":""}>${esc(m)}</option>`).join("")}</select>
-    <div id="fchart"></div><div class="scroll" id="ftable"></div></div>
-  <div class="card"><h2>Nearby mandis ${p.data_mode==="LIVE"?'<span class="tag est">LIVE · data.gov.in</span>':'<span class="tag demo">DEMO DATA</span>'}</h2><div class="scroll"><table>
-    <tr><th class="l">Mandi</th><th>Distance</th><th>Modal</th><th>Min–Max</th><th>Arrivals (t)</th><th class="l">Market signal</th><th>Updated</th></tr>
-    ${p.mandis.map(m=>{const x=p.prices[m.name],ac=p.activity[m.name];return `<tr><td class="l">${esc(m.name)}<br><span class="muted">${esc(m.schedule)}</span></td><td>${m.distance_km} km</td><td><b>${inr(x.modal)}</b>/qtl</td><td>${inr(x.min)}–${inr(x.max)}</td><td>${x.arrivals_t??"n/a"}</td><td class="l">${esc(ac.signal)}</td><td>${x.age_days===0?"today":x.age_days+" d ago"}${x.stale?' <span class="tag warn">STALE</span>':""}</td></tr>`}).join("")}
-  </table></div>
-  <h3>Retail context (not what you receive)</h3>  <div class="cols" id="retail"></div></div>
-  <div class="card"><h2>Cold storage nearby</h2><div class="cols">${p.storage.length?p.storage.map(w=>`<div class="mini"><h4>${esc(w.name)}</h4><span class="tag demo">DEMO</span><span class="tag warn">AVAILABILITY UNCONFIRMED</span>
-    <div class="muted">${w.distance_km} km · ${esc(w.type)} · ${esc(w.temp)}</div><div>₹${w.rate_qtl_day}/qtl/day · min ${w.min_days} days</div><div class="muted">Handling ₹${w.handling_qtl}/qtl · declared capacity ${w.declared_capacity_qtl} qtl</div><div><b>${inr(w.est_cost_7d)}</b> for 7 days <span class="tag est">ESTIMATE</span></div>
-    <div class="muted">Phone: not verified</div><button class="btn sm alt" data-enq="${esc(w.id)}">Send booking enquiry</button></div>`).join(""):'<span class="muted">No suitable storage found nearby.</span>'}</div></div>
-  <div class="card"><h2>Transport</h2><div class="cols">${p.transport.map(t=>`<div class="mini"><h4>To ${esc(t.destination)}</h4><div class="muted">${t.distance_km} km · about ${t.est_hours} h</div>
-    ${t.options.map(o=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:15px"><span>${esc(o.vehicle)} (${o.capacity_qtl} qtl)</span><b>${inr(o.total)}</b></div><div class="muted" style="text-align:right">₹${o.per_qtl}/qtl · ${esc(o.quote_status)}</div>`).join("")}
-    <div class="muted">Contacts: not verified, not shown</div></div>`).join("")}</div>
-  ${sharedCard(p.shared_load)}</div>
-  <div class="card"><h2>Buyers</h2><div class="cols">${p.buyers.length?p.buyers.map(x=>`<div class="mini"><h4>${esc(x.name)}</h4>
-    <span class="tag ${x.kind==="offer"?"demo":"warn"}">${x.kind==="offer"?"DEMO OFFER":"INDICATIVE DEMAND"}</span>
-    <div>${x.price?`<b>${inr(x.price)}</b>/qtl until ${esc(x.valid_until)}`:"No price committed"}</div><div class="muted">${x.distance_km} km · min ${x.min_qty_qtl} qtl · ${esc(x.pickup)}${x.meets_min_qty?"":" · below minimum quantity"}</div><div class="muted">${esc(x.label)}</div></div>`).join(""):'<span class="muted">No buyer demand for this crop.</span>'}</div></div>
-  <div class="card" id="orderCard"><h2>Order and tracking</h2><div id="orderBody" class="muted">Create a sale order from the best option above to book transport, enquire about storage, track delivery and confirm the sale.</div></div>
-  <div class="card"><details><summary>Your cost assumptions (editable) <span class="tag warn">${esc(a.placeholder_note)}</span></summary>
-    <div class="cols" style="margin-top:10px">
-      <div><label class="f" for="a_comm">Commission %</label><input type="number" step="0.1" id="a_comm" value="${a.commission_pct}"></div>
-      <div><label class="f" for="a_pay">Commission paid by</label><select id="a_pay"><option ${a.commission_payer==="buyer"?"selected":""}>buyer</option><option ${a.commission_payer==="seller"?"selected":""}>seller</option></select></div>
-      <div><label class="f" for="a_ham">Hamali (₹/qtl)</label><input type="number" step="1" id="a_ham" value="${a.hamali_per_qtl}"></div>
-      <div><label class="f" for="a_road">Road factor (distance estimate)</label><input type="number" step="0.05" id="a_road" value="${a.road_factor}"></div>
-      <div><label class="f" for="a_risk">Risk allowance %</label><input type="number" step="0.5" id="a_risk" value="${a.risk_allowance_pct}"></div></div>
-    <p><button class="btn sm" id="rerun">Recalculate</button></p></details></div>
-  <div class="card"><details><summary>How KrishiMitra's agents worked on this</summary><div class="trace" style="margin-top:8px">${p.trace.map(t=>`<span class="${t.status==="ok"?"":"bad"}">${esc(t.agent)} · ${t.status} · ${t.ms} ms</span>`).join("")}</div>
-    <p class="muted">${esc(p.labels)}</p></details></div>`;
-  $$("tr.opt").forEach(tr=>tr.onclick=()=>$("#d"+tr.dataset.i).classList.toggle("hidden"));
+  <div class="panel hidden" data-panel="forecast">
+    <div class="card"><h2>${t("forecast")}</h2>
+      <label class="f" for="fm">Mandi</label><select id="fm">${Object.keys(p.forecasts||{}).map(m=>`<option ${m===S.mandi?"selected":""}>${esc(m)}</option>`).join("")}</select>
+      <div id="fchart"></div><div class="scroll" id="ftable"></div></div>
+  </div>
+  <div class="panel hidden" data-panel="logistics">
+    <div class="card"><h2>${t("storage")}</h2><div class="cols">${p.storage.length?p.storage.map(w=>`<div class="mini"><h4>${esc(w.name)}</h4><span class="tag demo">DEMO</span><span class="tag warn">AVAILABILITY UNCONFIRMED</span>
+      <div class="muted">${w.distance_km} km · ${esc(w.type)} · ${esc(w.temp)}</div><div>₹${w.rate_qtl_day}/qtl/day · min ${w.min_days} days</div><div class="muted">Handling ₹${w.handling_qtl}/qtl · declared capacity ${w.declared_capacity_qtl} qtl</div><div><b>${inr(w.est_cost_7d)}</b> for 7 days <span class="tag est">ESTIMATE</span></div>
+      <div class="muted">Phone: not verified</div><button class="btn sm alt" data-enq="${esc(w.id)}">Send booking enquiry</button></div>`).join(""):'<span class="muted">No suitable storage found nearby.</span>'}</div></div>
+    <div class="card"><h2>${t("transport")}</h2><div class="cols">${p.transport.map(x=>`<div class="mini"><h4>To ${esc(x.destination)}</h4><div class="muted">${x.distance_km} km · about ${x.est_hours} h</div>
+      ${x.options.map(o=>`<div class="row"><span>${esc(o.vehicle)} (${o.capacity_qtl} qtl)</span><b>${inr(o.total)}</b></div><div class="muted" style="text-align:right">₹${o.per_qtl}/qtl · ${esc(o.quote_status)}</div>`).join("")}
+      <div class="muted">Contacts: not verified, not shown</div></div>`).join("")}</div>${sharedCard(p.shared_load)}</div>
+    <div class="card"><h2>${t("buyers")}</h2><div class="cols">${p.buyers.length?p.buyers.map(x=>`<div class="mini"><h4>${esc(x.name)}</h4>
+      <span class="tag ${x.kind==="offer"?"demo":"warn"}">${x.kind==="offer"?"DEMO OFFER":"INDICATIVE DEMAND"}</span>
+      <div>${x.price?`<b>${inr(x.price)}</b>/qtl until ${esc(x.valid_until)}`:"No price committed"}</div><div class="muted">${x.distance_km} km · min ${x.min_qty_qtl} qtl · ${esc(x.pickup)}${x.meets_min_qty?"":" · below minimum quantity"}</div><div class="muted">${esc(x.label)}</div></div>`).join(""):'<span class="muted">No real buyer offers are connected'+(p.data_mode==="LIVE"?" (demo buyers are hidden in LIVE mode).":".")+'</span>'}</div></div>
+  </div>
+  <div class="panel hidden" data-panel="order">
+    <div class="card" id="orderCard"><h2>${t("order")}</h2><div id="orderBody" class="muted">Create a sale order from the best option to request transport, send a storage enquiry, track delivery and confirm the sale.</div>${S.order?"":`<p><button class="btn" id="mkOrder2">${u.order}</button></p>`}</div>
+    <div class="card"><details><summary>Your cost assumptions (editable) <span class="tag warn">${esc(a.placeholder_note)}</span></summary>
+      <div class="cols" style="margin-top:10px">
+        <div><label class="f" for="a_comm">Commission %</label><input type="number" step="0.1" id="a_comm" value="${a.commission_pct}"></div>
+        <div><label class="f" for="a_pay">Commission paid by</label><select id="a_pay"><option ${a.commission_payer==="buyer"?"selected":""}>buyer</option><option ${a.commission_payer==="seller"?"selected":""}>seller</option></select></div>
+        <div><label class="f" for="a_ham">Hamali (₹/qtl)</label><input type="number" step="1" id="a_ham" value="${a.hamali_per_qtl}"></div>
+        <div><label class="f" for="a_road">Road factor (distance estimate)</label><input type="number" step="0.05" id="a_road" value="${a.road_factor}"></div>
+        <div><label class="f" for="a_risk">Risk allowance %</label><input type="number" step="0.5" id="a_risk" value="${a.risk_allowance_pct}"></div></div>
+      <p><button class="btn sm" id="rerun">Recalculate</button></p></details></div>
+    <div class="card"><details><summary>How the agents worked</summary><div class="trace" style="margin-top:8px">${p.trace.map(x=>`<span class="${x.status==="ok"?"":"bad"}">${esc(x.agent)} · ${x.status} · ${x.ms} ms</span>`).join("")}</div>
+      <p class="muted">${esc(p.labels)}</p></details></div>
+  </div>`;
+  $$(".tabs button").forEach(bt=>bt.onclick=()=>showTab(bt.dataset.tab));
+  $$("article.opt").forEach(el=>{const tog=()=>{const d=el.querySelector(".od");d.classList.toggle("hidden");el.setAttribute("aria-expanded",!d.classList.contains("hidden"))};
+    el.onclick=ev=>{if(!ev.target.closest(".od"))tog()}; el.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();tog()}}});
   $("#fm").onchange=e=>{S.mandi=e.target.value;drawForecast(p)};
   drawForecast(p); drawRetail(p);
-  $$("[data-enq]").forEach(b=>b.onclick=()=>enquire(b.dataset.enq));
+  $$("[data-enq]").forEach(bt=>bt.onclick=()=>enquire(bt.dataset.enq));
   $("#rerun").onclick=()=>rerun(p);
+  $("#mkOrder2")&&($("#mkOrder2").onclick=()=>createOrder(b));
+  showTab(S.tab||"compare");
   if(S.order)renderOrder();
   $("#right").scrollIntoView({behavior:"smooth",block:"start"});
 }
+
 function sharedCard(s){
   if(!s||s.status!=="ok")return `<h3>Shared transport</h3><p class="muted">${esc(s?.reason||"No match.")}</p>`;
   return `<h3>Shared transport to ${esc(s.destination)} <span class="tag warn">SIMULATED POOL</span><span class="tag est">ESTIMATE</span></h3>
@@ -344,12 +495,30 @@ function renderOrder(){
 }
 async function doEv(ev,data){try{S.order=await api(`/api/orders/${S.order.id}/event`,{event:ev,data});renderOrder()}catch(e){alert(e.message)}}
 
+
+// ---------- reset + quick form
+function startOver(){
+  speechSynthesis.cancel(); stopWorking(); Object.assign(S,{sid:null,plan:null,order:null,state:null,tab:"compare"});
+  $("#chat").innerHTML=""; $("#dash").innerHTML=""; $("#right").innerHTML=S.welcomeHTML; bindForm(); applyLang(); send("");
+}
+$("#resetBtn").onclick=startOver;
+async function bindForm(){
+  const sel=$("#q_place"); if(!sel)return;
+  try{const m=await api("/api/meta"); sel.innerHTML=m.places.map(p=>`<option>${esc(p)}</option>`).join(""); sel.value=m.places.includes("Niphad")?"Niphad":m.places[0]}catch(e){}
+  $("#qf").onsubmit=async ev=>{ev.preventDefault();$("#qerr").textContent="";
+    const qty=+$("#q_qty").value*+$("#q_unit").value; if(!(qty>0)){$("#qerr").textContent="Enter a quantity above zero.";return}
+    const body={crop:$("#q_crop").value,qty_kg:qty,place:$("#q_place").value.toLowerCase(),ready:$("#q_ready").checked,can_store:$("#q_store").checked,lang:S.lang};
+    $("#q_go").disabled=true; showWorking();
+    try{const pl=await api("/api/plan",body);
+      S.plan=pl; renderPlan(pl)}catch(e){stopWorking();$("#right").innerHTML=S.welcomeHTML;bindForm();$("#qerr").textContent=e.message}
+    finally{if($("#q_go"))$("#q_go").disabled=false}};
+}
 async function loadHealth(){
   try{const h=await (await fetch("/api/health")).json(), live=h.data_mode==="LIVE";
-    $("#modePill").textContent=live?"LIVE DATA":"DEMO DATA"; $("#modePill").style.background=live?"var(--leaf)":"";
+    $("#modePill").textContent=live?"LIVE DATA":"DEMO DATA"; $("#modePill").classList.toggle("live",live);
     $("#banner").innerHTML=live?"<b>LIVE mandi prices</b> from data.gov.in (Agmarknet). Buyers, warehouses, transporters and shared-load partners are still DEMO. Costs are editable estimates; forecasts appear only once enough history exists.":"<b>DEMO DATA.</b> "+esc(h.note)+" Costs are estimates you can edit. Nothing is a real quote, offer or guaranteed price."}catch(e){}
 }
-applyLang(); loadHealth(); send("");
+S.welcomeHTML=$("#right").innerHTML; applyLang(); bindForm(); loadHealth(); send("");
 </script>
 </body>
 </html>

@@ -173,3 +173,21 @@ def test_import_csv_agmarknet_style_headers(tmp_path, monkeypatch):
                  "Maharashtra,Nashik,Lasalgaon,Red,Vegetables,Onion,FAQ,1500,2100,1900,13 Nov 2026\n")
     assert adapters.import_csv(str(f)) == 1
     assert adapters.live_df("onion", "Lasalgaon APMC")["modal"].iloc[0] == 1900
+
+
+def test_csv_watcher_imports_once_then_again_on_new_file(tmp_path, monkeypatch):
+    import os
+    from app import adapters
+    monkeypatch.setattr(adapters, "DB", tmp_path / "live.db")
+    d = tmp_path / "dl"; d.mkdir()
+    f = d / "9ef84268-d588-465a-a308-a864a43d0070.csv"
+    f.write_text("State,District,Market,Commodity,Variety,Grade,Arrival_Date,Min_x0020_Price,Max_x0020_Price,Modal_x0020_Price\nMaharashtra,Nashik,Lasalgaon APMC,Onion,Red,FAQ,13/11/2026,1500,2100,1900\n")
+    (d / "other.csv").write_text("junk")
+    assert [x.get("rows") for x in adapters.scan_and_import([d])] == [1]
+    assert adapters.scan_and_import([d]) == []  # same file, not re-imported
+    os.utime(f, (f.stat().st_atime, f.stat().st_mtime + 10))  # re-downloaded -> new mtime
+    assert len(adapters.scan_and_import([d])) == 1
+    assert adapters.last_import()["rows"] == 1
+    f.write_text("not,a,price,file\n1,2,3,4\n")
+    os.utime(f, (f.stat().st_atime, f.stat().st_mtime + 20))
+    assert "error" in adapters.scan_and_import([d])[0]  # bad file reported, not crashed

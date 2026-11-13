@@ -52,20 +52,52 @@ def warm():
                     pass
     threading.Thread(target=go, daemon=True).start()
 
+    def auto_refresh():  # keep prices live: pull every 3 hours when a key is configured
+        import time
+        while adapters.api_key():
+            try:
+                adapters.refresh()
+                F.forecast.cache_clear()
+            except Exception:
+                pass
+            time.sleep(3 * 3600)
+    if adapters.api_key():
+        threading.Thread(target=auto_refresh, daemon=True).start()
+
+    def watch():  # auto-import the daily CSV the moment it lands in Downloads
+        import time
+        while True:
+            try:
+                if adapters.scan_and_import():
+                    F.forecast.cache_clear()
+            except Exception:
+                pass
+            time.sleep(30)
+    threading.Thread(target=watch, daemon=True).start()
+
 
 @app.get("/api/health")
 def health():
     live = adapters.live_mode()
     return {"ok": True, "data_mode": "LIVE" if live else D.DEMO, "llm": "ollama" if llm.enabled() else "off (rules + templates)",
-            "live_adapters": ["data.gov.in"] if live else [], "key_configured": bool(os.getenv("DATA_GOV_API_KEY")),
+            "live_adapters": ["data.gov.in"] if live else [], "key_configured": bool(adapters.api_key()), "last_import": adapters.last_import(), "watching": [str(d) for d in adapters.watch_dirs()],
             "note": "Live mandi prices loaded." if live else "No live rows yet. Set DATA_GOV_API_KEY and POST /api/admin/refresh. Until then all market data is DEMO DATA."}
+
+
+@app.post("/api/admin/scan")
+def scan():
+    """Check the watched folders for a new price CSV right now."""
+    r = adapters.scan_and_import()
+    if r:
+        F.forecast.cache_clear()
+    return {"imported": r, "watching": [str(d) for d in adapters.watch_dirs()]}
 
 
 @app.post("/api/admin/refresh")
 def refresh():
     """Pull today's prices from data.gov.in into the local snapshot store (needs DATA_GOV_API_KEY)."""
-    if not os.getenv("DATA_GOV_API_KEY"):
-        raise HTTPException(400, "DATA_GOV_API_KEY is not set")
+    if not adapters.api_key():
+        raise HTTPException(400, "DATA_GOV_API_KEY is not set (env var or backend/.env)")
     F.forecast.cache_clear()
     return adapters.refresh()
 

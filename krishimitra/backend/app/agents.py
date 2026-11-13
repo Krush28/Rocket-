@@ -266,7 +266,7 @@ def _opt(kind, label, dest, o, km, when, conf, age, risks, downside=None, tr=Non
     return {"type": kind, "label": label, "destination": dest, "price": o["price"], "saleable_qty": o["saleable_qty"], "gross_revenue": o["gross_revenue"],
             "deductions": ded, "total_deductions": tot, "net": net, "net_downside": downside, "score": round(net - pen), "distance_km": km,
             "transport_cost": tr if tr is not None else ded.get("transport"), "expected_selling_time": when, "forecast_confidence": conf or "n/a (current price)",
-            "data_freshness_days": age, "expected_loss_qty": o["expected_loss_qty"], "risks": risks, "verification": "DEMO DATA / ESTIMATE",
+            "data_freshness_days": age, "expected_loss_qty": o["expected_loss_qty"], "risks": risks, "verification": "LIVE PRICE / ESTIMATED COSTS" if (D.live_mode_on() and kind != "direct_buyer") else "DEMO DATA / ESTIMATE",
             "hold_days": o.get("days")}
 
 
@@ -293,7 +293,7 @@ def recommendation(st):
     facts = {"best": best["label"], "net_rs": best["net"], "sell_or_hold": sh["action"], "reason": sh["reason"], "notes": notes}
     from . import llm
     text = llm.explain(facts, st["profile"].get("lang", "en")) or (
-        f"Best estimated net: {best['label']} - about Rs {best['net']:,} after about Rs {best['total_deductions']:,} of costs. "
+        f"Best estimated net: {best['label']} - about Rs {best['net']:,} after about Rs {round(best['total_deductions']):,} of costs. "
         f"Sell vs hold: {sh['action']}. {sh['reason']} " + " ".join(notes))
     return {"data": {"best": best, "decision": sh, "answers": answers, "estimated_gain_vs_nearest_mandi_today": (best["net"] - near) if near is not None else None,
                      "gain_note": "Model-estimated versus selling at the nearest mandi today. Not a measured result.",
