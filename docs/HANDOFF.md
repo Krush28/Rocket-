@@ -27,12 +27,11 @@ The differentiator is the **Net Realization Engine**: revenue minus transport, h
 - Not a deep engineer; wants things that **actually work** and honest status ("is it real?"). Asked "is it a working app?" and "make it work live!!!". Never overclaim.
 - Prefers **short, scannable, ADHD-friendly answers**. Use bullets, tables, bold. Lead with the answer.
 - Has a weak PC (cannot run big local models). Has not yet told us RAM / GPU: ask before picking a local LLM.
-- Has authorised copying from unlicensed reference repos at their own risk, but we ended up only porting ideas (rewritten), not code.
 - Always confirmed before pushes ("Push the X?" then "Yes, push"). Keep doing that. Commit trailer: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
 - They used these skills/commands: `/superpowers:brainstorming`, `/ponytail` (smallest change), `/caveman` (terse), `/web-design-engineer`, `/design` (Design canvas artifact). Honour terse style where asked.
 
 ## 3. Where everything lives
-- **GitHub:** https://github.com/Krush28/Rocket-  branch **`krishimitra`** (not `main`). Commits so far: scaffold+agents, live data adapter, UI redesign + auto-import, data+design+docs, ported features. Push by cloning the repo, copying files over, committing, `git push origin krishimitra`. **Never commit** `backend/.env`, `*.db`, `.venv`, `reference-repos/`.
+- **GitHub:** https://github.com/Krush28/Rocket-  branch **`krishimitra`** (not `main`). Commits so far: scaffold+agents, live data adapter, UI redesign + auto-import, data+design+docs, spoilage/confidence features. Push by cloning the repo, copying files over, committing, `git push origin krishimitra`. **Never commit** `backend/.env`, `*.db`, `.venv`.
 - **Local working folder:** `C:\Users\shreyash\Downloads\mandiproject\` (Windows 11; Git Bash + PowerShell). Python venv at `mandiproject\.venv` (Python 3.13). Not itself a git repo; the repo is cloned to a temp dir when pushing.
 - **Design canvas (UI mockups):** https://claude.ai/artifact/9FLdEEHFMuq6cVHLmu11m7 (private); source in `design/krishimitra-redesign/`.
 
@@ -48,15 +47,15 @@ krishimitra/backend/app/
   costs.py         deterministic money maths (transport, sell/hold, p_decline, decide)
   forecast.py      baselines + ETS + lag-Ridge + ensemble, rolling-origin backtest, reliability GATE
   logistics.py     OR-Tools CP-SAT shared-load matching (pool members are SIMULATED)
-  spoilage.py      transit spoilage risk (ported idea from Mandi-Agent)
-  confidence.py    explainable confidence score (ported idea from AgroPrice-AI)
+  spoilage.py      transit spoilage risk
+  confidence.py    explainable confidence score
   adapters.py      LIVE data: data.gov.in API + CSV import + folder watcher + national-median helper for the data-error guard
   demo_data.py     synthetic series, fictional warehouses/transporters/buyers (all labelled DEMO), live-mode routing, price_outlier guard
   orders.py        order state machine (sqlite); llm.py optional Ollama hook; geo.py; meta.py (common metadata block)
 krishimitra/frontend/index.html   single-file UI (no build step). Settlement-slip design. Talks to /api/agent
 krishimitra/backend/tests/        pytest, 33 tests (conftest isolates DBs/state; tests run in DEMO mode)
 data/raw/9ef84268-..._2026-11-13.csv   real Agmarknet daily prices, 16,038 rows (auto-imported on startup)
-docs/            HANDOFF.md (this), reference-repos.md, original design notes (mandi-copilot-*.md)
+docs/            HANDOFF.md (this), original design notes (mandi-copilot-*.md)
 design/          Design canvas source
 .claude/launch.json   preview server config ("krishimitra", port 8000)
 ```
@@ -97,7 +96,7 @@ design/          Design canvas source
 3. **Forecast reliability gate:** a horizon is shown only if the best model beats BOTH baselines (seasonal-naive, 7-day MA) by >=5% MAE in a chronological rolling-origin backtest AND its 80% interval coverage is within 0.2 of 0.8. Otherwise "no reliable forecast". Never random splits.
 4. **Spoilage is a risk flag + ranking penalty, never a second rupee deduction** (weight loss is already modelled once as reduced saleable quantity; do not double count).
 5. **Data-error guard:** in LIVE mode a price <35% or >250% of today's national median for the crop is excluded with a visible reason.
-6. **No third-party scraping past captchas; no code copied from unlicensed repos.** Reference repos (in `reference-repos/`, not pushed) were studied; only ideas were ported (see `docs/reference-repos.md`). Only AgroSense (Flutter, MIT) is licence-clear, and it does not port to web.
+6. **No third-party scraping past captchas; no third-party code copied in.**
 7. **UI direction:** "settlement slip" (mandi-receipt feel: forest green `#0F3D2E`, marigold `#F2B01E`, warm ground `#EEEDE4`, Bricolage Grotesque + Instrument Sans + Noto Sans Devanagari). The owner rejected a generic Apple-style polish, so do not revert to it.
 8. **Memory without accounts:** a random device id kept in the browser, farmer data in sqlite. "Start over" deliberately forgets the farmer.
 

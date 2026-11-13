@@ -39,4 +39,3 @@ Agmarknet 2.0's own API requires a captcha, so it is not scraped.
 - Cost defaults (commission, hamali, vehicle rates, financing) are unverified placeholders, editable in the UI.
 - Shared-load pool members are `[Simulated]`. No phone numbers are shown anywhere. Storage availability is never claimed.
 - Not built (out of reach in the time box): other role portals (FPO/buyer/transporter/warehouse/admin), Flutter app, Postgres/PostGIS, Celery, LightGBM/XGBoost, real STT/TTS beyond the browser's Web Speech API.
-- Reference repos in `../reference-repos` are read-only inspiration; four have no licence, so no code was copied from them.

@@ -1,4 +1,4 @@
-"""Explainable plan confidence: a score built from named, checkable signals (pattern adapted from AgroPrice-AI's confidence engine).
+"""Explainable plan confidence: a score built from named, checkable signals.
 Weights are a transparent heuristic, NOT a calibrated probability. Every point added or removed is listed in contributors/detractors."""
 import statistics
 

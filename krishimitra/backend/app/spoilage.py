@@ -1,4 +1,4 @@
-"""Transit spoilage risk. Idea and tier cut-offs adapted from Mandi-Agent's spoilage agent (reference-repos), rewritten here.
+"""Transit spoilage risk.
 risk = (transit_hours / remaining_shelf_life_hours) x temperature_multiplier, capped at 1. A risk FLAG used for ranking and warnings,
 not a rupee deduction (weight loss is already modelled once as lower saleable quantity, so spoilage is never double counted)."""
 

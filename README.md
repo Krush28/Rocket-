@@ -6,7 +6,7 @@ Voice-first assistant that ranks where a farmer should sell by **estimated net e
 krishimitra/   app: FastAPI backend, agents, tests, single-page frontend  (start here: krishimitra/README.md)
 data/raw/      real daily mandi prices, data.gov.in (Agmarknet), 13 Nov 2026, 16,038 rows
 design/        Design-canvas source for the UI redesign (settlement-slip direction)
-docs/          early design notes and the list of reference repos
+docs/          early design notes and the handoff document
 ```
 
 Run: see `krishimitra/README.md`. On startup the server auto-imports `data/raw/*.csv`, so a fresh clone starts in LIVE mode with that day's real prices.
