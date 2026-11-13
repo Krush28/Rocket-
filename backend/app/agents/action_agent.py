@@ -39,7 +39,8 @@ R = {
         new_lot="New lot: {lot} near {loc}. {msg}", add_which="Which crop do you want to add, and how much? For example \"20 quintal potato\".",
         need_unit="{n} what: kg, quintal or tonne?", removed="Removed {crop}. {msg}", last_lot="{crop} is your only crop. Say \"start over\" to begin again.",
         qty_set="Changed to {lot}. {msg}", loc_set="Farm place changed to {loc}. {msg}", price_none="I have no {crop} price for that place in today's data.",
-        other_crop="{crop} prices: ", no_weather="I do not have weather data. I can help with mandi prices, sell or hold, transport, storage, orders and government schemes.", thanks="You are welcome. Ask me anything about selling your crop.", finish_first="Let us first finish your details.", retail="{crop} in {city} shops: about Rs {lo} to Rs {hi} per kg (estimate from mandi prices; shop prices are not what a farmer gets).",
+        other_crop="{crop} prices: ", fc_gate="No forecast for {dest} passed the reliability check yet, so I will not guess. Selling at today's price is the safe choice.",
+        no_crop="I could not find that crop in today's market data. Please say its common name, for example \"onion\", \"rice\" or \"papaya\".", no_weather="I do not have weather data. I can help with mandi prices, sell or hold, transport, storage, orders and government schemes.", thanks="You are welcome. Ask me anything about selling your crop.", finish_first="Let us first finish your details.", retail="{crop} in {city} shops: about Rs {lo} to Rs {hi} per kg (estimate from mandi prices; shop prices are not what a farmer gets).",
         no_retail="I have no recent {crop} mandi prices near {city} to estimate shop prices.", schemes="Opening government schemes for {state}.",
         w_create="create the sale order for the best option", w_request_transport="request transport", w_request_storage="send the storage enquiry",
         w_pickup="mark it picked up", w_deliver="mark it delivered", w_confirm_sale="confirm the final sale", w_cancel="cancel the order",
@@ -68,7 +69,8 @@ R = {
         new_lot="नया माल: {loc} के पास {lot}। {msg}", add_which="कौन सी फसल जोड़नी है और कितनी? जैसे \"20 क्विंटल आलू\"।",
         need_unit="{n} क्या: किलो, क्विंटल या टन?", removed="{crop} हटा दिया। {msg}", last_lot="{crop} आपकी अकेली फसल है। नए सिरे से शुरू करने के लिए \"नए सिरे से\" बोलिए।",
         qty_set="बदल दिया: {lot}। {msg}", loc_set="खेत की जगह बदलकर {loc} कर दी। {msg}", price_none="आज के डेटा में उस जगह का {crop} भाव नहीं है।",
-        other_crop="{crop} के भाव: ", no_weather="मेरे पास मौसम की जानकारी नहीं है। मैं मंडी भाव, बेचें या रोकें, ढुलाई, भंडारण, ऑर्डर और सरकारी योजनाओं में मदद कर सकता हूँ।", thanks="आपका स्वागत है। फसल बेचने के बारे में कुछ भी पूछिए।", finish_first="पहले आपकी जानकारी पूरी कर लेते हैं।", retail="{city} की दुकानों में {crop}: लगभग ₹{lo} से ₹{hi} प्रति किलो (मंडी भाव से अनुमान; दुकान का भाव किसान का भाव नहीं होता)।",
+        other_crop="{crop} के भाव: ", fc_gate="{dest} का कोई अनुमान अभी भरोसे की जाँच में पास नहीं हुआ, इसलिए मैं अंदाज़ा नहीं लगाऊँगा। आज के भाव पर बेचना सुरक्षित है।",
+        no_crop="आज के बाज़ार डेटा में यह फसल नहीं मिली। कृपया उसका आम नाम बोलिए, जैसे \"प्याज\", \"चावल\" या \"पपीता\"।", no_weather="मेरे पास मौसम की जानकारी नहीं है। मैं मंडी भाव, बेचें या रोकें, ढुलाई, भंडारण, ऑर्डर और सरकारी योजनाओं में मदद कर सकता हूँ।", thanks="आपका स्वागत है। फसल बेचने के बारे में कुछ भी पूछिए।", finish_first="पहले आपकी जानकारी पूरी कर लेते हैं।", retail="{city} की दुकानों में {crop}: लगभग ₹{lo} से ₹{hi} प्रति किलो (मंडी भाव से अनुमान; दुकान का भाव किसान का भाव नहीं होता)।",
         no_retail="{city} के पास {crop} के हाल के मंडी भाव नहीं हैं, इसलिए दुकान भाव का अनुमान नहीं लगा सकता।", schemes="{state} की सरकारी योजनाएँ खोल रहा हूँ।",
         w_create="सबसे अच्छे विकल्प के लिए बिक्री ऑर्डर बना दूँ", w_request_transport="ढुलाई का अनुरोध भेज दूँ", w_request_storage="भंडारण की पूछताछ भेज दूँ",
         w_pickup="माल उठ गया दर्ज कर दूँ", w_deliver="माल पहुँच गया दर्ज कर दूँ", w_confirm_sale="अंतिम बिक्री पक्की कर दूँ", w_cancel="ऑर्डर रद्द कर दूँ",
@@ -97,7 +99,8 @@ R = {
         new_lot="नवीन माल: {loc} जवळ {lot}. {msg}", add_which="कोणते पीक जोडायचे आणि किती? उदा. \"20 क्विंटल बटाटा\".",
         need_unit="{n} काय: किलो, क्विंटल की टन?", removed="{crop} काढले. {msg}", last_lot="{crop} हे तुमचे एकमेव पीक आहे. पुन्हा सुरू करण्यासाठी \"पुन्हा सुरू\" म्हणा.",
         qty_set="बदलले: {lot}. {msg}", loc_set="शेताचे ठिकाण {loc} केले. {msg}", price_none="आजच्या माहितीत त्या ठिकाणचा {crop} भाव नाही.",
-        other_crop="{crop} भाव: ", no_weather="माझ्याकडे हवामानाची माहिती नाही. मी मंडी भाव, विकायचे की थांबायचे, वाहतूक, साठवण, ऑर्डर आणि सरकारी योजनांमध्ये मदत करू शकतो.", thanks="आपले स्वागत आहे. पीक विकण्याबद्दल काहीही विचारा.", finish_first="आधी तुमची माहिती पूर्ण करूया.", retail="{city} मधील दुकानांत {crop}: सुमारे ₹{lo} ते ₹{hi} प्रति किलो (मंडी भावावरून अंदाज; दुकानाचा भाव शेतकऱ्याचा भाव नसतो).",
+        other_crop="{crop} भाव: ", fc_gate="{dest} साठी कोणताही अंदाज अजून विश्वासार्हता तपासणीत पास झाला नाही, म्हणून मी अंदाज सांगणार नाही. आजच्या भावाने विकणे सुरक्षित आहे.",
+        no_crop="आजच्या बाजार माहितीत हे पीक सापडले नाही. कृपया त्याचे सामान्य नाव सांगा, उदा. \"कांदा\", \"तांदूळ\" किंवा \"पपई\".", no_weather="माझ्याकडे हवामानाची माहिती नाही. मी मंडी भाव, विकायचे की थांबायचे, वाहतूक, साठवण, ऑर्डर आणि सरकारी योजनांमध्ये मदत करू शकतो.", thanks="आपले स्वागत आहे. पीक विकण्याबद्दल काहीही विचारा.", finish_first="आधी तुमची माहिती पूर्ण करूया.", retail="{city} मधील दुकानांत {crop}: सुमारे ₹{lo} ते ₹{hi} प्रति किलो (मंडी भावावरून अंदाज; दुकानाचा भाव शेतकऱ्याचा भाव नसतो).",
         no_retail="{city} जवळ {crop} चे अलीकडील मंडी भाव नाहीत, त्यामुळे दुकान भावाचा अंदाज देता येत नाही.", schemes="{state} च्या सरकारी योजना उघडत आहे.",
         w_create="सर्वोत्तम पर्यायासाठी विक्री ऑर्डर तयार करू", w_request_transport="वाहतुकीची विनंती पाठवू", w_request_storage="साठवणुकीची चौकशी पाठवू",
         w_pickup="माल उचलला अशी नोंद करू", w_deliver="माल पोहोचला अशी नोंद करू", w_confirm_sale="अंतिम विक्री निश्चित करू", w_cancel="ऑर्डर रद्द करू",
@@ -161,7 +164,7 @@ def route(text: str) -> tuple[str, dict]:
         return "explain", {}
     if has("thank", "dhanyavad", "dhanyawad", "shukriya", "धन्यवाद", "शुक्रिया", "आभार") and len(low.split()) <= 4:  # "show schemes, thanks" is a request
         return "thanks", {}
-    if has("bech do", "bech dijiye", "bech dena", "sell it", "go ahead and sell", "help me sell", "sell this", "sell kar", "buy kar", "move it",
+    if has("bech do", "bech dijiye", "bech dena", "sell it", "go ahead and sell", "help me sell", "sell this", "sell my", "sell the", "sell all", "sell our", "bechna hai", "sell kar", "buy kar", "move it",
            "order bana", "बेच दो", "बेच दीजिए", "बेचा", "बेचायचे", "बेचना है", "विकून टाका", "विकून द्या", "विकायचे", "विकायचा") \
             and not has("should", " or ", " ya ", "hold", "ruk", "wait", "rok", "chahiye", "kab ", "when", "चाहिए", "की रुक", "का थांब"):
         return "create_order", {}
@@ -201,7 +204,9 @@ def route(text: str) -> tuple[str, dict]:
         if phrase in low:
             return "order_event", {"event": ev}
     if "qty" in found and "crop" not in found and not has("hamali", "हमाली", "commission", "कमीशन", "transport", "truck", "ढुलाई"):
-        return "set_qty", {"qty": found["qty"]}  # "actually it is 80 quintal" changes the crop on screen
+        if len(low.split()) <= 5 or has("actually", "it is", "it's", "make it", "change", "only", "not ", "nahi", "असल", "बदल", "फक्त", "सिर्फ"):
+            return "set_qty", {"qty": found["qty"]}  # "actually it is 80 quintal" changes the crop on screen
+        return "no_crop", {}  # "I have 2 quintal dragon fruit": an amount of something we do not know must not change the onion lot
     if has("create the order", "create order", "place the order", "place order", "sale order", "book it", "ऑर्डर बना", "ऑर्डर तयार", "ऑर्डर कर"):
         return "create_order", {}
     if has("track", "my order", "order status", "where is the order", "order kahan", "order kaha", "order kuthe", "ऑर्डर स्टेटस", "ऑर्डर कहाँ", "ऑर्डर कहां",
@@ -254,6 +259,8 @@ def run_tool(tool: str, args: dict, st: dict, lang: str, db) -> dict:
     plan = st.get("plan")
     if tool == "thanks":
         return {"reply": rt(lang, "thanks"), "actions": []}
+    if tool == "no_crop":
+        return {"reply": rt(lang, "no_crop"), "actions": []}
     if tool == "weather":
         return {"reply": rt(lang, "no_weather"), "actions": []}
     if tool == "explain":  # without the LLM: the deterministic verdict and its reasons
@@ -325,7 +332,10 @@ def run_tool(tool: str, args: dict, st: dict, lang: str, db) -> dict:
         if ok:
             txt = "; ".join(rt(lang, "fc_h", d=h["horizon_days"], p=_inr(h["predicted"]), lo=_inr(h["lo"]), hi=_inr(h["hi"])) for h in ok[:3])
             return {"reply": rt(lang, "fc_ok", dest=name, txt=txt), "actions": [_tab("forecast")]}
-        return {"reply": rt(lang, "fc_none", dest=name, n=len(MD.series(plan["profile"]["crop"], dest))), "actions": [_tab("forecast")]}
+        n = len(MD.series(plan["profile"]["crop"], dest))
+        if n >= 120:  # enough history, but no model passed the backtest gate for any horizon
+            return {"reply": rt(lang, "fc_gate", dest=name), "actions": [_tab("forecast")]}
+        return {"reply": rt(lang, "fc_none", dest=name, n=n), "actions": [_tab("forecast")]}
     if tool == "logistics":
         stor, trs = plan.get("storage") or [], plan.get("transport") or []
         s = rt(lang, "store", name=stor[0]["name"], cost=_inr(stor[0]["est_cost_7d"])) if stor else rt(lang, "no_store")
@@ -452,6 +462,17 @@ def _retail(crop: str, city: str, st: dict, lang: str) -> dict:
     lo, hi = RETAIL_MARKUP.get(CR.params(crop)["category"], (1.6, 2.4))
     return {"reply": rt(lang, "retail", crop=intake.crop_label(crop, lang), city=name, lo=_inr(med * lo), hi=_inr(med * hi)), "actions": [],
             "retail": {"crop": crop, "city": name, "mandi_median_per_kg": round(med, 1), "range_per_kg": [round(med * lo), round(med * hi)], "label": "estimate"}}
+
+
+GROUP_NAME = {"dry fruits": {"hi": "सूखा मेवा", "mr": "सुका मेवा"}, "pulses": {"hi": "दाल", "mr": "डाळ"}, "millets": {"hi": "मोटा अनाज", "mr": "भरडधान्य"}}
+
+
+def _group_question(grp, lang: str) -> str:
+    name, members = grp
+    have = [intake.crop_label(k, lang) for k in members if k in MD.crop_catalogue()]
+    g = GROUP_NAME.get(name, {}).get(lang, name)
+    ex = ", ".join(have) if have else ""
+    return {"en": f"Which {g}? For example: {ex}.", "hi": f"कौन सा {g}? जैसे: {ex}।", "mr": f"कोणता {g}? उदा. {ex}."}.get(lang, f"Which {g}? {ex}")
 
 
 def _mandi_name(key: str, lang: str) -> str:
@@ -688,7 +709,13 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
             f["qty"] = P.qty(f["bare_qty"], unit)
         if crop and "qty" in f:
             st["await"] = None
-            return _out(_set_lot({"crop": crop, "qty": f["qty"]}, st, L, db), sid, L, "plan", [{"tool": "set_lot", "args": {"crop": crop}}])
+            out = _set_lot({"crop": crop, "qty": f["qty"]}, st, L, db)
+            if aw.get("then") == "order":  # "sell my papaya" -> how much? -> "10 quintal" -> straight to the order yes/no
+                st["pending"] = {"tool": "create_order", "args": {}}
+                return _out({**out, "reply": out["reply"] + " " + rt(L, "confirm", what=_confirm_text("create_order", {}, L))}, sid, L,
+                            "confirming_action", [{"tool": "set_lot", "args": {"crop": crop}}],
+                            chips=[{"en": "Yes", "hi": "हाँ", "mr": "होय"}[L], {"en": "No", "hi": "नहीं", "mr": "नाही"}[L]])
+            return _out(out, sid, L, "plan", [{"tool": "set_lot", "args": {"crop": crop}}])
         if f.get("crop") and f["crop"] not in lots:
             st["await"] = {"crop": f["crop"]}
             return _out({"reply": intake._t("qty", L, crop=intake.crop_label(f["crop"], L))}, sid, L, "plan", [{"tool": "add_crop"}])
@@ -720,6 +747,18 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
     if tool == "order_event" and args.get("event") not in FARMER_EVENTS:
         tool, args = "unknown", {}
     trace.append({"tool": tool, "args": {k: v for k, v in args.items() if k != "text"}})
+    if tool == "create_order":  # "sell my papaya" / "pyaz bech do": the order is for the crop the farmer names, not the one on screen
+        named = P.resolve_crop(text)
+        if named and named != st["active"]:
+            if named in lots:
+                pre.append({"type": "plan", "plan": _activate(st, named, L)})
+                trace.append({"tool": "switch_crop", "args": {"crop": named}})
+            else:
+                st["await"] = {"crop": named, "then": "order"}
+                return _out({"reply": intake._t("qty", L, crop=intake.crop_label(named, L))}, sid, L, "plan", [{"tool": "add_crop"}])
+    grp = (P.extract(text).get("group") if tool in ("unknown", "create_order", "set_lot", "price_of", "compare") else None)
+    if grp and not P.resolve_crop(text, use_llm=False):  # "I have dry fruits": which one?
+        return _out({"reply": _group_question(grp, L)}, sid, L, "plan", [{"tool": "ask_group"}])
     if tool == "order_event" and args.get("event") != "request_storage" and not st.get("order_id"):  # nothing to book against
         return _out({"reply": rt(L, "no_order")}, sid, L, "plan", trace)
     if tool in CONFIRM_TOOLS:

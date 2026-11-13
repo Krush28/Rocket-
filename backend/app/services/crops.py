@@ -107,3 +107,53 @@ def name(crop: str, lang: str) -> str:
     if n:
         return n.get(lang, n["en"])
     return re.sub(r"\s*\(.*?\)\s*", " ", crop).strip()
+
+
+# ---- smart crop resolution: local names, groups, typos (the LLM fallback lives in llm.map_crop)
+EXTRA = {  # spoken name -> commodity key (used only when that key exists in the catalogue)
+    "chawal": "rice", "chaawal": "rice", "chaval": "rice", "chawl": "rice", "चावल": "rice", "तांदूळ": "rice",
+    "dhaan": "paddy(common)", "dhan": "paddy(common)", "bhaat": "paddy(common)", "धान": "paddy(common)", "भात": "paddy(common)",
+    "basmati": "paddy(basmati)", "बासमती": "paddy(basmati)",
+    "kaju": "cashewnuts", "cashew": "cashewnuts", "काजू": "cashewnuts", "akhrot": "walnut", "walnuts": "walnut", "अखरोट": "walnut", "अक्रोड": "walnut",
+    "khajoor": "dates", "khajur": "dates", "date": "dates", "खजूर": "dates", "anjeer": "fig(anjura/anjeer)", "anjir": "fig(anjura/anjeer)",
+    "fig": "fig(anjura/anjeer)", "अंजीर": "fig(anjura/anjeer)", "badam": "almond(badam)", "almond": "almond(badam)", "almonds": "almond(badam)",
+    "बादाम": "almond(badam)", "बदाम": "almond(badam)", "kishmish": "raisins", "kishmis": "raisins", "raisin": "raisins", "munakka": "raisins",
+    "किशमिश": "raisins", "मनुका": "raisins", "alu": "potato", "papita": "papaya", "पपीता": "papaya",
+}
+GROUPS = {  # a whole family named: ask which one (members that have prices are offered)
+    "dry fruits": ["almond(badam)", "cashewnuts", "walnut", "raisins", "dates", "fig(anjura/anjeer)"],
+    "dry fruit": "dry fruits", "dryfruits": "dry fruits", "mewa": "dry fruits", "meva": "dry fruits", "मेवा": "dry fruits", "सुका मेवा": "dry fruits",
+    "सुकामेवा": "dry fruits", "ड्राय फ्रूट": "dry fruits",
+    "pulses": ["bengal gram(gram)(whole)", "red gram/arhar/tur(whole)", "green gram(moong)(whole)", "black gram(urd beans)(whole)", "lentil(masur)(whole)"],
+    "dal": "pulses", "daal": "pulses", "दाल": "pulses", "डाळ": "pulses",
+    "millets": ["bajra(pearl millet/cumbu)", "jowar(sorghum)", "ragi(finger millet)"], "millet": "millets",
+}
+GENERIC_INNER = {"whole", "common", "fine", "superfine", "grade a", "f&v", "raw", "ripe", "raw-ripe", "green", "dry", "local", "other", "loose",
+                 "split", "cumbu", "veg", "leaves", "anjura", "fine/superfine/grade a", "calcutta", "seam", "chickpeas-white"}
+NOT_CROPS = {"price", "prices", "rate", "rates", "sell", "selling", "want", "have", "where", "what", "today", "mandi", "market", "quintal", "quintals",
+             "tonne", "kilo", "please", "hello", "there", "should", "which", "about", "store", "storage", "order", "transport", "truck", "scheme",
+             "schemes", "weather", "thanks", "thank", "forecast", "best", "near", "much", "money", "help", "tell", "show", "more", "also", "other",
+             "some", "many", "crop", "crops", "farm", "farmer", "village", "ready", "hold", "wait", "bhai", "bhaiya", "kahan", "kitna", "mera",
+             "mere", "paas", "abhi", "aaj", "chahiye", "bechna", "becho", "bech", "good", "fresh", "they", "them", "this", "that", "with", "from"}
+
+
+def group_of(text: str) -> tuple[str, list[str]] | None:
+    """'I have dry fruits' -> ('dry fruits', [member keys])."""
+    low = text.lower()
+    for g in sorted(GROUPS, key=len, reverse=True):
+        if (g.isascii() and re.search(rf"\b{re.escape(g)}\b", low)) or (not g.isascii() and g in text):
+            name = GROUPS[g] if isinstance(GROUPS[g], str) else g
+            return name, GROUPS[name]
+    return None
+
+
+def fuzzy(text: str, aliases: dict[str, str]) -> str | None:
+    """Typo-tolerant match of one spoken word to a known crop ('papya' -> papaya, 'tamatr' -> tomato). Common words are never crops."""
+    import difflib
+    words = [w for w in re.findall(r"[a-z]{4,}", text.lower()) if w not in NOT_CROPS]
+    keys = [a for a in aliases if a.isascii() and len(a) >= 4]
+    for w in words:
+        hit = difflib.get_close_matches(w, keys, n=1, cutoff=0.82)
+        if hit:
+            return aliases[hit[0]]
+    return None

@@ -23,6 +23,7 @@ MARATHI_MARKERS = ["आहे", "मला", "माझ", "कांदा", "�
                    "शेत", "जवळ", "आणि", "मध्ये", "नको", "पण", "तुम्ही", "आम्ही", "मराठी"]
 HINDI_MARKERS = ["है", "हैं", "में", "क्या", "कहाँ", "कहां", "मेरे", "मेरा", "मुझे", "बेचूँ", "बेचूं", "कितना", "और", "नहीं", "हाँ", "करो", "बताओ", "हिंदी"]
 
+from app.services import crops as CR  # noqa: E402
 from app.services.crops import NAMES  # noqa: E402  every crop's Hindi/Marathi name
 Q = {
     "crop": {"en": "Which crop do you want to sell? (for example onion, tomato, wheat)", "hi": "आप कौन सी फसल बेचना चाहते हैं? (जैसे प्याज, टमाटर, गेहूं)",
@@ -157,6 +158,30 @@ def _dev_hit(a: str, t: str) -> bool:
     return re.search(rf"(?<![ऀ-ॿ]){re.escape(a)}(?![ऀ-ॿ])", t) is not None
 
 
+def alias_map() -> dict[str, str]:
+    m: dict[str, str] = {}
+    for k, al in MD.crop_catalogue().items():  # first (curated) owner of an alias wins: "papaya" -> papaya, not papaya(raw)
+        for a in al:
+            m.setdefault(a, k)
+    return m
+
+
+def resolve_crop(text: str, use_llm: bool = True) -> str | None:
+    """Any crop a farmer names: catalogue names and local names, then typos, then the local LLM picks the closest crop that has
+    market data ("dragon fruit" -> none, "paddy basmati" -> paddy(basmati)). None if nothing fits."""
+    t = text.translate(DEV)
+    k = _crop(t, t.lower()) or CR.fuzzy(t.lower(), alias_map())
+    if k or not use_llm or CR.group_of(t):
+        return k
+    import difflib
+    from app.services import llm
+    amap = alias_map()  # shortlist: crops whose names resemble a word the farmer said; the model only chooses among these
+    words = [w for w in re.findall(r"[a-z]{3,}|[ऀ-ॿ]{2,}", t.lower()) if w not in CR.NOT_CROPS]
+    short = list(dict.fromkeys(amap[a] for w in words for a in difflib.get_close_matches(w, list(amap), n=6, cutoff=0.55)))[:15]
+    pick = llm.map_crop(text, short)
+    return pick if pick and llm.same_crop(text, pick) else None  # second, independent check: never a wrong crop
+
+
 def _crop(t: str, low: str) -> str | None:
     """Longest alias wins; ASCII aliases need word boundaries (so 'price' never matches 'rice'), plural -s/-es allowed."""
     pairs = sorted(((a, k) for k, al in MD.crop_catalogue().items() for a in al), key=lambda p: -len(p[0]))
@@ -190,8 +215,14 @@ def extract(text: str, awaiting: str | None = None, db=None) -> dict:
     low = t.lower()
     out = {}
     crop = _crop(t, low)
+    if not crop and awaiting in ("crops", "qty"):  # we asked for a crop: tolerate typos ("papya", "tamatr")
+        crop = CR.fuzzy(low, alias_map())
     if crop:
         out["crop"] = crop
+    else:
+        g = CR.group_of(t)  # "dry fruits", "dal": the farmer named a family, not one crop
+        if g:
+            out["group"] = g
     m = re.search(r"(?<![\w-])(\d+(?:\.\d+)?)\s*(kilograms?|kgs?|kilos?|quintals?|qtls?|tonnes?|tons?|किलो|किग्रा|क्विंटल|टन)?(?!\w)", low)
     if m:
         val, unit = float(m.group(1)), m.group(2)

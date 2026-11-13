@@ -181,6 +181,12 @@ def crop_catalogue() -> dict[str, list[str]]:
     with database.SessionLocal() as s:
         for key in s.scalars(select(Commodity.key)):
             short = re.sub(r"\s*\(.*?\)\s*", " ", key).strip()
+            inner = [x.strip() for x in re.findall(r"\(([^)]*)\)", key) for x in re.split(r"[/,]", x)]
+            combo = [f"{short} {x}" for x in inner if x and x not in CR.GENERIC_INNER]  # "paddy basmati" beats plain "paddy"
+            own = [x for x in inner if len(x) >= 4 and x not in CR.GENERIC_INNER]  # "basmati", "badam", "anjeer"
             cat.setdefault(key, [])
-            cat[key] += [a for a in (key, short) if a and a not in cat[key]]
+            cat[key] += [a for a in (key, short, *combo, *own) if a and a not in cat[key]]
+    for alias, key in CR.EXTRA.items():  # local / Hinglish names, only for crops that exist in the catalogue
+        if key in cat and alias not in cat[key]:
+            cat[key].append(alias)
     return cat

@@ -37,7 +37,8 @@ def _t(key, lang, **kw):
 
 
 def crop_label(c: str, lang: str) -> str:
-    return P.NAMES.get(c, {}).get(lang, c)
+    from app.services import crops as CR
+    return P.NAMES.get(c, {}).get(lang) or CR.name(c, lang)  # "cashewnuts", "fig" - never a raw key like "fig(anjura/anjeer)"
 
 
 def unit_label(u: str, lang: str) -> str:
@@ -243,6 +244,10 @@ def _step(s, text, lang, db, sid) -> dict:
         if aw == "location":
             s["misses"] = s.get("misses", 0) + 1
             return _reply(s, HINT["location"][L if L in HINT["location"] else "en"] if s["misses"] >= 2 else P.PLACE_HELP[L] + " " + P.Q["location"][L])
+        grp = P.extract(text).get("group")
+        if grp and aw == "crops":  # "dry fruits" / "dal": ask which one instead of "sorry"
+            from app.agents.action_agent import _group_question
+            return _reply(s, _group_question(grp, L))
         s["misses"] = s.get("misses", 0) + 1
         if s["misses"] >= 2 and aw in HINT:  # never the identical sentence twice in a row
             return _reply(s, HINT[aw][L if L in HINT[aw] else "en"])
