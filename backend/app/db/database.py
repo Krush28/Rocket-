@@ -1,15 +1,26 @@
-import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./krishi_x.db")
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+from app.core.config import settings
+
+
+def make_engine(url: str):
+    args = {"check_same_thread": False} if url.startswith("sqlite") else {}
+    return create_engine(url, connect_args=args, pool_pre_ping=True)
+
+
+engine = make_engine(settings.database_url)
+SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
 
 class Base(DeclarativeBase):
     pass
 
-def init_db():
-    from app.db.models import ConversationRecord  # noqa: F401
-    Base.metadata.create_all(bind=engine)
+
+def get_db():
+    """FastAPI dependency: one session per request."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
