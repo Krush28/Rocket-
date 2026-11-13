@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KrishiMitra - Know your real take-home</title>
+<style>
+:root{
+  --bg:#f6f1e7; --card:#fffdf8; --ink:#23301f; --muted:#6b705c; --line:#e4dccb;
+  --green:#2f6b3a; --green2:#4f8f4b; --leaf:#e3efdc; --earth:#a4622d; --sun:#e0a526; --red:#b3402e; --redbg:#f7e1db; --amberbg:#fbf0d2;
+  --shadow:0 1px 2px rgba(60,50,20,.08),0 6px 18px rgba(60,50,20,.06);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg:#16190f; --card:#1f2417; --ink:#eef0e2; --muted:#a3a98f; --line:#343b27; --green:#7fc17a; --green2:#9bd196; --leaf:#26331f;
+  --earth:#d99a63; --sun:#f0c04b; --red:#ef8a76; --redbg:#3a2420; --amberbg:#362f16; --shadow:none;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,"Noto Sans","Noto Sans Devanagari",sans-serif}
+button{font:inherit;cursor:pointer}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px 80px}
+header{display:flex;align-items:center;gap:12px;padding:14px 0;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:26px;letter-spacing:.3px;color:var(--green)}
+.logo small{display:block;font-size:13px;font-weight:500;color:var(--muted);letter-spacing:0}
+.spacer{flex:1}
+.pill{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 14px;font-size:14px;color:var(--ink)}
+.pill.on{background:var(--green);color:#fff;border-color:var(--green)}
+.demo{background:var(--amberbg);color:var(--earth);border:1px solid var(--sun);font-weight:700;border-radius:8px;padding:4px 10px;font-size:13px}
+.banner{background:var(--amberbg);border:1px solid var(--sun);border-radius:12px;padding:10px 14px;font-size:14px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:20px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.grid>*,section.dash>*,.card{min-width:0}
+section.dash{grid-template-columns:minmax(0,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
+.card h2{margin:0 0 10px;font-size:19px}
+.card h3{margin:14px 0 6px;font-size:16px}
+.muted{color:var(--muted);font-size:14px}
+#chat{height:300px;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:4px 2px}
+.msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:16px;white-space:pre-wrap}
+.msg.k{background:var(--leaf);border-bottom-left-radius:4px;align-self:flex-start}
+.msg.f{background:var(--green);color:#fff;border-bottom-right-radius:4px;align-self:flex-end}
+.microw{display:flex;gap:10px;align-items:center;margin:12px 0 6px}
+.mic{width:76px;height:76px;border-radius:50%;border:0;background:var(--green);color:#fff;display:grid;place-items:center;box-shadow:0 6px 18px rgba(47,107,58,.35);flex:none}
+.mic.rec{background:var(--red);animation:pulse 1.1s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 14px rgba(179,64,46,.15)}}
+.mic svg{width:34px;height:34px}
+input[type=text],input[type=number],select{width:100%;min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 12px;font:inherit}
+.send{min-height:48px;border-radius:12px;border:0;background:var(--earth);color:#fff;padding:0 18px;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{background:var(--card);border:1px dashed var(--green2);color:var(--green);border-radius:999px;padding:7px 12px;font-size:14px}
+.chip:hover{background:var(--leaf)}
+.hero{background:linear-gradient(135deg,var(--green),#3d7d45);color:#fff;border:0}
+.hero .big{font-size:44px;font-weight:800;line-height:1.1;margin:4px 0}
+.hero .sub{opacity:.92;font-size:15px}
+.kv{display:flex;gap:22px;flex-wrap:wrap;margin-top:12px}
+.kv div{font-size:13px;opacity:.9}.kv b{display:block;font-size:18px}
+.btn{border:0;border-radius:12px;padding:12px 18px;font-weight:700;background:var(--sun);color:#2a2100;min-height:48px}
+.btn.alt{background:var(--card);color:var(--green);border:1px solid var(--green)}
+.btn.sm{padding:6px 12px;min-height:36px;font-size:14px}
+.tag{display:inline-block;border-radius:8px;padding:2px 8px;font-size:12px;font-weight:700;margin-right:4px;border:1px solid var(--line)}
+.tag.demo{background:var(--amberbg);color:var(--earth);border-color:var(--sun)}
+.tag.est{background:var(--leaf);color:var(--green)}
+.tag.warn{background:var(--redbg);color:var(--red)}
+.badge{display:inline-block;border-radius:999px;padding:4px 14px;font-weight:800;font-size:15px}
+.badge.SELL{background:var(--sun);color:#2a2100}.badge.HOLD{background:var(--green);color:#fff}.badge.INSUFFICIENT{background:var(--redbg);color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:9px 8px;text-align:right;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:600}
+th:first-child,td:first-child,td.l,th.l{text-align:left}
+tr.opt{cursor:pointer}tr.opt:hover{background:var(--leaf)}
+tr.best td{background:var(--leaf)}
+.scroll{overflow-x:auto}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.mini{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--card)}
+.mini h4{margin:0 0 4px;font-size:16px}
+.stack{display:flex;height:16px;border-radius:8px;overflow:hidden;margin:8px 0;background:var(--line)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px}
+section.dash{margin-top:20px;display:grid;gap:18px}
+.tl{list-style:none;margin:8px 0;padding:0}
+.tl li{padding:6px 0 6px 20px;border-left:3px solid var(--green2);margin-left:6px;position:relative;font-size:15px}
+.tl li:before{content:"";position:absolute;left:-8px;top:12px;width:13px;height:13px;border-radius:50%;background:var(--green)}
+.trace{display:flex;flex-wrap:wrap;gap:6px}
+.trace span{font-size:12px;border-radius:999px;padding:3px 10px;background:var(--leaf);color:var(--green)}
+.trace span.bad{background:var(--redbg);color:var(--red)}
+label.f{display:block;font-size:13px;color:var(--muted);margin:6px 0 2px}
+details summary{cursor:pointer;font-weight:600}
+svg text{fill:var(--muted);font-size:11px}
+.sr{position:absolute;left:-9999px}
+.hidden{display:none}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="logo">
+    <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect x="4" y="30" width="32" height="5" rx="2.5" fill="#a4622d"/><rect x="18" y="8" width="4" height="23" fill="#2f6b3a"/><path d="M6 14h28" stroke="#2f6b3a" stroke-width="3" stroke-linecap="round"/><path d="M6 14l-4 9h8zM34 14l-4 9h8z" fill="#e0a526"/><circle cx="20" cy="8" r="3.5" fill="#2f6b3a"/></svg>
+    <div><span id="appname">KrishiMitra</span><small id="tagline">Know what you will really take home</small></div>
+  </div>
+  <div class="spacer"></div>
+  <span class="demo" title="No live market data connected">DEMO DATA</span>
+  <button class="pill on" data-lang="en">EN</button><button class="pill" data-lang="hi">हिं</button><button class="pill" data-lang="mr">मरा</button>
+  <button class="pill" id="speakBtn" aria-pressed="true">🔊 Voice on</button>
+</header>
+<div class="banner" id="banner"><b>DEMO DATA.</b> Prices, arrivals, buyers, warehouses and transporters here are synthetic samples so you can see how KrishiMitra thinks. Costs are estimates you can edit. Nothing is a real quote, offer or guaranteed price.</div>
+
+<div class="grid">
+  <div class="card" id="assistant">
+    <h2 id="h-assist">Talk to KrishiMitra</h2>
+    <div id="chat" aria-live="polite"></div>
+    <div class="microw">
+      <button class="mic" id="mic" aria-label="Speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+      <div style="flex:1"><input type="text" id="txt" placeholder="Type here, or press the mic" aria-label="Message"></div>
+      <button class="send" id="send">Send</button>
+    </div>
+    <div class="muted" id="micnote"></div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div id="right">
+    <div class="card" id="welcome">
+      <h2>What KrishiMitra answers</h2>
+      <ol style="padding-left:20px;margin:0">
+        <li>What is my crop worth in nearby mandis today?</li>
+        <li>Which place gives the best <b>net</b> earnings, after transport and costs?</li>
+        <li>Where is the price heading, and how sure are we?</li>
+        <li>Should I sell now or hold?</li>
+        <li>If I hold or move it: which storage and transport?</li>
+      </ol>
+      <p class="muted">Start by telling KrishiMitra your crop, quantity and village. Market work begins only after you confirm what KrishiMitra understood.</p>
+    </div>
+  </div>
+</div>
+<section class="dash" id="dash"></section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const inr=n=>n==null?"-":"₹"+Math.round(n).toLocaleString("en-IN");
+const S={sid:null,lang:"en",speak:true,plan:null,order:null,mandi:null,rec:null,listening:false};
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const LOC={en:"en-IN",hi:"hi-IN",mr:"mr-IN"};
+const UI={
+  en:{assist:"Talk to KrishiMitra",send:"Send",ph:"Type here, or press the mic",tag:"Know what you will really take home",best:"Best option",net:"Estimated net earnings",gross:"Gross",costs:"Costs",order:"Create sale order"},
+  hi:{assist:"कृषिमित्र से बात करें",send:"भेजें",ph:"यहाँ लिखें या माइक दबाएँ",tag:"जानिए हाथ में असल में कितना आएगा",best:"सबसे अच्छा विकल्प",net:"अनुमानित शुद्ध कमाई",gross:"कुल बिक्री",costs:"खर्च",order:"बिक्री ऑर्डर बनाएँ"},
+  mr:{assist:"कृषिमित्रशी बोला",send:"पाठवा",ph:"इथे लिहा किंवा माइक दाबा",tag:"प्रत्यक्षात हातात किती येईल ते जाणा",best:"सर्वोत्तम पर्याय",net:"अंदाजित निव्वळ कमाई",gross:"एकूण विक्री",costs:"खर्च",order:"विक्री ऑर्डर तयार करा"}};
+const CHIPS={
+  en:["I have 200 quintals of onion near Niphad","I have 1,000 kg of tomatoes near Ponda, Goa","Yes","No"],
+  hi:["मेरे पास निफाड के पास २०० क्विंटल प्याज है","हाँ","नहीं"],
+  mr:["माझ्याकडे निफाड जवळ २०० क्विंटल कांदा आहे","होय","नाही"]};
+
+function applyLang(){
+  const u=UI[S.lang];document.documentElement.lang=S.lang;
+  $("#h-assist").textContent=u.assist;$("#send").textContent=u.send;$("#txt").placeholder=u.ph;$("#tagline").textContent=u.tag;
+  $$("[data-lang]").forEach(b=>b.classList.toggle("on",b.dataset.lang===S.lang));
+  $("#chips").innerHTML=CHIPS[S.lang].map(c=>`<button class="chip">${esc(c)}</button>`).join("");
+  $$("#chips .chip").forEach(b=>b.onclick=()=>send(b.textContent));
+  $("#micnote").textContent=SR?"":"Voice input needs Chrome or Edge. Typing works everywhere.";
+  if(S.plan)renderPlan(S.plan);
+}
+$$("[data-lang]").forEach(b=>b.onclick=()=>{S.lang=b.dataset.lang;applyLang()});
+$("#speakBtn").onclick=e=>{S.speak=!S.speak;e.target.setAttribute("aria-pressed",S.speak);e.target.textContent=S.speak?"🔊 Voice on":"🔇 Voice off";if(!S.speak)speechSynthesis.cancel()};
+
+function say(text){ if(!S.speak||!window.speechSynthesis)return; speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang=LOC[S.lang];u.rate=.95;speechSynthesis.speak(u)}
+function bubble(who,text){const d=document.createElement("div");d.className="msg "+who;d.textContent=text;$("#chat").appendChild(d);$("#chat").scrollTop=1e9}
+async function api(path,body){
+  const r=await fetch(path,body?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}:undefined);
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.detail||r.statusText);return j}
+
+async function send(text){
+  text=(text??$("#txt").value).trim(); if(!text&&S.sid)return;
+  if(text)bubble("f",text); $("#txt").value="";
+  try{
+    const r=await api("/api/chat",{session_id:S.sid,text,lang:/[ऀ-ॿ]/.test(text)?null:S.lang});
+    S.sid=r.session_id; if(r.lang&&r.lang!==S.lang){S.lang=r.lang;applyLang()}
+    bubble("k",r.reply); say(r.reply);
+    if(r.plan){S.plan=r.plan;renderPlan(r.plan)}
+  }catch(e){bubble("k","Sorry, something went wrong: "+e.message)}
+}
+$("#send").onclick=()=>send(); $("#txt").onkeydown=e=>{if(e.key==="Enter")send()};
+let rec=null;
+$("#mic").onclick=()=>{
+  if(!SR){alert("Voice input needs Chrome or Edge. Please type instead.");return}
+  if(S.listening){rec&&rec.stop();return}
+  speechSynthesis.cancel(); rec=new SR(); rec.lang=LOC[S.lang]; rec.interimResults=false;
+  rec.onstart=()=>{S.listening=true;$("#mic").classList.add("rec")};
+  rec.onend=()=>{S.listening=false;$("#mic").classList.remove("rec")};
+  rec.onerror=e=>{bubble("k","I could not hear you ("+e.error+"). You can also type.")};
+  rec.onresult=e=>send(e.results[0][0].transcript); rec.start();
+};
+
+// ---------- charts
+function lineChart(hist,fc){
+  const W=640,H=250,P={l:52,r:12,t:12,b:26};
+  const pts=hist.map(([d,v],i)=>({i,d,v})), n=pts.length, tot=n+30;
+  const ok=(fc?.horizons||[]).filter(h=>h.status==="ok");
+  const vals=[...pts.map(p=>p.v),...ok.flatMap(h=>[h.lo,h.hi])];
+  let lo=Math.min(...vals),hi=Math.max(...vals);const pad=(hi-lo)*.1||50;lo-=pad;hi+=pad;
+  const x=i=>P.l+(W-P.l-P.r)*i/(tot-1), y=v=>P.t+(H-P.t-P.b)*(1-(v-lo)/(hi-lo));
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Price history and forecast">`;
+  for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4;s+=`<line x1="${P.l}" x2="${W-P.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="4" y="${y(v)+4}">₹${Math.round(v)}</text>`}
+  s+=`<polyline fill="none" stroke="var(--green)" stroke-width="2.2" points="${pts.map(p=>x(p.i)+","+y(p.v)).join(" ")}"/>`;
+  s+=`<line x1="${x(n-1)}" x2="${x(n-1)}" y1="${P.t}" y2="${H-P.b}" stroke="var(--muted)" stroke-dasharray="4 3"/><text x="${x(n-1)-24}" y="${H-8}">today</text>`;
+  if(ok.length){
+    const up=ok.map(h=>x(n-1+h.horizon_days)+","+y(h.hi)), dn=[...ok].reverse().map(h=>x(n-1+h.horizon_days)+","+y(h.lo));
+    const cur=pts[n-1].v;
+    s+=`<polygon points="${x(n-1)+","+y(cur)} ${up.join(" ")} ${dn.join(" ")}" fill="var(--sun)" opacity=".28"/>`;
+    s+=`<polyline fill="none" stroke="var(--earth)" stroke-width="2.2" stroke-dasharray="5 3" points="${x(n-1)},${y(cur)} ${ok.map(h=>x(n-1+h.horizon_days)+","+y(h.predicted)).join(" ")}"/>`;
+    ok.forEach(h=>s+=`<circle cx="${x(n-1+h.horizon_days)}" cy="${y(h.predicted)}" r="4" fill="var(--earth)"><title>${h.horizon_days}d: ${inr(h.predicted)} (${inr(h.lo)}-${inr(h.hi)})</title></circle><text x="${x(n-1+h.horizon_days)-10}" y="${H-8}">+${h.horizon_days}d</text>`);
+  }
+  (fc?.horizons||[]).filter(h=>h.status!=="ok").forEach(h=>s+=`<text x="${x(n-1+h.horizon_days)-6}" y="${H-8}" fill="var(--red)">+${h.horizon_days}d ✕</text>`);
+  return s+"</svg>";
+}
+function divBars(sell,holds){
+  const items=[{l:"Sell now",v:0},...holds.map(h=>({l:`Hold ${h.days} days`,v:h.net-sell.net,low:h.net_downside!=null?h.net_downside-sell.net:null,p:h.p_decline}))];
+  const m=Math.max(1000,...items.flatMap(i=>[Math.abs(i.v),Math.abs(i.low??0)]));
+  return items.map(i=>{const w=Math.abs(i.v)/m*50,pos=i.v>=0;
+    return `<div style="display:grid;grid-template-columns:92px 1fr 130px;gap:8px;align-items:center;margin:6px 0;font-size:14px"><span>${i.l}</span>
+    <div style="position:relative;height:20px;background:var(--line);border-radius:6px"><div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--muted)"></div>
+    <div style="position:absolute;top:2px;bottom:2px;border-radius:4px;background:${pos?"var(--green2)":"var(--red)"};${pos?"left:50%":"right:50%"};width:${w}%"></div></div>
+    <span>${i.l==="Sell now"?"baseline":(pos?"+":"")+inr(i.v)+(i.p!=null?` <span class="muted">(${i.p<.05?"<5":Math.round(i.p*100)}% down-risk)</span>`:"")}</span></div>`}).join("");
+}
+const COL={transport:"#a4622d",commission:"#e0a526",handling:"#8a8f6a",storage:"#4f8f4b",financing:"#6b8fb3",risk_allowance:"#b3402e"};
+function dedBar(d){const t=Object.values(d).reduce((a,b)=>a+b,0)||1;
+  return `<div class="stack">${Object.entries(d).filter(([,v])=>v>0).map(([k,v])=>`<div title="${k} ${inr(v)}" style="width:${v/t*100}%;background:${COL[k]||"#999"}"></div>`).join("")}</div>
+  <div class="legend">${Object.entries(d).filter(([,v])=>v>0).map(([k,v])=>`<span><i style="background:${COL[k]||"#999"}"></i>${esc(k.replace("_"," "))} ${inr(v)}</span>`).join("")}</div>`}
+
+// ---------- plan render
+function renderPlan(p){
+  const u=UI[S.lang], r=p.recommendation;
+  if(!r){$("#dash").innerHTML=`<div class="card">Not enough data to recommend: ${esc(p.trace.filter(t=>t.status!=="ok").map(t=>t.agent+": "+t.error).join("; "))}</div>`;return}
+  const b=r.best, sh=p.sell_vs_hold, dec=r.decision, dest=sh.destination;
+  if(!S.mandi||!p.forecasts?.[S.mandi])S.mandi=dest;
+  $("#welcome").classList.add("hidden");
+  const pr=p.profile;
+  $("#right").innerHTML=`<div class="card hero">
+    <div class="sub">${u.best} · ${esc(pr.original_qty)} ${esc(pr.original_unit)} ${esc(pr.crop)} · ${esc(pr.location.name)}</div>
+    <div class="sub" style="margin-top:6px;font-size:17px;font-weight:600">${esc(b.label)}</div>
+    <div class="big">${inr(b.net)}</div><div class="sub">${u.net}</div>
+    <div class="kv"><div>${u.gross}<b>${inr(b.gross_revenue)}</b></div><div>${u.costs}<b>${inr(b.total_deductions)}</b></div><div>Distance<b>${b.distance_km} km</b></div><div>Forecast confidence<b>${esc(b.forecast_confidence)}</b></div><div>Data age<b>${b.data_freshness_days} d</b></div></div>
+    <p style="margin:12px 0 4px">${esc(r.explanation)}</p>
+    <div class="sub">${r.estimated_gain_vs_nearest_mandi_today!=null?`Model-estimated gain vs selling at the nearest mandi today: <b>${inr(r.estimated_gain_vs_nearest_mandi_today)}</b> (an estimate, not a measured result). `:""}Reconsider on <b>${esc(r.reconsider_on||"-")}</b>.</div>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="mkOrder">${u.order}</button><button class="btn alt" id="speakReco">🔊 Read aloud</button></div>
+  </div>`;
+  $("#mkOrder").onclick=()=>createOrder(b); $("#speakReco").onclick=()=>say(r.explanation);
+  const cls=dec.action.startsWith("SELL")?"SELL":dec.action==="HOLD"?"HOLD":"INSUFFICIENT";
+  const a=p.assumptions;
+  $("#dash").innerHTML=`
+  <div class="card"><h2>Sell now or hold? <span class="badge ${cls}">${esc(dec.action)}${dec.hold_days?" · "+dec.hold_days+" days":""}</span></h2>
+    <p>${esc(dec.reason)}</p>
+    <div class="muted">Extra net earnings versus selling now at ${esc(dest)} (after storage, extra transport, loss and financing). Forecasts are not guarantees.</div>
+    ${sh.holds.length?divBars(sh.sell_now,sh.holds):'<p class="muted">No hold option is supported by a reliable forecast.</p>'}
+    ${sh.skipped.length?`<details><summary>Why some hold windows were skipped</summary><ul>${sh.skipped.map(s=>`<li>${s.days} days: ${esc(s.why)}</li>`).join("")}</ul></details>`:""}
+    <details><summary>How this is calculated</summary><p class="muted">Sell now: ${esc(sh.formulas.sell_now)}.<br>Hold: ${esc(sh.formulas.hold)}.<br>HOLD is recommended only if the extra net exceeds 2% of the sell-now net and the chance of the price ending below today's is 40% or less. All money maths is plain code, not an AI guess.</p></details>
+  </div>
+  <div class="card"><h2>Ranked options by estimated net realization</h2><div class="scroll"><table>
+    <tr><th class="l">#</th><th class="l">Option</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Distance</th><th>When</th><th>Forecast</th></tr>
+    ${p.options.map((o,i)=>`<tr class="opt ${i?"":"best"}" data-i="${i}"><td class="l">${o.rank}</td><td class="l">${esc(o.label)}<br><span class="tag demo">DEMO</span><span class="tag est">ESTIMATE</span></td><td>${inr(o.gross_revenue)}</td><td>${inr(o.total_deductions)}</td><td><b>${inr(o.net)}</b></td><td>${o.distance_km} km</td><td>${esc(o.expected_selling_time)}</td><td>${esc(o.forecast_confidence)}</td></tr>
+    <tr class="hidden" id="d${i}"><td colspan="8" class="l">${dedBar(o.deductions)}<b>Risks:</b> ${o.risks.map(esc).join(" · ")}<br><span class="muted">Data age ${o.data_freshness_days} d · expected weight/quality loss ${o.expected_loss_qty} kg${o.net_downside!=null?" · downside net "+inr(o.net_downside):""}</span></td></tr>`).join("")}
+  </table></div><p class="muted">Click a row for its cost breakdown. Ranking: ${esc(p.options.length?"net earnings, minus a penalty for forecast-dependent downside":"")}. The highest modal price is not automatically the best option.</p></div>
+  <div class="card"><h2>Price forecast</h2>
+    <label class="f" for="fm">Mandi</label><select id="fm">${Object.keys(p.forecasts||{}).map(m=>`<option ${m===S.mandi?"selected":""}>${esc(m)}</option>`).join("")}</select>
+    <div id="fchart"></div><div class="scroll" id="ftable"></div></div>
+  <div class="card"><h2>Nearby mandis <span class="tag demo">DEMO DATA</span></h2><div class="scroll"><table>
+    <tr><th class="l">Mandi</th><th>Distance</th><th>Modal</th><th>Min–Max</th><th>Arrivals (t)</th><th class="l">Market signal</th><th>Updated</th></tr>
+    ${p.mandis.map(m=>{const x=p.prices[m.name],ac=p.activity[m.name];return `<tr><td class="l">${esc(m.name)}<br><span class="muted">${esc(m.schedule)}</span></td><td>${m.distance_km} km</td><td><b>${inr(x.modal)}</b>/qtl</td><td>${inr(x.min)}–${inr(x.max)}</td><td>${x.arrivals_t}</td><td class="l">${esc(ac.signal)}</td><td>${x.age_days===0?"today":x.age_days+" d ago"}${x.stale?' <span class="tag warn">STALE</span>':""}</td></tr>`}).join("")}
+  </table></div>
+  <h3>Retail context (not what you receive)</h3>  <div class="cols" id="retail"></div></div>
+  <div class="card"><h2>Cold storage nearby</h2><div class="cols">${p.storage.length?p.storage.map(w=>`<div class="mini"><h4>${esc(w.name)}</h4><span class="tag demo">DEMO</span><span class="tag warn">AVAILABILITY UNCONFIRMED</span>
+    <div class="muted">${w.distance_km} km · ${esc(w.type)} · ${esc(w.temp)}</div><div>₹${w.rate_qtl_day}/qtl/day · min ${w.min_days} days</div><div class="muted">Handling ₹${w.handling_qtl}/qtl · declared capacity ${w.declared_capacity_qtl} qtl</div><div><b>${inr(w.est_cost_7d)}</b> for 7 days <span class="tag est">ESTIMATE</span></div>
+    <div class="muted">Phone: not verified</div><button class="btn sm alt" data-enq="${esc(w.id)}">Send booking enquiry</button></div>`).join(""):'<span class="muted">No suitable storage found nearby.</span>'}</div></div>
+  <div class="card"><h2>Transport</h2><div class="cols">${p.transport.map(t=>`<div class="mini"><h4>To ${esc(t.destination)}</h4><div class="muted">${t.distance_km} km · about ${t.est_hours} h</div>
+    ${t.options.map(o=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:15px"><span>${esc(o.vehicle)} (${o.capacity_qtl} qtl)</span><b>${inr(o.total)}</b></div><div class="muted" style="text-align:right">₹${o.per_qtl}/qtl · ${esc(o.quote_status)}</div>`).join("")}
+    <div class="muted">Contacts: not verified, not shown</div></div>`).join("")}</div>
+  ${sharedCard(p.shared_load)}</div>
+  <div class="card"><h2>Buyers</h2><div class="cols">${p.buyers.length?p.buyers.map(x=>`<div class="mini"><h4>${esc(x.name)}</h4>
+    <span class="tag ${x.kind==="offer"?"demo":"warn"}">${x.kind==="offer"?"DEMO OFFER":"INDICATIVE DEMAND"}</span>
+    <div>${x.price?`<b>${inr(x.price)}</b>/qtl until ${esc(x.valid_until)}`:"No price committed"}</div><div class="muted">${x.distance_km} km · min ${x.min_qty_qtl} qtl · ${esc(x.pickup)}${x.meets_min_qty?"":" · below minimum quantity"}</div><div class="muted">${esc(x.label)}</div></div>`).join(""):'<span class="muted">No buyer demand for this crop.</span>'}</div></div>
+  <div class="card" id="orderCard"><h2>Order and tracking</h2><div id="orderBody" class="muted">Create a sale order from the best option above to book transport, enquire about storage, track delivery and confirm the sale.</div></div>
+  <div class="card"><details><summary>Your cost assumptions (editable) <span class="tag warn">${esc(a.placeholder_note)}</span></summary>
+    <div class="cols" style="margin-top:10px">
+      <div><label class="f" for="a_comm">Commission %</label><input type="number" step="0.1" id="a_comm" value="${a.commission_pct}"></div>
+      <div><label class="f" for="a_pay">Commission paid by</label><select id="a_pay"><option ${a.commission_payer==="buyer"?"selected":""}>buyer</option><option ${a.commission_payer==="seller"?"selected":""}>seller</option></select></div>
+      <div><label class="f" for="a_ham">Hamali (₹/qtl)</label><input type="number" step="1" id="a_ham" value="${a.hamali_per_qtl}"></div>
+      <div><label class="f" for="a_road">Road factor (distance estimate)</label><input type="number" step="0.05" id="a_road" value="${a.road_factor}"></div>
+      <div><label class="f" for="a_risk">Risk allowance %</label><input type="number" step="0.5" id="a_risk" value="${a.risk_allowance_pct}"></div></div>
+    <p><button class="btn sm" id="rerun">Recalculate</button></p></details></div>
+  <div class="card"><details><summary>How KrishiMitra's agents worked on this</summary><div class="trace" style="margin-top:8px">${p.trace.map(t=>`<span class="${t.status==="ok"?"":"bad"}">${esc(t.agent)} · ${t.status} · ${t.ms} ms</span>`).join("")}</div>
+    <p class="muted">${esc(p.labels)}</p></details></div>`;
+  $$("tr.opt").forEach(tr=>tr.onclick=()=>$("#d"+tr.dataset.i).classList.toggle("hidden"));
+  $("#fm").onchange=e=>{S.mandi=e.target.value;drawForecast(p)};
+  drawForecast(p); drawRetail(p);
+  $$("[data-enq]").forEach(b=>b.onclick=()=>enquire(b.dataset.enq));
+  $("#rerun").onclick=()=>rerun(p);
+  if(S.order)renderOrder();
+  $("#right").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function sharedCard(s){
+  if(!s||s.status!=="ok")return `<h3>Shared transport</h3><p class="muted">${esc(s?.reason||"No match.")}</p>`;
+  return `<h3>Shared transport to ${esc(s.destination)} <span class="tag warn">SIMULATED POOL</span><span class="tag est">ESTIMATE</span></h3>
+  <p>You pay <b>${inr(s.you.pooled)}</b> instead of <b>${inr(s.you.solo)}</b> alone: saving <b>${inr(s.you.saving)}</b> (${s.you.saving_pct}%). Total for the group ${inr(s.total_pooled)} vs ${inr(s.total_solo)} separately.</p>
+  <div class="scroll"><table><tr><th class="l">Farmer</th><th>Qty (qtl)</th><th>Pickup gap</th><th>Alone</th><th>Shared</th></tr>${s.members.map(m=>`<tr><td class="l">${esc(m.name)}</td><td>${m.qty_qtl}</td><td>${m.pickup_gap_km} km</td><td>${inr(m.solo_cost)}</td><td><b>${inr(m.pooled_cost)}</b></td></tr>`).join("")}</table></div>
+  <p class="muted">Other farmers are simulated to show the optimizer (OR-Tools). Real matching needs real listings. Cost split is by quantity share.</p>`;
+}
+function drawRetail(p){
+  $("#retail").innerHTML=(p.retail||[]).map(r=>`<div class="mini"><h4>${esc(r.city)} retail ≈ ${inr(r.retail_price)}/qtl-equivalent</h4><div class="muted">Wholesale-to-retail gap about ${r.spread_vs_wholesale_pct}%. ${esc(r.note)} <span class="tag demo">DEMO</span></div></div>`).join("");
+}
+function drawForecast(p){
+  const fc=p.forecasts[S.mandi], hist=p.prices[S.mandi].history;
+  $("#fchart").innerHTML=lineChart(hist,fc);
+  $("#ftable").innerHTML=!fc||fc.status!=="ok"?`<p class="muted">Insufficient data for a forecast.</p>`:`<table><tr><th class="l">Horizon</th><th>Predicted</th><th>80% range</th><th class="l">Model</th><th>Error (MAE)</th><th>Baseline MAE</th><th>Range hit-rate</th><th class="l">Status</th></tr>
+  ${fc.horizons.map(h=>h.status==="insufficient_data"?`<tr><td class="l">${h.horizon_days}d</td><td colspan="7" class="l">insufficient data</td></tr>`:`<tr><td class="l">+${h.horizon_days}d<br><span class="muted">${esc(h.target_date)}</span></td><td><b>${inr(h.predicted)}</b></td><td>${inr(h.lo)}–${inr(h.hi)}</td><td class="l">${esc(h.model)} ${esc(h.model_version)}</td><td>${inr(h.eval.mae)}</td><td>${inr(h.baseline_mae)}</td><td>${Math.round(h.eval.coverage_80*100)}%</td>
+  <td class="l">${h.status==="ok"?`<span class="tag est">RELIABLE · ${esc(h.confidence)}</span>`:`<span class="tag warn">NO RELIABLE FORECAST</span>`}</td></tr>`).join("")}</table>
+  <p class="muted">Trained on ${esc(fc.train_period[0])} to ${esc(fc.train_period[1])}. A horizon is shown only if it beats naive baselines by 5% in time-ordered backtests and its range is well calibrated. This is a DEMO series, so these accuracy figures say nothing about real mandis.</p>`;
+}
+
+// ---------- actions
+async function rerun(p){
+  const pr=p.profile;
+  try{
+    const np=await api("/api/plan",{crop:pr.crop,qty_kg:pr.qty_kg,place:pr.location.name.toLowerCase(),ready:pr.ready,can_store:pr.can_store,lang:pr.lang,
+      assumptions:{commission_pct:+$("#a_comm").value,commission_payer:$("#a_pay").value,hamali_per_qtl:+$("#a_ham").value,road_factor:+$("#a_road").value,risk_allowance_pct:+$("#a_risk").value}});
+    S.plan=np;renderPlan(np);
+  }catch(e){alert(e.message)}
+}
+async function enquire(id){ // storage enquiry is tracked through the order flow
+  if(!S.order){alert("Create a sale order first, then send the storage enquiry.");return}
+  try{S.order=await api(`/api/orders/${S.order.id}/event`,{event:"request_storage"});renderOrder()}catch(e){alert(e.message)}
+}
+async function createOrder(opt){
+  S.order=await api("/api/orders",{option:opt,profile:S.plan.profile});renderOrder();$("#orderCard").scrollIntoView({behavior:"smooth"})}
+const EVL={request_transport:"Request transport",request_storage:"Send storage enquiry",transporter_accepts:"Demo: transporter accepts",operator_confirms_storage:"Demo: operator confirms storage",pickup:"Mark picked up",deliver:"Mark delivered",confirm_sale:"Confirm final sale",cancel:"Cancel"};
+function renderOrder(){
+  const o=S.order, f=o.payload.final;
+  $("#orderBody").innerHTML=`<div style="color:var(--ink)"><b>${esc(o.id)}</b> · <span class="badge HOLD">${esc(o.status.replaceAll("_"," "))}</span> · ${esc(o.payload.option.label)} · expected net ${inr(o.payload.option.net)}</div>
+  <ul class="tl">${o.log.map(l=>`<li><b>${esc(l.event.replaceAll("_"," "))}</b> <span class="muted">${esc(l.at.slice(0,16).replace("T"," "))}</span><br>${esc(l.note)}</li>`).join("")}</ul>
+  ${f?`<div class="mini"><b>Final sale</b><br>Revenue ${inr(f.revenue)} − costs ${inr(f.costs)} = <b>${inr(f.net_earnings)}</b> (expected was ${inr(f.expected_net)})</div>`:""}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${o.next_events.map(e=>`<button class="btn sm ${e==="cancel"?"alt":""}" data-ev="${e}">${EVL[e]||e}</button>`).join("")}</div>
+  <div id="cs" class="hidden" style="margin-top:10px"><div class="cols"><div><label class="f" for="c_p">Actual price (₹/quintal)</label><input type="number" id="c_p"></div><div><label class="f" for="c_q">Actual quantity sold (kg)</label><input type="number" id="c_q" value="${S.plan.profile.qty_kg}"></div><div><label class="f" for="c_c">Actual total costs (₹)</label><input type="number" id="c_c" value="${o.payload.option.total_deductions||0}"></div></div><button class="btn sm" id="c_ok" style="margin-top:8px">Save final sale</button></div>`;
+  $$("[data-ev]").forEach(b=>b.onclick=async()=>{
+    if(b.dataset.ev==="confirm_sale"){$("#cs").classList.remove("hidden");$("#c_ok").onclick=()=>doEv("confirm_sale",{actual_price:+$("#c_p").value,actual_qty_kg:+$("#c_q").value,actual_costs:+$("#c_c").value});return}
+    doEv(b.dataset.ev)});
+}
+async function doEv(ev,data){try{S.order=await api(`/api/orders/${S.order.id}/event`,{event:ev,data});renderOrder()}catch(e){alert(e.message)}}
+
+applyLang(); send("");
+</script>
+</body>
+</html>
