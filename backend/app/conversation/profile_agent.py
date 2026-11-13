@@ -45,9 +45,9 @@ FIX = {"en": "What should I change? You can say the crop, amount, place, readine
 START = {"en": "I will now compare nearby mandi prices, expected future prices, buyer options and transport costs.",
          "hi": "अब मैं पास की मंडियों के भाव, आगे के संभावित भाव, खरीदार और ढुलाई का खर्च देखता हूँ।",
          "mr": "आता मी जवळच्या मंडईंचे भाव, पुढील संभाव्य भाव, खरेदीदार आणि वाहतूक खर्च तपासतो."}
-GREET = {"en": "Namaste! I am KrishiMitra. I help you find where you will earn the most after costs. ",
-         "hi": "नमस्ते! मैं कृषिमित्र हूँ। मैं बताता हूँ कि सारे खर्च के बाद कहाँ सबसे ज़्यादा कमाई होगी। ",
-         "mr": "नमस्कार! मी कृषिमित्र. सर्व खर्चानंतर कुठे सर्वाधिक कमाई होईल ते मी सांगतो. "}
+GREET = {"en": "Namaste! I am KRISHI-X. I help you find where you will earn the most after costs. ",
+         "hi": "नमस्ते! मैं कृषि-एक्स हूँ। मैं बताता हूँ कि सारे खर्च के बाद कहाँ सबसे ज़्यादा कमाई होगी। ",
+         "mr": "नमस्कार! मी कृषि-एक्स. सर्व खर्चानंतर कुठे सर्वाधिक कमाई होईल ते मी सांगतो. "}
 YN = {"en": ("yes", "no"), "hi": ("हाँ", "नहीं"), "mr": ("होय", "नाही")}
 
 SESSIONS: dict = {}
