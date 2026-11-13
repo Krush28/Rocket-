@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { chat, type ChatReply, type Slots } from "@/lib/api";
-import { t, type Lang } from "@/lib/i18n";
+import { cropName, t, type Lang } from "@/lib/i18n";
 import { listen, speak } from "@/lib/speech";
 
 type Msg = { who: "farmer" | "assistant"; text: string };
@@ -83,9 +83,9 @@ export default function Assistant({ onConfirmed }: { onConfirmed: (r: ChatReply,
           <p className="text-[19px] leading-snug">{last?.text ?? "…"}</p>
           {msgs.length > 1 && (
             <details className="mt-3 text-[15px] text-sage">
-              <summary className="cursor-pointer">Conversation ({msgs.length})</summary>
+              <summary className="cursor-pointer">{t("conversation", lang)} ({msgs.length})</summary>
               <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto">
-                {msgs.map((m, i) => <li key={i} className={m.who === "farmer" ? "text-mint" : ""}>{m.who === "farmer" ? "You: " : ""}{m.text}</li>)}
+                {msgs.map((m, i) => <li key={i} className={m.who === "farmer" ? "text-mint" : ""}>{m.who === "farmer" ? `${t("you", lang)}: ` : ""}{m.text}</li>)}
               </ul>
               <div ref={endRef} />
             </details>
@@ -132,7 +132,7 @@ function ProfileCard({ slots, lang }: { slots: Slots; lang: Lang }) {
   if (!slots.crop && !slots.qty && !slots.location) return null;
   const yn = (v?: boolean) => (v === undefined ? "—" : v ? t("yesWord", lang) : t("noWord", lang));
   const rows: [string, string][] = [
-    [t("crop", lang), slots.crop ?? "—"],
+    [t("crop", lang), slots.crop ? cropName(slots.crop, lang) : "—"],
     [t("qty", lang), slots.qty ? `${slots.qty.original_qty} ${slots.qty.original_unit} (${slots.qty.qty_kg.toLocaleString("en-IN")} kg)` : "—"],
     [t("place", lang), slots.location?.name ?? "—"],
     [t("ready", lang), yn(slots.ready)],

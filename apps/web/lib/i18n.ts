@@ -29,8 +29,50 @@ const T = {
   order: { en: "Create sale order", hi: "बिक्री ऑर्डर बनाएँ", mr: "विक्री ऑर्डर तयार करा" },
   restart: { en: "New lot", hi: "नया माल", mr: "नवीन माल" },
   real: { en: "What is real", hi: "क्या असली है", mr: "काय खरे आहे" },
+  transportCost: { en: "Transport", hi: "ढुलाई", mr: "वाहतूक" },
+  handling: { en: "Handling (hamali)", hi: "हमाली", mr: "हमाली" },
+  commission: { en: "Commission", hi: "आढ़त / कमीशन", mr: "अडत / कमिशन" },
+  storageCost: { en: "Storage", hi: "भंडारण", mr: "साठवण" },
+  financing: { en: "Financing", hi: "ब्याज", mr: "व्याज" },
+  risk_allowance: { en: "Risk allowance", hi: "जोखिम की गुंजाइश", mr: "जोखमीसाठी तरतूद" },
+  costsNote: { en: "Costs are ESTIMATES (editable placeholders), not verified quotes.", hi: "खर्च अनुमान हैं (बदले जा सकते हैं), पक्के कोटेशन नहीं।", mr: "खर्च अंदाजित आहेत (बदलता येतात), खात्रीचे दरपत्रक नाही." },
+  checkAgain: { en: "Check again on {d}. Future prices are never guaranteed.", hi: "{d} को फिर देखें। आगे के भाव कभी पक्के नहीं होते।", mr: "{d} रोजी पुन्हा पाहा. पुढील भाव कधीच खात्रीचे नसतात." },
+  holdDays: { en: "Hold {n} days", hi: "{n} दिन रोकना", mr: "{n} दिवस थांबणे" },
+  kept: { en: "{n}% kept", hi: "{n}% बचा", mr: "{n}% राहिले" },
+  costs: { en: "costs {x}", hi: "खर्च {x}", mr: "खर्च {x}" },
+  kmEst: { en: "{n} km (estimate)", hi: "{n} किमी (अनुमान)", mr: "{n} किमी (अंदाज)" },
+  orderMade: { en: "Order {id} created. Amounts are expected, not final.", hi: "ऑर्डर {id} बना। रकम अनुमानित है, अंतिम नहीं।", mr: "ऑर्डर {id} तयार झाली. रक्कम अपेक्षित आहे, अंतिम नाही." },
+  noReco: { en: "Not enough information to recommend a sale", hi: "बिक्री की सलाह देने लायक जानकारी नहीं है", mr: "विक्रीचा सल्ला देण्याइतकी माहिती नाही" },
+  noOption: { en: "No feasible selling option was found.", hi: "कोई बिक्री विकल्प नहीं मिला।", mr: "विक्रीचा कोणताही पर्याय सापडला नाही." },
+  retailNone: { en: "No verified retail price source is connected yet. Retail prices are never your selling price.", hi: "अभी कोई सत्यापित खुदरा भाव स्रोत नहीं जुड़ा है। खुदरा भाव कभी आपका बिक्री भाव नहीं होता।", mr: "अजून कोणताही खात्रीचा किरकोळ भाव स्रोत जोडलेला नाही. किरकोळ भाव कधीच तुमचा विक्री भाव नसतो." },
+  retailNote: { en: "(DEMO, consumer price, not your selling price)", hi: "(डेमो, ग्राहक भाव, आपका बिक्री भाव नहीं)", mr: "(डेमो, ग्राहक भाव, तुमचा विक्री भाव नाही)" },
+  noStorage: { en: "No storage found within 200 km.", hi: "200 किमी के भीतर कोई भंडारण नहीं मिला।", mr: "200 किमीच्या आत साठवण सापडली नाही." },
+  perDay: { en: "/qtl/day", hi: "/क्विंटल/दिन", mr: "/क्विंटल/दिवस" },
+  week: { en: "7 days ≈ {x}", hi: "7 दिन ≈ {x}", mr: "7 दिवस ≈ {x}" },
+  qtl: { en: "/qtl", hi: "/क्विंटल", mr: "/क्विंटल" },
+  live: { en: "LIVE PRICES", hi: "असली भाव", mr: "खरे भाव" },
+  old: { en: "OLD PRICES", hi: "पुराने भाव", mr: "जुने भाव" },
+  demo: { en: "DEMO DATA", hi: "डेमो डेटा", mr: "डेमो डेटा" },
+  "SELL NOW": { en: "SELL NOW", hi: "अभी बेचें", mr: "आता विका" },
+  HOLD: { en: "HOLD", hi: "रोकें", mr: "थांबा" },
+  "INSUFFICIENT INFORMATION": { en: "NOT ENOUGH INFORMATION", hi: "जानकारी कम है", mr: "माहिती अपुरी" },
+  mandi_now: { en: "mandi today", hi: "आज मंडी में", mr: "आज मंडईत" },
+  direct_buyer: { en: "direct buyer", hi: "सीधा खरीदार", mr: "थेट खरेदीदार" },
+  shared_transport: { en: "shared truck", hi: "साझा ट्रक", mr: "सामायिक ट्रक" },
+  loading: { en: "Loading…", hi: "लोड हो रहा है…", mr: "लोड होत आहे…" },
+  noHistory: { en: "Not enough price history yet for a chart or forecast ({n} day stored). Forecasts appear after about 120 days.", hi: "चार्ट या पूर्वानुमान के लिए अभी पर्याप्त भाव इतिहास नहीं ({n} दिन का)। लगभग 120 दिन बाद पूर्वानुमान दिखेगा।", mr: "चार्ट किंवा अंदाजासाठी अजून पुरेसा भाव इतिहास नाही ({n} दिवसाचा). सुमारे 120 दिवसांनंतर अंदाज दिसेल." },
+  modal: { en: "Modal price", hi: "मॉडल भाव", mr: "मॉडल भाव" },
+  conversation: { en: "Conversation", hi: "बातचीत", mr: "संभाषण" },
+  you: { en: "You", hi: "आप", mr: "तुम्ही" },
 } as const;
 
+const CROPS: Record<string, Record<Lang, string>> = {
+  onion: { en: "onion", hi: "प्याज", mr: "कांदा" }, tomato: { en: "tomato", hi: "टमाटर", mr: "टोमॅटो" }, potato: { en: "potato", hi: "आलू", mr: "बटाटा" },
+};
+export const cropName = (c: string, l: Lang) => CROPS[c]?.[l] ?? c;
+
 export type Key = keyof typeof T;
-export const t = (k: Key, l: Lang) => T[k][l];
+export const t = (k: Key, l: Lang, p: Record<string, string | number> = {}) =>
+  (T[k][l] as string).replace(/\{(\w+)\}/g, (_, x: string) => String(p[x] ?? `{${x}}`));
+export const isKey = (k: string): k is Key => k in T;
 export const rupees = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
