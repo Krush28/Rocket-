@@ -1,9 +1,9 @@
 {
- "run_at": "2026-11-13 22:39",
- "seconds": 178,
+ "run_at": "2026-11-13 22:59",
+ "seconds": 106,
  "total": 203,
- "passed": 183,
- "pass_rate": 90.1,
+ "passed": 188,
+ "pass_rate": 92.6,
  "llm": true,
  "learned": [],
  "by_intent_lang": {
@@ -72,7 +72,7 @@
    1
   ],
   "pending_hedge|mr": [
-   1,
+   3,
    3
   ],
   "pending_no|en": [
@@ -88,7 +88,7 @@
    3
   ],
   "pending_yes|en": [
-   11,
+   12,
    14
   ],
   "pending_yes|hi": [
@@ -100,7 +100,7 @@
    1
   ],
   "ready_yes|en": [
-   6,
+   5,
    9
   ],
   "ready_yes|hi": [
@@ -124,7 +124,7 @@
    1
   ],
   "sell_hold|en": [
-   4,
+   7,
    8
   ],
   "sell_hold|hi": [
@@ -183,8 +183,8 @@
    ],
    "reply": "I understood: onion 50 quintals (5,000 kg). Farm near Niphad. Ready to sell now. You cannot store it. Is this correct?",
    "state": "collecting",
-   "ms": 1238,
-   "diagnosis": "The assistant assumed 'Niphad' was a crop type (onion) instead of a village name, likely because the phrase 'onion 50 quintals' was misinterpreted as a crop name and quantity without context for the location. The root cause is the assistant"
+   "ms": 783,
+   "diagnosis": "The phrase 'ready to go' was misinterpreted as 'ready to sell now' instead of 'ready to go' (meaning ready for transport). The assistant assumed 'ready to go' meant 'ready to sell now' when it actually means the crop is ready for immediate,"
   },
   {
    "intent": "confirm_yes",
@@ -196,8 +196,8 @@
    ],
    "reply": "I understood: onion 50 quintals (5,000 kg). Farm near Niphad. Ready to sell now. You cannot store it. Is this correct?",
    "state": "collecting",
-   "ms": 868,
-   "diagnosis": "The assistant assumed 'Niphad' was a crop type (onion) instead of a village name, likely because the phrase 'onion 50 quintals' was misinterpreted as a crop specification without context for 'Niphad'. The root cause is the assistant's lackl"
+   "ms": 817,
+   "diagnosis": "The phrase 'all set for delivery now' was misinterpreted as 'you cannot store it' because the assistant assumed the farmer meant they couldn't store the crop (since 'ready to sell now' implies no storage), but the farmer's original phrase '"
   },
   {
    "intent": "confirm_yes",
@@ -209,8 +209,8 @@
    ],
    "reply": "I understood: onion 50 quintals (5,000 kg). Farm near Niphad. Ready to sell now. You cannot store it. Is this correct?",
    "state": "collecting",
-   "ms": 897,
-   "diagnosis": "The assistant assumed 'Niphad' was a crop type (onion) instead of a village name, likely because the phrase list for crop types includes 'onion' but not 'Niphad' as a village. The farmer's phrase '50 quintals Niphad' was misinterpreted as '"
+   "ms": 820,
+   "diagnosis": "The phrase 'confirmed' was misinterpreted as a yes/no confirmation instead of a confirmation of read-back details. The assistant expected a yes/no response but the farmer used 'confirmed' to mean the read-back was correct, which is a type '"
   },
   {
    "intent": "ready_yes",
@@ -223,7 +223,7 @@
    "reply": "Let us first finish your details. Is your produce ready for sale now?",
    "state": "collecting",
    "ms": 2,
-   "diagnosis": "The phrase 'ready for sale' was not in the yes/no word list, so the assistant interpreted 'ready' as 'None'. The assistant's response suggests it expected a confirmation of readiness but didn't have the phrase 'ready for sale' in its yes/no"
+   "diagnosis": "The phrase 'ready' was misinterpreted as 'None' because the assistant's yes/no list didn't include the context of 'produce ready for sale now' as a confirmation. The farmer's statement 'These onions are fresh and ready—just need to sell' is"
   },
   {
    "intent": "ready_yes",
@@ -236,7 +236,7 @@
    "reply": "Let us first finish your details. Is your produce ready for sale now?",
    "state": "collecting",
    "ms": 2,
-   "diagnosis": "The phrase 'ready for sale' was not in the yes/no word list, so the assistant interpreted 'ready' as 'None'. The assistant expected a yes/no response but the farmer's phrase 'ready' was ambiguous without context of 'for sale'. The fix is to"
+   "diagnosis": "The phrase 'ready to go' was misinterpreted as 'ready' (None) because the assistant's yes/no list didn't include 'ready to go' as a yes phrase. The farmer meant 'produce is ready to sell now' (yes), but the assistant's tool expected a yes/n"
   },
   {
    "intent": "ready_yes",
@@ -248,8 +248,21 @@
    ],
    "reply": "Sorry, I did not catch that. Is your produce ready for sale now?",
    "state": "collecting",
-   "ms": 282,
-   "diagnosis": "The phrase 'ready' was not recognized by the assistant's language model due to a missing context or a misinterpretation of the word 'ready' in the farmer's speech. The farmer's statement 'Dilli se aaya hai, ab koi bhi le sakte hain, bhaiya'"
+   "ms": 260,
+   "diagnosis": "The phrase 'ab koi bhi le sakte hain' was misinterpreted as a negative response due to missing 'yes' context in the yes/no list, causing 'ready' to become None instead of 'now'. The assistant's reply asked a yes/no question without checking"
+  },
+  {
+   "intent": "ready_yes",
+   "lang": "en",
+   "text": "Yeh onion khatam hai, ab bhi chhod do, bhaiya!",
+   "ok": false,
+   "problems": [
+    "ready became False"
+   ],
+   "reply": "I understood: onion 50 quintal (5,000 kg). Farm near Niphad. Not ready yet. You cannot store it. Is this correct?",
+   "state": "collecting",
+   "ms": 250,
+   "diagnosis": "The phrase 'ab bhi chhod do' was misinterpreted as 'not ready' instead of 'ready now' due to missing 'ab' in the yes/no list (ab = now). The assistant's response incorrectly assumed the produce was not ready when the farmer said 'chhod do'."
   },
   {
    "intent": "store_no",
@@ -262,7 +275,7 @@
    "reply": "Can you store the produce for a few days if it pays more? (yes or no)",
    "state": "collecting",
    "ms": 5,
-   "diagnosis": "the assistant's response is not in the expected language (Hindi) but the user's input was in Hindi, so the assistant should have responded in Hindi too. The assistant's response is in English, which is not matching the user's language. The "
+   "diagnosis": "The phrase 'store karna mushkil hai' was misinterpreted as 'can_store' being None instead of a yes/no question about storage difficulty. The root cause is that the voice assistant's response assumed a yes/no question when the farmer's input"
   },
   {
    "intent": "pending_yes",
@@ -275,20 +288,7 @@
    "reply": "Okay, I did not do it.",
    "state": "plan",
    "ms": 1,
-   "diagnosis": "The farmer's phrase 'Haan, aaj hi karo, thoda wait kar do, bhaiya.' contains the word 'bhaiya' which is a Hindi/Urdu term for 'brother' and might not be recognized by the assistant's language model trained on English or a different language"
-  },
-  {
-   "intent": "pending_yes",
-   "lang": "en",
-   "text": "Bhaiya, aaj ke order ko confirm karo, thoda delay nahi hoga.",
-   "ok": false,
-   "problems": [
-    "no order created (confirming_action)"
-   ],
-   "reply": "Shall I create the sale order for the best option? Say yes or no.",
-   "state": "confirming_action",
-   "ms": 1776,
-   "diagnosis": "The farmer's phrase 'thoda delay nahi hoga' (meaning 'there won't be much delay') was misinterpreted as a refusal to confirm the order, but the assistant's response assumed the farmer was asking to create a new order instead of confirming a"
+   "diagnosis": "The phrase 'thoda wait kar do' was not recognized as a 'yes' because the assistant's yes/no list only includes short confirmations like 'haan', 'ji', etc., but 'thoda wait kar do' is a request to delay the action, not a confirmation of yes."
   },
   {
    "intent": "pending_yes",
@@ -301,33 +301,7 @@
    "reply": "Okay, I did not do it.",
    "state": "plan",
    "ms": 1,
-   "diagnosis": "The phrase 'aaj hi sale karo' was not recognized as a positive confirmation due to missing context in the yes/no word list (e.g., 'aaj hi' not being a valid yes phrase). The assistant expected a simple 'yes' or 'no' but the farmer used a ph"
-  },
-  {
-   "intent": "pending_hedge",
-   "lang": "mr",
-   "text": "हा ओळख वाटून तुम्ही कित्ते देणार आहात?",
-   "ok": false,
-   "problems": [
-    "said it did not understand"
-   ],
-   "reply": "मला समजले नाही. म्हणा: \"कुठे विकू\", \"भाव अंदाज दाखवा\", \"थांबू का विकू\", \"ट्रक बुक करा\" किंवा \"ऑर्डर तयार करा\". मी सर्वोत्तम पर्यायासाठी विक्री ऑर्डर तयार करू का? होय किंवा नाही म्हणा.",
-   "state": "confirming_action",
-   "ms": 568,
-   "diagnosis": "The farmer's query is in Marathi, but the assistant's language model is trained on English and other languages without proper Marathi support. The assistant fails to recognize the Marathi phrase because it lacks Marathi language support in其"
-  },
-  {
-   "intent": "pending_hedge",
-   "lang": "mr",
-   "text": "तुम्ही कित्ते देणार आहात? आणि ते कित्ते?",
-   "ok": false,
-   "problems": [
-    "said it did not understand"
-   ],
-   "reply": "मला समजले नाही. म्हणा: \"कुठे विकू\", \"भाव अंदाज दाखवा\", \"थांबू का विकू\", \"ट्रक बुक करा\" किंवा \"ऑर्डर तयार करा\". मी सर्वोत्तम पर्यायासाठी विक्री ऑर्डर तयार करू का? होय किंवा नाही म्हणा.",
-   "state": "confirming_action",
-   "ms": 610,
-   "diagnosis": ""
+   "diagnosis": "The phrase 'thoda wait kar do' was not recognized as a 'yes' because the assistant expected a simple yes/no confirmation after proposing the sale order, but the farmer added a request to wait slightly before proceeding, which the assistant误"
   },
   {
    "intent": "sell_hold",
@@ -339,47 +313,8 @@
    ],
    "reply": "Forecast for APMC Pimpalgaon Baswant: in 1 days about ₹4,203 (₹4,074 to ₹4,507); in 3 days about ₹4,242 (₹4,035 to ₹4,913). Not a guarantee.",
    "state": "plan",
-   "ms": 590,
-   "diagnosis": "The farmer's question was misinterpreted as asking about price forecasts for APMC Pimpalga: 'Do you think prices will go up if I hold them?' (intended: 'Do you think I should sell now or hold the crop?') - the assistant's response focused '"
-  },
-  {
-   "intent": "sell_hold",
-   "lang": "en",
-   "text": "Bhai, abhi kya hua? Main abhi sell karna hai ya hold karna?",
-   "ok": false,
-   "problems": [
-    "ran ['create_order']"
-   ],
-   "reply": "Shall I create the sale order for the best option? Say yes or no.",
-   "state": "confirming_action",
-   "ms": 3,
-   "diagnosis": "The assistant's response assumes the farmer is asking about creating a sale order, but the farmer's actual question is about whether to sell now or hold the crop (i.e., a decision between two actions: sell now vs. hold). The phrase 'sell' ("
-  },
-  {
-   "intent": "sell_hold",
-   "lang": "en",
-   "text": "Abhi kya hua? Kya abhi sell karna hai ya koi delay karna?",
-   "ok": false,
-   "problems": [
-    "ran ['create_order']"
-   ],
-   "reply": "Shall I create the sale order for the best option? Say yes or no.",
-   "state": "confirming_action",
-   "ms": 3,
-   "diagnosis": "The assistant's response assumes a yes/no decision for creating a sale order, but the farmer's query is about whether to sell now or hold the crop (i.e., a choice between two actions), not a simple yes/no confirmation. The phrase 'sell now'"
-  },
-  {
-   "intent": "sell_hold",
-   "lang": "en",
-   "text": "Bhai, abhi kya hua? Sell karna hai ya hold karna?",
-   "ok": false,
-   "problems": [
-    "ran ['create_order']"
-   ],
-   "reply": "Shall I create the sale order for the best option? Say yes or no.",
-   "state": "confirming_action",
-   "ms": 3,
-   "diagnosis": "The assistant's response assumes the user is asking about creating a sale order, but the farmer's original query was about whether to sell now or hold the crop (i.e., a decision between two actions: sell or hold). The assistant's response '"
+   "ms": 744,
+   "diagnosis": "The phrase 'hold them' was misinterpreted as 'hold the crop' instead of 'sell now or hold' (rukun ya bechu). The assistant ran the forecast tool without confirming the farmer's intent to sell now or hold, leading to an incorrect response. A"
   },
   {
    "intent": "sell_it",
@@ -391,8 +326,8 @@
    ],
    "reply": "I have no onion price for that place in today's data.",
    "state": "plan",
-   "ms": 727,
-   "diagnosis": "The farmer's query is in Hindi, but the assistant's language model is trained primarily on English data, causing it to misinterpret the query as a request for onion prices in English context rather than a Hindi-speaking farmer's request to "
+   "ms": 812,
+   "diagnosis": "The farmer's question 'Dekh lo, ... kya rate chahiye?' is a request to create a sale order (bech do), not a yes/no question. The assistant expected a yes/no response but the farmer didn't provide one, so it assumed the farmer was asking for"
   },
   {
    "intent": "storage",
@@ -400,13 +335,12 @@
    "text": "अरे, तुम तो ठारा ठारा ठारा, कोणता ठेका आहे ना?",
    "ok": false,
    "problems": [
-    "ran ['llm:switch_language', 'unknown']",
-    "said it did not understand"
+    "ran ['llm:explain']"
    ],
-   "reply": "मला समजले नाही. म्हणा: \"कुठे विकू\", \"भाव अंदाज दाखवा\", \"थांबू का विकू\", \"ट्रक बुक करा\" किंवा \"ऑर्डर तयार करा\".",
+   "reply": "अरे, तुम्ही ठारा ठारा ठारा, कोणता ठेका आहे ना? आज APMC Pimpalgaon Baswant, नाशिक, महाराष्ट्र येथे विका. नुकसान नको तर आजच विका.",
    "state": "plan",
-   "ms": 613,
-   "diagnosis": "The farmer's query is in Marathi, but the assistant's language model was not configured to handle Marathi. The phrase 'ठारा' (which means 'cold storage' or 'warehouses') is a Marathi term, but the assistant's language model was not trained/"
+   "ms": 3073,
+   "diagnosis": "The phrase 'कोणता ठेका' was misinterpreted as 'what is the deal' instead of 'what is the warehouse' due to the assistant's language model not recognizing the specific crop storage context in Marathi. The phrase 'ठेका' in Marathi means 'ware"
   },
   {
    "intent": "storage",
@@ -414,13 +348,12 @@
    "text": "कोणता ठेका आहे ना, तुम्हाला ठारा ठारा ठारा ठारा?",
    "ok": false,
    "problems": [
-    "ran ['llm:switch_language', 'unknown']",
-    "said it did not understand"
+    "ran ['llm:explain']"
    ],
-   "reply": "मला समजले नाही. म्हणा: \"कुठे विकू\", \"भाव अंदाज दाखवा\", \"थांबू का विकू\", \"ट्रक बुक करा\" किंवा \"ऑर्डर तयार करा\".",
+   "reply": "कोणता ठेका आहे ना, तुम्हाला ठारा ठारा ठारा ठारा?",
    "state": "plan",
-   "ms": 584,
-   "diagnosis": "The phrase 'कोणता ठेका' (cold storage/warehouse) was not recognized because the language model's training data lacks specific agricultural terms like 'ठेका' (contract/warehouse) in Marathi. The assistant's response suggests it expected a 'v"
+   "ms": 2211,
+   "diagnosis": "The phrase 'ठारा' is not in the yes/no word list, so the assistant didn't recognize it as a yes/no response. The farmer is asking about cold storage (godown) in Marathi, but the assistant's response is a literal repetition of the input, not"
   },
   {
    "intent": "storage",
@@ -428,14 +361,13 @@
    "text": "तुम्हाला कोणता ठेका आहे, ठारा ठारा ठारा?",
    "ok": false,
    "problems": [
-    "ran ['llm:switch_language', 'unknown']",
-    "said it did not understand"
+    "ran ['llm:explain']"
    ],
-   "reply": "मला समजले नाही. म्हणा: \"कुठे विकू\", \"भाव अंदाज दाखवा\", \"थांबू का विकू\", \"ट्रक बुक करा\" किंवा \"ऑर्डर तयार करा\".",
+   "reply": "तुम्हाला कोणता ठेका आहे, ठारा ठारा ठारा?",
    "state": "plan",
-   "ms": 596,
-   "diagnosis": "The phrase 'cold storage' or 'warehouses' was not in the yes/no word list for the language switcher, causing the LLM to fail to recognize the query as a yes/no question. The farmer's query was in Marathi, but the LLM was not configured to '"
+   "ms": 2190,
+   "diagnosis": "The phrase 'ठारा ठारा ठारा' is a repetition of the word 'tharā' (meaning 'warehouse' in Marathi) without a clear context for the question, and the assistant's response is a direct repetition of the input without interpreting the farmer's 'k"
   }
  ],
- "slowest_ms": 2061
+ "slowest_ms": 3254
 }

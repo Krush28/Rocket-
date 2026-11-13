@@ -201,14 +201,18 @@ def _cleanup(db, sids: list[str]):
         intake.S.pop(s, None)
 
 
-def hunt(paraphrases: int = 3, learn: bool = False, only: list[str] | None = None) -> dict:
+def hunt(paraphrases: int = 3, learn: bool = False, only: list[str] | None = None, corpus: str | None = None) -> dict:
+    """corpus: path of a saved {intent: [lines]} file to replay exactly (fair A/B between models); every run saves the lines it used."""
     results, sids, learned = [], [], []
+    fixed = json.loads(Path(corpus).read_text(encoding="utf-8")) if corpus else None
+    used: dict = {}
     t0 = time.time()
     with SessionLocal() as db:
         for intent, (stage, expect, desc, seeds) in INTENTS.items():
             if only and intent not in only:
                 continue
-            lines = list(dict.fromkeys(seeds + _generate(intent, desc, paraphrases)))
+            lines = fixed.get(intent, []) if fixed is not None else list(dict.fromkeys(seeds + _generate(intent, desc, paraphrases)))
+            used[intent] = lines
             for text in lines:
                 sid = "hunt-" + uuid.uuid4().hex[:8]
                 sids.append(sid)
@@ -234,6 +238,8 @@ def hunt(paraphrases: int = 3, learn: bool = False, only: list[str] | None = Non
                             row["self_fix"] = fix
                 results.append(row)
         _cleanup(db, sids)
+    OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / "corpus_last.json").write_text(json.dumps(used, ensure_ascii=False, indent=1), encoding="utf-8")
     by = defaultdict(lambda: [0, 0])
     for r in results:
         by[(r["intent"], r["lang"])][0] += r["ok"]
@@ -267,8 +273,9 @@ if __name__ == "__main__":
     ap.add_argument("--paraphrases", type=int, default=3)
     ap.add_argument("--learn", action="store_true")
     ap.add_argument("--only", default="")
+    ap.add_argument("--corpus", default="")
     a = ap.parse_args()
-    rep = hunt(a.paraphrases, a.learn, [x for x in a.only.split(",") if x] or None)
+    rep = hunt(a.paraphrases, a.learn, [x for x in a.only.split(",") if x] or None, a.corpus or None)
     print(f"{rep['passed']}/{rep['total']} passed ({rep['pass_rate']}%), {len(rep['failures'])} failures, learned {len(rep['learned'])}, {rep['seconds']} s")
     for f in rep["failures"][:40]:
         print(f" - [{f['intent']}/{f['lang']}] {f['text']!r}: {'; '.join(f['problems'])} | {f['reply'][:90]}")
