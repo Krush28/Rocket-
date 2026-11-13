@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: krishix
+      POSTGRES_PASSWORD: krishix  # local dev only; override for any shared deployment
+      POSTGRES_DB: krishix
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U krishix"]
+      interval: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://krishix:krishix@db:5432/krishix
+    ports: ["8000:8000"]
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+    depends_on:
+      db: {condition: service_healthy}
+
+volumes:
+  pgdata:
