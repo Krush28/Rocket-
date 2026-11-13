@@ -159,9 +159,11 @@ def route(text: str) -> tuple[str, dict]:
         return "schemes", sp
     if re.match(r"\s*(why|kyun|kyon|kyu|क्यों|क्यूँ|कशामुळे)", low) or has("why is", "why not", "explain why", "kyun "):
         return "explain", {}
-    if has("thank", "dhanyavad", "dhanyawad", "shukriya", "धन्यवाद", "शुक्रिया", "आभार"):
+    if has("thank", "dhanyavad", "dhanyawad", "shukriya", "धन्यवाद", "शुक्रिया", "आभार") and len(low.split()) <= 4:  # "show schemes, thanks" is a request
         return "thanks", {}
-    if has("bech do", "bech dijiye", "bech dena", "sell it", "go ahead and sell", "बेच दो", "बेच दीजिए", "विकून टाका", "विकून द्या"):
+    if has("bech do", "bech dijiye", "bech dena", "sell it", "go ahead and sell", "help me sell", "sell this", "sell kar", "buy kar", "move it",
+           "order bana", "बेच दो", "बेच दीजिए", "बेचा", "बेचायचे", "बेचना है", "विकून टाका", "विकून द्या", "विकायचे", "विकायचा") \
+            and not has("should", " or ", " ya ", "hold", "ruk", "wait", "rok", "chahiye", "kab ", "when", "चाहिए", "की रुक", "का थांब"):
         return "create_order", {}
     if has("what can you do", "help", "मदद", "काय करू शकता", "क्या कर सकते"):
         return "help", {}
@@ -171,12 +173,12 @@ def route(text: str) -> tuple[str, dict]:
     if "crop" in found and (re.search(r"\b(remove|delete|drop)\b", low) or has("हटाओ", "हटा दो", "निकालो", "काढा", "काढून")):
         return "remove_lot", {"crop": found["crop"]}
     if "crop" in found and "qty" in found:  # "20 quintal potato", "I also have 20 quintal potato", "मेरे पास 20 क्विंटल आलू भी है"
-        return "set_lot", found
+        return "set_lot", {**found, "text": text}
     if has("add more", "add crop", "add another", "another crop", "more crop", "one more", "new crop", "और फसल", "दूसरी फसल", "नई फसल", "फसल जोड़",
            "आणखी पीक", "दुसरे पीक", "नवीन पीक", "पीक जोड") and "crop" not in found:
         return "add_crop", {}
-    if has("my farm", "farm is", "village is", "my village", "i am in", "i live", "i'm in", "मेरा खेत", "खेत ", "मेरा गाँव", "मेरा गांव", "माझे शेत", "शेत ",
-           "माझे गाव"):
+    if has("my farm", "farm is", "village is", "my village", "i am in", "i live", "i'm in", "moved to", "मेरा खेत", "मेरा गाँव", "मेरा गांव", "माझे शेत",
+           "माझे गाव", "खेत अब", "शेत आता"):
         return "set_location", {"text": text}
     for rx, k in ((r"(?:commission|कमीशन|कमिशन)\D{0,14}(\d+(?:\.\d+)?)", "commission_pct"), (r"(?:hamali|हमाली)\D{0,14}(\d+(?:\.\d+)?)", "hamali_per_qtl"),
                   (r"road factor\D{0,8}(\d+(?:\.\d+)?)", "road_factor"), (r"risk(?: allowance)?\D{0,10}(\d+(?:\.\d+)?)", "risk_allowance_pct")):
@@ -274,8 +276,13 @@ def run_tool(tool: str, args: dict, st: dict, lang: str, db) -> dict:
         return {"reply": rt(L2, "lang"), "actions": [{"type": "lang", "value": L2}], "lang": L2}
     if tool == "show_tab":
         return {"reply": rt(lang, "tab", x=rt(lang, "t_" + args["tab"])), "actions": [_tab(args["tab"])]}
-    if tool == "set_lot":
-        return _set_lot(args, st, lang, db)
+    if tool == "set_lot":  # "50 quintal onion aur 15 quintal chana": every crop with an amount, not only the first
+        segs = [P.extract(x) for x in intake.SEP.split(args.get("text") or "")] if args.get("text") else []
+        more = [f for f in segs if "crop" in f and "qty" in f and f["crop"] != args["crop"]]
+        out = _set_lot(args, st, lang, db)
+        for f in more:
+            out = _set_lot({"crop": f["crop"], "qty": f["qty"]}, st, lang, db)
+        return out
     if tool == "schemes":
         state = args.get("state") or _farm_state(st)
         reply, flt = SC.say(state, lang, args.get("category"), args.get("q"), gazetteer.dev_name(state) if lang != "en" else state)
@@ -601,6 +608,9 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
     text = (text or "").strip()
     pend_lang = (intake.pending(sid, db) or {}).get("lang")
     L = lang or P.detect_lang(text, ((st["plan"] or {}).get("profile") or {}).get("lang") or pend_lang or (st["farmer"] or {}).get("lang") or "en")
+    if st["plan"] and st["farmer"] and text and st["plan"]["profile"].get("lang") != L:  # farmer switched language: whole plan follows
+        st["farmer"]["lang"] = L
+        _activate(st, st["active"], L)
 
     if text and P.is_cancel(text):  # "cancel" / "never mind": drop whatever is half-done, keep finished work
         st["pending"] = st["await"] = None
@@ -695,6 +705,12 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
         return _out({"reply": intake._t("qty", L, crop=intake.crop_label(f["crop"], L))}, sid, L, "plan", [{"tool": "add_crop"}])
 
     tool, args = route(text)
+    if tool == "set_lot" and args["crop"] in lots and abs(args["qty"]["qty_kg"] - lots[args["crop"]]["qty_kg"]) < 1:
+        # "where is cold storage for these 50 quintal onions?": the lot is only context; answer the actual request
+        rest = re.sub(r"\d+(?:\.\d+)?\s*\S+", " ", text)
+        tool, args = route(rest)
+        if tool == "set_lot":
+            tool, args = "unknown", {}
     from app.agents import brain  # lazy: brain imports this module
     if brain.wants_brain(text, tool):  # the local LLM plans the tools; Python validates and runs them
         res = brain.run(text, st, L, db, pre, trace, force="explain" if tool == "explain" else None)

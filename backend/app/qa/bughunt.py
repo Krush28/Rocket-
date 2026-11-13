@@ -76,12 +76,14 @@ def _generate(intent: str, desc: str, n: int) -> list[str]:
         return []
     out = []
     for lang, hint in LANG_HINT.items():
-        raw = llm._gen(f"Write {n} different short things an Indian farmer might SAY to a voice assistant, in {hint}, where {desc}. "
-                       "Vary wording, politeness, filler words and punctuation like real speech-to-text. Return JSON {\"lines\": [...]}.",
+        raw = llm._gen(f"Context: a farmer near Niphad has 50 quintal onion and is talking to a selling assistant. Write {n} different things "
+                       f"the farmer might SAY, in {hint}, where {desc}. One clear intent per line, no extra conditions or other requests, "
+                       "at most 15 words, natural spoken style with filler words and speech-to-text punctuation. Return JSON {\"lines\": [...]}.",
                        schema={"type": "object", "required": ["lines"], "properties": {"lines": {"type": "array", "maxItems": n, "items": {"type": "string", "maxLength": 120}}}},
                        max_tokens=60 * n, timeout=30)
         try:
-            out += [x.strip() for x in json.loads(raw or "{}").get("lines", []) if isinstance(x, str) and 1 < len(x.strip()) <= 120]
+            out += [x.strip() for x in json.loads(raw or "{}").get("lines", []) if isinstance(x, str) and 1 < len(x.strip()) <= 120
+                    and len(x.split()) <= 18 and not re.search(r"[぀-鿿]", x)]  # drop rambling or non-Indic garbage lines
         except ValueError:
             pass
     return out

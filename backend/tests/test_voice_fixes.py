@@ -179,3 +179,37 @@ def test_start_over_clears_everything(db):
     r = say(db, "c5", "start over")
     assert r["actions"] == [{"type": "reset"}] and "c5" not in A.STATE
     assert say(db, "c5", "")["awaiting"] == "crops"
+
+
+# ---- bug-hunter regressions (2026-11-14): natural yes/no in full sentences
+@pytest.mark.parametrize("text,val", [
+    ("Yes, go ahead.", True), ("yes we are ready to sell", True), ("Yes. Everything is correct.", True), ("haan bilkul, maal taiyar hai", True),
+    ("हाँ, सब सही है, बेच दो", True), ("हो, सगळं बरोबर आहे", True), ("yes why not", True), ("of course", True), ("chalega", True), ("go for it", True),
+    ("हाँ, नाशिक के पास सब सही है", True), ("no problem", True),
+    ("Can't do it today, my market's busy.", False), ("don't do it yet", False), ("yes but not today", False), ("nahi abhi mat karo", False),
+    ("नहीं, भंडारण नहीं कर सकता", False), ("no thanks", False), ("wait", False), ("नको, आत्ता नाही", False),
+    ("yes but first tell me the price", None), ("haan par pehle batao kitna milega?", None)])
+def test_yes_no_in_natural_sentences(text, val):
+    assert P.yes_no(text) is val
+
+
+def test_readback_yes_sentence_confirms_and_amount_correction_rereads(db):
+    for t in ["", "onion", "50 quintal", "Niphad", "yes", "no"]:
+        say(db, "n1", t)
+    r = say(db, "n1", "no, it is 60 quintal")
+    assert r["state"] == "collecting" and "60" in r["reply"]
+    assert say(db, "n1", "Yes, everything is correct, we are ready to sell.")["state"] == "plan"
+
+
+def test_hedged_yes_answers_first_then_asks_again(db):
+    _plan(db, "n2")
+    assert say(db, "n2", "sell it")["state"] == "confirming_action"
+    r = say(db, "n2", "yes but first tell me how much I will get")
+    assert r["state"] == "confirming_action" and not any(a["type"] == "order" for a in r["actions"])
+    assert any(a["type"] == "order" for a in say(db, "n2", "ok yes, go ahead")["actions"])
+
+
+def test_mentioning_the_same_lot_does_not_swallow_the_request(db):
+    _plan(db, "n3")
+    r = say(db, "n3", "is there cold storage for these 50 quintal onion?")
+    assert "storage" in r["reply"].lower() and "New lot" not in r["reply"]
