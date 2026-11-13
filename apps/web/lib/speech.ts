@@ -1,4 +1,4 @@
-import { transcribe } from "./api";
+import { API, transcribe } from "./api";
 import type { Lang } from "./i18n";
 
 const BCP47: Record<Lang, string> = { en: "en-IN", hi: "hi-IN", mr: "mr-IN" };
@@ -38,12 +38,29 @@ export function listen(lang: Lang, onStop?: (stop: () => void) => void): Promise
   }));
 }
 
-export function speak(text: string, lang: Lang) {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = BCP47[lang];
-  const v = window.speechSynthesis.getVoices().find((x) => x.lang === BCP47[lang]);
-  if (v) u.voice = v;
-  window.speechSynthesis.speak(u);
+let audio: HTMLAudioElement | null = null;
+
+/** Speak and resolve when done (so the hands-free loop can listen again). Browser voice first (instant); if the device has no
+ *  voice for this language (common for Hindi/Marathi on Windows), use the backend's offline Piper voice; else stay silent. */
+export function speak(text: string, lang: Lang): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  window.speechSynthesis?.cancel();
+  audio?.pause();
+  const voices = window.speechSynthesis?.getVoices() ?? [];
+  const v = voices.find((x) => x.lang.replace("_", "-") === BCP47[lang]) ?? voices.find((x) => x.lang.toLowerCase().startsWith(lang));
+  if (v) {
+    return new Promise((done) => {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = BCP47[lang]; u.voice = v; u.rate = 1.05;
+      u.onend = () => done(); u.onerror = () => done();
+      window.speechSynthesis.speak(u);
+      setTimeout(done, 400 + text.length * 120); // never hang the loop if onend does not fire
+    });
+  }
+  return fetch(`${API}/api/voice/speak`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, lang }) })
+    .then((r) => (r.ok ? r.blob() : Promise.reject()))
+    .then((b) => new Promise<void>((done) => { audio = new Audio(URL.createObjectURL(b)); audio.onended = () => done(); audio.onerror = () => done(); audio.play().catch(() => done()); }))
+    .catch(() => undefined);
 }
+
+export const stopSpeaking = () => { if (typeof window !== "undefined") { window.speechSynthesis?.cancel(); audio?.pause(); } };

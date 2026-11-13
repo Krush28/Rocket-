@@ -1,57 +1,78 @@
 "use client";
 
-import { useState } from "react";
-import { createOrder, type ChatReply, type Option } from "@/lib/api";
-import { cropName, isKey, rupees, t, type Key, type Lang } from "@/lib/i18n";
+import type { Crop, Option, Order, Plan } from "@/lib/api";
+import { cropName, isKey, rupees, statusName, t, unitName, type Key, type Lang } from "@/lib/i18n";
 import PriceChart from "./PriceChart";
 
-const card = "rounded-[22px] bg-white p-5";
+const card = "rounded-[22px] bg-white p-5 scroll-mt-4";
 const h2 = "font-display text-[20px] font-bold tracking-tight";
 const DED: Record<string, Key> = { transport: "transportCost", handling: "handling", commission: "commission", storage: "storageCost", financing: "financing", risk_allowance: "risk_allowance" };
+const ORDER_SAY: Record<Lang, string> = { en: "create the order", hi: "ऑर्डर बनाओ", mr: "ऑर्डर तयार करा" };
 const short = (k: string) => k.split(", ")[0];
 const rest = (k: string) => k.split(", ").slice(1).join(", ");
 const word = (k: string, l: Lang) => (isKey(k) ? t(k, l) : k); // codes -> farmer words, unknown codes pass through
 
-export default function Results({ reply, lang, onRestart }: { reply: ChatReply; lang: Lang; onRestart: () => void }) {
-  const p = reply.plan!;
-  const best = p.recommendation?.best;
-  const decision = p.recommendation?.decision ?? p.sell_vs_hold?.decision;
+type Props = { plan: Plan; lang: Lang; order: Order | null; crops: Crop[]; onSay: (text: string) => void };
+
+export default function Results({ plan: p, lang, order, crops, onSay }: Props) {
+  const rec = p.recommendation;
+  const best = rec?.best;
+  const decision = rec?.decision ?? p.sell_vs_hold?.decision;
   const firstPrice = p.prices ? Object.values(p.prices)[0] : undefined;
   const allStale = !!p.prices && Object.values(p.prices).every((x) => x.stale);
   const live = p.data_mode === "LIVE" && !allStale;
   const failed = p.trace.find((x) => x.status === "failed");
-  const [order, setOrder] = useState<string>("");
   const prof = p.profile;
   const ranked = p.options.filter((o) => o.type !== "hold");
+  const km = t("km", lang);
 
   return (
-    <main className="min-h-screen bg-paper" lang={lang}>
+    <main className="min-h-screen bg-paper pb-56" lang={lang}>
       <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-5 sm:px-6">
         <header className="flex items-center justify-between gap-3">
-          <span className="font-display text-[22px] font-extrabold tracking-tight">KRISHI-X</span>
+          <span className="font-display text-[22px] font-extrabold tracking-tight">{lang === "en" ? "KRISHI-X" : "कृषि-एक्स"}</span>
           <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-semibold tracking-wide ${live ? "bg-okbg text-forest" : "bg-note text-ink"}`}>
             <span className={`h-2 w-2 rounded-full ${live ? "bg-[#2E7D4F]" : "bg-mustard"}`} />
             {live ? `${t("live", lang)} · ${firstPrice?.latest_date ?? ""}` : allStale && p.data_mode === "LIVE" ? `${t("old", lang)} · ${firstPrice?.latest_date ?? ""}` : t("demo", lang)}
           </span>
         </header>
 
+        {crops.length > 1 && (
+          <nav aria-label={t("crops", lang)} className="flex flex-wrap gap-2">
+            {crops.map((c) => (
+              <button key={c.crop} onClick={() => !c.active && onSay(c.label)} aria-pressed={c.active}
+                className={`min-h-[44px] rounded-full px-4 text-[16px] font-semibold ${c.active ? "bg-forest text-cream" : "bg-white text-ink"}`}>
+                {c.label}{c.qty ? ` · ${c.qty} ${unitName(c.unit, lang)}` : ""}
+              </button>
+            ))}
+          </nav>
+        )}
+
         {best ? (
           <section className="rounded-[28px] bg-forest p-6 text-cream">
-            <p className="text-[13px] font-semibold uppercase tracking-widest text-sage">{prof.original_qty} {prof.original_unit} {cropName(prof.crop, lang)} · {prof.location.name}</p>
+            <p className="text-[13px] font-semibold uppercase tracking-widest text-sage">{prof.original_qty} {unitName(prof.original_unit, lang)} {cropName(prof.crop, lang)} · {prof.location.name}</p>
             <h1 className="mt-2 font-display text-[24px] font-bold leading-tight tracking-tight">{best.label}</h1>
             <p className="mt-4 text-[15px] text-sage">{t("keep", lang)}</p>
             <p className="font-display text-[48px] font-extrabold leading-none tracking-tighter text-white sm:text-[56px]">{rupees(best.net)}</p>
             <KeepBar gross={best.gross_revenue} costs={best.total_deductions} lang={lang} />
             <p className="mt-3 text-[14px] text-sage">{best.verification} · {short(best.destination)} · {t("kmEst", lang, { n: best.distance_km })}</p>
-            {order ? <p role="status" className="mt-5 rounded-2xl bg-leaf p-3 text-[16px]">{t("orderMade", lang, { id: order })}</p> : (
-              <button onClick={() => createOrder(best, prof).then((o) => setOrder(o.id)).catch(() => setOrder(""))}
-                className="mt-5 min-h-[56px] w-full rounded-full bg-mustard text-[18px] font-bold text-ink">{t("order", lang)}</button>
-            )}
+            {!order && <button onClick={() => onSay(ORDER_SAY[lang])} className="mt-5 min-h-[56px] w-full rounded-full bg-mustard text-[18px] font-bold text-ink">{t("order", lang)}</button>}
           </section>
         ) : (
           <section className="rounded-[28px] bg-forest p-6 text-cream">
             <h1 className="font-display text-[24px] font-bold">{t("noReco", lang)}</h1>
-            <p className="mt-2 text-[17px] text-sage">{p.recommendation?.reason ?? failed?.error ?? t("noOption", lang)}</p>
+            <p className="mt-2 text-[17px] text-sage">{rec?.reason ?? failed?.error ?? t("noOption", lang)}</p>
+            {!!rec?.excluded?.length && (
+              <ul className="mt-3 list-disc pl-5 text-[15px] text-sage">{rec.excluded.map((e) => <li key={e.mandi}>{t("excluded", lang)}: {short(e.mandi)}: {e.reason}</li>)}</ul>
+            )}
+          </section>
+        )}
+
+        {order && (
+          <section id="sec-order" className={card}>
+            <h2 className={h2}>{t("orderTitle", lang)} · {order.id}</h2>
+            <p className="mt-2 text-[17px]">{t("status", lang)}: <b>{statusName(order.status, lang)}</b></p>
+            <p className="mt-1 text-[14px] text-muted">{t("orderMade", lang, { id: order.id })}</p>
           </section>
         )}
 
@@ -70,23 +91,23 @@ export default function Results({ reply, lang, onRestart }: { reply: ChatReply; 
             <div className="flex flex-wrap items-center gap-2.5">
               <h2 className={h2}>{t("hold", lang)}</h2>
               <span className="rounded-full bg-[#FCE9B2] px-3 py-1 text-[13px] font-bold tracking-wide text-[#6B4A00]">{word(decision.action, lang)}</span>
+              {rec?.confidence && <span className="rounded-full bg-[#ECEAE0] px-3 py-1 text-[13px] font-semibold">{t("confidence", lang)}: {word(rec.confidence.label, lang)}</span>}
             </div>
             <p className="mt-2 text-[17px] text-[#33433A]">{decision.reason}</p>
-            {decision.reconsider_on && <p className="mt-1 text-[15px] text-muted">{t("checkAgain", lang, { d: decision.reconsider_on })}</p>}
-            {!!p.sell_vs_hold?.skipped?.length && (
-              <ul className="mt-2 list-disc pl-5 text-[15px] text-muted">{p.sell_vs_hold.skipped.map((s) => <li key={s.days}>{t("holdDays", lang, { n: s.days })}: {s.why}</li>)}</ul>
-            )}
+            {!!decision.factors?.length && <ul className="mt-2 list-disc pl-5 text-[15px] text-[#33433A]">{decision.factors.map((f) => <li key={f}>{f}</li>)}</ul>}
+            {decision.reconsider_on && <p className="mt-2 text-[15px] text-muted">{t("checkAgain", lang, { d: decision.reconsider_on })}</p>}
+            {rec?.confidence && <p className="mt-1 text-[13px] text-muted">{[...rec.confidence.detractors, ...rec.confidence.contributors].slice(0, 3).join(" · ")}</p>}
           </section>
         )}
 
         {ranked.length > 0 && (
-          <section className={`${card} py-2`}>
+          <section id="sec-compare" className={`${card} py-2`}>
             <h2 className={`${h2} pb-1 pt-3`}>{t("where", lang)}</h2>
-            {ranked.map((o, i) => <OptionRow key={o.label} o={o} i={i} bestNet={ranked[0].net} lang={lang} />)}
+            {ranked.map((o, i) => <OptionRow key={o.label} o={o} i={i} bestNet={ranked[0].net} lang={lang} km={km} />)}
           </section>
         )}
 
-        {best && <section className={card}><h2 className={`${h2} mb-3`}>{t("history", lang)} · {short(best.destination)}</h2><PriceChart crop={prof.crop} mandiKey={best.destination} lang={lang} /></section>}
+        {best && <section id="sec-forecast" className={card}><h2 className={`${h2} mb-3`}>{t("history", lang)} · {short(best.destination)}</h2><PriceChart crop={prof.crop} mandiKey={best.destination} lang={lang} /></section>}
 
         <section className={card}>
           <h2 className={h2}>{t("retail", lang)}</h2>
@@ -95,13 +116,13 @@ export default function Results({ reply, lang, onRestart }: { reply: ChatReply; 
           ) : <p className="mt-2 text-[16px] text-muted">{t("retailNone", lang)}</p>}
         </section>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div id="sec-logistics" className="grid scroll-mt-4 gap-4 sm:grid-cols-2">
           <section className={card}>
             <h2 className={h2}>{t("storage", lang)}</h2>
             {p.storage?.length ? p.storage.slice(0, 3).map((w) => (
               <div key={w.name} className="mt-3 border-t border-[#ECEAE0] pt-3 text-[15px]">
                 <b>{w.name}</b> <span className="text-[13px] text-muted">· {w.verification}</span>
-                <div className="text-muted">{w.distance_km} km · ₹{w.rate_qtl_day}{t("perDay", lang)} · {t("week", lang, { x: rupees(w.est_cost_7d) })} ({w.cost_label})</div>
+                <div className="text-muted">{w.distance_km} {km} · ₹{w.rate_qtl_day}{t("perDay", lang)} · {t("week", lang, { x: rupees(w.est_cost_7d) })} ({w.cost_label})</div>
                 <div className="text-[13px] text-muted">{w.availability}</div>
               </div>
             )) : <p className="mt-2 text-[16px] text-muted">{t("noStorage", lang)}</p>}
@@ -110,7 +131,7 @@ export default function Results({ reply, lang, onRestart }: { reply: ChatReply; 
             <h2 className={h2}>{t("transport", lang)}</h2>
             {p.transport?.slice(0, 2).map((tr) => (
               <div key={tr.destination} className="mt-3 border-t border-[#ECEAE0] pt-3 text-[15px]">
-                <b>{short(tr.destination)}</b> <span className="text-muted">· {tr.distance_km} km</span>
+                <b>{short(tr.destination)}</b> <span className="text-muted">· {tr.distance_km} {km}</span>
                 {tr.options.slice(0, 2).map((v) => <div key={v.transporter} className="text-muted">{v.vehicle}: {rupees(v.total)} ({rupees(v.per_qtl)}{t("qtl", lang)}) · {v.quote_status}</div>)}
               </div>
             ))}
@@ -118,7 +139,6 @@ export default function Results({ reply, lang, onRestart }: { reply: ChatReply; 
         </div>
 
         <section className="rounded-[22px] bg-note p-5 text-[15px] text-[#3A2A00]"><b>{t("real", lang)}:</b> {p.labels}</section>
-        <button onClick={onRestart} className="min-h-[52px] rounded-full bg-forest text-[17px] font-semibold text-cream">{t("restart", lang)}</button>
       </div>
     </main>
   );
@@ -140,13 +160,13 @@ function Row({ label, value, strong, muted }: { label: string; value: string; st
   return <div className={`flex justify-between border-b-[1.5px] border-dashed border-[#C9C6B4] py-2.5 text-[16px] ${muted ? "text-muted" : ""}`}><span>{label}</span>{strong ? <b>{value}</b> : <span>{value}</span>}</div>;
 }
 
-function OptionRow({ o, i, bestNet, lang }: { o: Option; i: number; bestNet: number; lang: Lang }) {
+function OptionRow({ o, i, bestNet, lang, km }: { o: Option; i: number; bestNet: number; lang: Lang; km: string }) {
   return (
     <div className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 border-t-[1.5px] border-[#ECEAE0] py-3.5">
       <div className={`grid h-9 w-9 place-items-center rounded-full text-[14px] font-bold ${i === 0 ? "bg-forest text-cream" : "bg-[#ECEAE0]"}`}>{i + 1}</div>
       <div className="min-w-0">
         <div className="truncate text-[16px] font-semibold">{short(o.destination)}</div>
-        <div className="truncate text-[13px] text-muted">{rest(o.destination) && `${rest(o.destination)} · `}{o.distance_km} km · {rupees(o.price)}{t("qtl", lang)} · {word(o.type, lang)}</div>
+        <div className="truncate text-[13px] text-muted">{rest(o.destination) && `${rest(o.destination)} · `}{o.distance_km} {km} · {rupees(o.price)}{t("qtl", lang)} · {word(o.type, lang)}</div>
       </div>
       <div className="text-right">
         <b className="font-display text-[18px]">{rupees(o.net)}</b>

@@ -63,6 +63,24 @@ const T = {
   noHistory: { en: "Not enough price history yet for a chart or forecast ({n} day stored). Forecasts appear after about 120 days.", hi: "चार्ट या पूर्वानुमान के लिए अभी पर्याप्त भाव इतिहास नहीं ({n} दिन का)। लगभग 120 दिन बाद पूर्वानुमान दिखेगा।", mr: "चार्ट किंवा अंदाजासाठी अजून पुरेसा भाव इतिहास नाही ({n} दिवसाचा). सुमारे 120 दिवसांनंतर अंदाज दिसेल." },
   modal: { en: "Modal price", hi: "मॉडल भाव", mr: "मॉडल भाव" },
   conversation: { en: "Conversation", hi: "बातचीत", mr: "संभाषण" },
+  ex1: { en: "I grow onion and tomato", hi: "मेरे पास प्याज और टमाटर है", mr: "माझ्याकडे कांदा आणि टोमॅटो आहे" },
+  ex2: { en: "200 quintal onion near Niphad", hi: "निफाड के पास 200 क्विंटल प्याज", mr: "निफाडजवळ 200 क्विंटल कांदा" },
+  ask: { en: "Ask: where to sell, forecast, book transport…", hi: "पूछें: कहाँ बेचें, भाव अनुमान, ट्रक बुक…", mr: "विचारा: कुठे विकू, भाव अंदाज, ट्रक बुक…" },
+  handsFree: { en: "Hands-free", hi: "बिना हाथ लगाए", mr: "हात न लावता" },
+  km: { en: "km", hi: "किमी", mr: "किमी" },
+  kg: { en: "kg", hi: "किलो", mr: "किलो" },
+  quintal: { en: "quintal", hi: "क्विंटल", mr: "क्विंटल" },
+  tonne: { en: "tonne", hi: "टन", mr: "टन" },
+  orderTitle: { en: "Your order", hi: "आपका ऑर्डर", mr: "तुमची ऑर्डर" },
+  status: { en: "Status", hi: "स्थिति", mr: "स्थिती" },
+  next: { en: "Next: say", hi: "आगे बोलिए", mr: "पुढे म्हणा" },
+  crops: { en: "Your crops", hi: "आपकी फसलें", mr: "तुमची पिके" },
+  confidence: { en: "Confidence", hi: "भरोसा", mr: "खात्री" },
+  low: { en: "low", hi: "कम", mr: "कमी" },
+  medium: { en: "medium", hi: "मध्यम", mr: "मध्यम" },
+  high: { en: "high", hi: "ज़्यादा", mr: "जास्त" },
+  excluded: { en: "Not used", hi: "इस्तेमाल नहीं किया", mr: "वापरले नाही" },
+  langWord: { en: "Language", hi: "भाषा", mr: "भाषा" },
   you: { en: "You", hi: "आप", mr: "तुम्ही" },
 } as const;
 
@@ -70,6 +88,16 @@ const CROPS: Record<string, Record<Lang, string>> = {
   onion: { en: "onion", hi: "प्याज", mr: "कांदा" }, tomato: { en: "tomato", hi: "टमाटर", mr: "टोमॅटो" }, potato: { en: "potato", hi: "आलू", mr: "बटाटा" },
 };
 export const cropName = (c: string, l: Lang) => CROPS[c]?.[l] ?? c;
+const UNITS: Record<string, "kg" | "quintal" | "tonne"> = { kg: "kg", kgs: "kg", kilogram: "kg", kilograms: "kg", quintal: "quintal", quintals: "quintal", qtl: "quintal", tonne: "tonne", tonnes: "tonne", ton: "tonne", tons: "tonne" };
+export const unitName = (u: string, l: Lang) => (UNITS[u.toLowerCase()] ? (T[UNITS[u.toLowerCase()]][l] as string) : u);
+export const isLang = (x: unknown): x is Lang => x === "en" || x === "hi" || x === "mr";
+const STATUS: Record<string, Record<Lang, string>> = {
+  created: { en: "created", hi: "बना", mr: "तयार" }, transport_requested: { en: "transport requested", hi: "ढुलाई माँगी", mr: "वाहतूक मागितली" },
+  storage_enquiry_sent: { en: "storage enquiry sent", hi: "भंडारण पूछताछ भेजी", mr: "साठवण चौकशी पाठवली" }, storage_confirmed: { en: "storage confirmed", hi: "भंडारण पक्का", mr: "साठवण निश्चित" },
+  transport_accepted: { en: "transport accepted", hi: "ढुलाई स्वीकार", mr: "वाहतूक स्वीकारली" }, in_transit: { en: "on the way", hi: "रास्ते में", mr: "वाटेत" },
+  delivered: { en: "delivered", hi: "पहुँच गया", mr: "पोहोचला" }, sale_confirmed: { en: "sale confirmed", hi: "बिक्री पक्की", mr: "विक्री निश्चित" }, cancelled: { en: "cancelled", hi: "रद्द", mr: "रद्द" },
+};
+export const statusName = (s: string, l: Lang) => STATUS[s]?.[l] ?? s.replaceAll("_", " ");
 
 export type Key = keyof typeof T;
 export const t = (k: Key, l: Lang, p: Record<string, string | number> = {}) =>

@@ -6,7 +6,7 @@ export type Option = {
   total_deductions: number; net: number; distance_km: number; verification: string; risks: string[]; rank: number;
   expected_selling_time: string; forecast_confidence: string; data_freshness_days: number; hold_days?: number | null;
 };
-export type Decision = { action: string; reason: string; reconsider_on: string | null; expected_incremental?: number };
+export type Decision = { action: string; reason: string; reconsider_on: string | null; expected_incremental?: number; factors?: string[] };
 export type Plan = {
   profile: Profile; data_mode: "LIVE" | "DEMO"; labels: string; options: Option[];
   mandis: { name: string; distance_km: number; distance_label: string }[] | null;
@@ -15,7 +15,8 @@ export type Plan = {
   sell_vs_hold: { decision: Decision; holds?: Option[]; skipped?: { days: number; why: string }[] } | null;
   storage: { name: string; distance_km: number; rate_qtl_day: number; availability: string; verification: string; est_cost_7d: number; cost_label: string }[] | null;
   transport: { destination: string; distance_km: number; options: { transporter: string; vehicle: string; total: number; per_qtl: number; quote_status: string }[] }[] | null;
-  recommendation: { best?: Option; decision?: Decision; explanation?: string; reconsider_on?: string | null; reason?: string } | null;
+  recommendation: { best?: Option; decision?: Decision & { factors?: string[] }; explanation?: string; reconsider_on?: string | null; reason?: string;
+    excluded?: { mandi: string; reason: string }[]; confidence?: { score: number; label: string; contributors: string[]; detractors: string[] } } | null;
   trace: { agent: string; status: string; error?: string }[];
 };
 export type Profile = { crop: string; qty_kg: number; original_qty: number; original_unit: string; location: { name: string }; ready: boolean; can_store: boolean };
@@ -29,6 +30,12 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 export const chat = (session_id: string, text: string, lang?: string) => post<ChatReply>("/api/chat", { session_id, text, lang });
+
+export type Order = { id: string; status: string; next_events: string[] };
+export type AgentAction = { type: "plan"; plan: Plan } | { type: "tab"; value: string } | { type: "order"; order: Order } | { type: "lang"; value: string } | { type: "reset" };
+export type Crop = { crop: string; label: string; qty: number | null; unit: string; active: boolean };
+export type AgentReply = { reply: string; lang: string; state: string; actions: AgentAction[]; crops: Crop[]; chips?: string[]; done?: boolean; awaiting?: string | null };
+export const agent = (session_id: string, text: string, lang?: string) => post<AgentReply>("/api/agent", { session_id, text, lang });
 export const createOrder = (option: Option, profile: Profile) => post<{ id: string; status: string }>("/api/orders", { option, profile });
 
 export async function series(crop: string, mandi_key: string) {

@@ -19,6 +19,13 @@ for r in (agent.router, chat.router, market.router, orders.router, admin.router,
     app.include_router(r, prefix="/api")
 
 
+@app.on_event("startup")
+def _warm():
+    """Load offline voices in the background so the first spoken reply is fast (no-op if Piper is not installed)."""
+    from app.services import tts
+    tts.warm()
+
+
 @app.get("/health")
 def health():
     try:
