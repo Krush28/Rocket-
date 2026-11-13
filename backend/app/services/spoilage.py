@@ -17,9 +17,8 @@ def level(p: float) -> str:
 
 
 def assess(crop: str, km: float, temp_c: float = 28.0, age_days: float = 0.0, refrigerated: bool = False) -> dict | None:
-    if crop not in SHELF_LIFE_H:  # all-India: shelf life known only for calibrated crops; no flag rather than a guess
-        return None
-    life = SHELF_LIFE_H[crop][0]
+    from app.services import crops as CR  # any crop: category shelf life (calibrated for onion/tomato/potato)
+    life = SHELF_LIFE_H.get(crop, CR.params(crop)["shelf"])[0]
     remaining = max(life - age_days * 24, 1.0)
     hours = km / AVG_KMH + HANDLING_H
     p = min(1.0, hours / remaining * temp_multiplier(temp_c) * (0.4 if refrigerated else 1.0))

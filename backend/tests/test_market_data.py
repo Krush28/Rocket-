@@ -42,12 +42,12 @@ def test_orchestrator_live_ranks_real_mandi(db):
     assert not any(o["type"] == "shared_transport" for o in p["options"])  # simulated pool never ranked beside real prices
 
 
-def test_unknown_shelf_life_skips_hold(db):
+def test_any_crop_uses_category_shelf_life_for_hold(db):
     _seed(db, [_row("Mapusa APMC", "North Goa", "Goa", "Brinjal", 1800)], {"Mapusa APMC": (15.59, 73.81)})
     p = orchestrator.run({**_profile("brinjal", 15.40, 74.02), "can_store": True})
     sh = p["sell_vs_hold"]
     assert sh["holds"] == [] and sh["sell_now"]["net"] > 0
-    assert all("shelf-life" in s["why"] for s in sh["skipped"])
+    assert any("shelf life is about 5 days" in s["why"] for s in sh["skipped"])  # brinjal: soft vegetable, 15/30-day holds ruled out
     assert p["recommendation"]["decision"]["action"] == "SELL NOW"
 
 

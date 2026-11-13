@@ -102,14 +102,19 @@ def source_label(crop: str | None = None, key: str | None = None) -> str:
 
 
 def crop_params(crop: str) -> dict | None:
-    """Shelf life / shrinkage parameters; only known for Rocket's calibrated crops. None means hold is not evaluated."""
-    return D.CROPS.get(crop)
+    """Shelf life / shrinkage / seasonality for ANY crop (services/crops.py: category defaults + calibrated overrides)."""
+    from app.services import crops as CR
+    return CR.params(crop)
 
 
 @lru_cache(maxsize=4096)
 def crop_catalogue() -> dict[str, list[str]]:
     """crop key -> spoken/written aliases. Rocket's multilingual aliases plus every commodity seen in the price feed."""
+    from app.services import crops as CR
     cat = {k: list(c["aliases"]) for k, c in D.CROPS.items()}
+    for k in CR.C:
+        cat.setdefault(k, [])
+        cat[k] += [a for a in CR.aliases(k) if a not in cat[k]]
     with database.SessionLocal() as s:
         for key in s.scalars(select(Commodity.key)):
             short = re.sub(r"\s*\(.*?\)\s*", " ", key).strip()

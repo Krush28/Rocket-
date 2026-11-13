@@ -34,7 +34,7 @@ Base `https://mandi-api.onrender.com/v1` (keyless, 100 req / 15 min / IP). State
 - [ ] `services/adapters/mandi_api.py`: client (throttled), import latest prices per state×crop into `mandi_prices` (source "mandi-api"), state-average history into `state_price_history`; geocode new mandis with the offline gazetteer.
 - [ ] `repositories/market_data.series`: hybrid series (real + synthetic backfill to 3 years, flagged); `history_source` in meta.
 - [ ] `ml/forecast.py`: add SARIMA (statsmodels SARIMAX) + LightGBM (fallback sklearn HistGradientBoosting) to the backtest gate.
-- [ ] Any crop: Hindi/Marathi names + shelf-life/perishability table for ~60 common crops (category defaults for the rest).
+- [x] Any crop: Hindi/Marathi names + shelf-life/perishability table for ~75 common crops (category defaults for the rest) — `services/crops.py`.
 ### P2 Smart agent (local LLM, Ollama qwen3:4b)
 - [ ] Agentic loop `agents/brain.py`: Ollama `/api/chat` with tools (JSON schemas) → execute deterministic tools → feed results back → final answer in farmer's language. Rules stay as instant fast path for exact commands; LLM handles everything else (free speech intake, multi-step questions, explanations).
 - [ ] LLM slot extraction for intake (crop/qty/unit/place/ready/storage from any sentence).
@@ -52,3 +52,4 @@ Base `https://mandi-api.onrender.com/v1` (keyless, 100 req / 15 min / IP). State
 
 ## Status log
 - 2026-11-13: plan written; Mandi API probed (works, short history).
+- 2026-11-14: any-crop support done (crops.py: names, aliases incl. Hinglish/Devanagari, shelf life, hold limits, seasonality). Next: Mandi API importer + hybrid history.

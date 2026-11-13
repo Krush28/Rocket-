@@ -22,7 +22,8 @@ def test_spoilage_tiers_and_cold_chain():
     assert spoilage.assess("tomato", 100, temp_c=38)["probability"] > spoilage.assess("tomato", 100, temp_c=15)["probability"]
     assert spoilage.assess("onion", 900)["probability"] < far["probability"]
     assert spoilage.assess("tomato", 10, age_days=30)["probability"] == 1.0
-    assert spoilage.assess("brinjal", 100) is None  # unknown shelf life: no flag rather than a guess
+    assert spoilage.assess("brinjal", 100)["level"] in ("SAFE", "MODERATE")  # any crop: category shelf life (services/crops.py)
+    assert spoilage.assess("coriander(leaves)", 300)["level"] in ("HIGH", "CRITICAL")  # leafy greens spoil fast
 
 
 def test_price_outlier_guard_excludes_data_errors():

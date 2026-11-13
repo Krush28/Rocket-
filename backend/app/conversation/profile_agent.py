@@ -23,8 +23,7 @@ MARATHI_MARKERS = ["आहे", "मला", "माझ", "कांदा", "�
                    "शेत", "जवळ", "आणि", "मध्ये", "नको", "पण", "तुम्ही", "आम्ही", "मराठी"]
 HINDI_MARKERS = ["है", "हैं", "में", "क्या", "कहाँ", "कहां", "मेरे", "मेरा", "मुझे", "बेचूँ", "बेचूं", "कितना", "और", "नहीं", "हाँ", "करो", "बताओ", "हिंदी"]
 
-NAMES = {"onion": {"en": "onion", "hi": "प्याज", "mr": "कांदा"}, "tomato": {"en": "tomato", "hi": "टमाटर", "mr": "टोमॅटो"},
-         "potato": {"en": "potato", "hi": "आलू", "mr": "बटाटा"}}
+from app.services.crops import NAMES  # noqa: E402  every crop's Hindi/Marathi name
 Q = {
     "crop": {"en": "Which crop do you want to sell? (for example onion, tomato, wheat)", "hi": "आप कौन सी फसल बेचना चाहते हैं? (जैसे प्याज, टमाटर, गेहूं)",
              "mr": "तुम्हाला कोणते पीक विकायचे आहे? (उदा. कांदा, टोमॅटो, गहू)"},
@@ -88,11 +87,18 @@ def yes_no(text: str):
     return None
 
 
+def _dev_hit(a: str, t: str) -> bool:
+    """Devanagari alias match. Short aliases (<=3 letters, e.g. मका, धान) must stand alone so मकान or धानोरा never match."""
+    if len(a) > 3:
+        return a in t
+    return re.search(rf"(?<![ऀ-ॿ]){re.escape(a)}(?![ऀ-ॿ])", t) is not None
+
+
 def _crop(t: str, low: str) -> str | None:
     """Longest alias wins; ASCII aliases need word boundaries (so 'price' never matches 'rice'), plural -s/-es allowed."""
     pairs = sorted(((a, k) for k, al in MD.crop_catalogue().items() for a in al), key=lambda p: -len(p[0]))
     for a, k in pairs:
-        if (a.isascii() and re.search(rf"\b{re.escape(a)}(?:e?s)?\b", low)) or (not a.isascii() and a in t):
+        if (a.isascii() and re.search(rf"\b{re.escape(a)}(?:e?s)?\b", low)) or (not a.isascii() and _dev_hit(a, t)):
             return k
     return None
 

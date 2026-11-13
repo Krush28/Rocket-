@@ -38,7 +38,7 @@ backend/
   app/agents/             agents.py (the 12 agents) · orchestrator.py (runs them, localizes)
                           action_agent.py (voice tools: compare, forecast, price_of, add/remove/edit lots,
                           set_location, assumptions, orders; replies dict R in en/hi/mr; STATE = in-memory cache)
-  app/services/           costs.py (ALL money maths) · spoilage.py · confidence.py · logistics.py (OR-Tools)
+  app/services/           crops.py (every crop: hi/mr names, aliases, shelf life, seasonality) · costs.py (ALL money maths) · spoilage.py · confidence.py · logistics.py (OR-Tools)
                           geocoding.py (gazetteer first, Nominatim cached, fuzzy last) · gazetteer.py (GeoNames load/find/dev_name/romanize)
                           adapters/agmarknet_datagov.py (CSV/API import) · orders.py (demo order state machine, SQLite)
                           llm.py (Ollama, optional) · tts.py (Piper) · speech.py (faster-whisper) · demo_data.py (DEMO only) · geo.py
