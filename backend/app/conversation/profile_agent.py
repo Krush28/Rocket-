@@ -3,7 +3,13 @@ One question at a time, only missing slots, corrections allowed, read-back + exp
 import re
 from datetime import date, timedelta
 
-from app.services import demo_data
+from sqlalchemy import select
+
+from app.db import database
+from app.models import Commodity, FarmerInventory, FarmerProfile
+from app.repositories import market_data as MD
+from app.repositories import sessions as SS
+from app.services import demo_data, geocoding
 from app.services import llm
 
 REQUIRED = ["crop", "qty", "location", "ready", "can_store"]
@@ -17,8 +23,8 @@ MARATHI_MARKERS = ["आहे", "मला", "माझ", "कांदा", "�
 NAMES = {"onion": {"en": "onion", "hi": "प्याज", "mr": "कांदा"}, "tomato": {"en": "tomato", "hi": "टमाटर", "mr": "टोमॅटो"},
          "potato": {"en": "potato", "hi": "आलू", "mr": "बटाटा"}}
 Q = {
-    "crop": {"en": "Which crop do you want to sell? (onion, tomato or potato)", "hi": "आप कौन सी फसल बेचना चाहते हैं? (प्याज, टमाटर या आलू)",
-             "mr": "तुम्हाला कोणते पीक विकायचे आहे? (कांदा, टोमॅटो किंवा बटाटा)"},
+    "crop": {"en": "Which crop do you want to sell? (for example onion, tomato, wheat)", "hi": "आप कौन सी फसल बेचना चाहते हैं? (जैसे प्याज, टमाटर, गेहूं)",
+             "mr": "तुम्हाला कोणते पीक विकायचे आहे? (उदा. कांदा, टोमॅटो, गहू)"},
     "qty": {"en": "How much do you have? Say the amount with kg, quintal or tonne.", "hi": "आपके पास कितना माल है? किलो, क्विंटल या टन में बताइए।",
             "mr": "तुमच्याकडे किती माल आहे? किलो, क्विंटल किंवा टनमध्ये सांगा."},
     "location": {"en": "Where is your farm? Tell me your village or nearest town.", "hi": "आपका खेत कहाँ है? गाँव या नज़दीकी शहर बताइए।",
@@ -28,7 +34,11 @@ Q = {
                   "mr": "जास्त भाव मिळाल्यास तुम्ही माल काही दिवस ठेवू शकता का? (होय किंवा नाही)"},
 }
 UNKNOWN = {"en": "Sorry, I did not catch that. ", "hi": "माफ़ कीजिए, मैं समझ नहीं पाया। ", "mr": "माफ करा, मला समजले नाही. "}
-PLACE_HELP = {"en": "I know these places (demo list): ", "hi": "मुझे ये जगहें पता हैं (डेमो सूची): ", "mr": "मला ही ठिकाणे माहीत आहेत (डेमो यादी): "}
+PLACE_HELP = {"en": "I could not find that place. Please say the village or town with its district, for example 'Ponda, North Goa'.",
+              "hi": "यह जगह नहीं मिली। कृपया गाँव या शहर और उसका ज़िला बताइए, जैसे 'पोंडा, उत्तर गोवा'।",
+              "mr": "हे ठिकाण सापडले नाही. कृपया गाव किंवा शहर आणि त्याचा जिल्हा सांगा, उदा. 'पोंडा, उत्तर गोवा'."}
+NEAR = re.compile(r"\bnear\s+([^\d]+?)\s*[.!?]*$", re.I)
+LEAD = re.compile(r"^\s*(?:my\s+farm\s+is|farm\s+is|it\s+is|it's|i\s+am|i'm)?\s*(?:in|at|near)?\s+", re.I)
 CONFIRM_TAIL = {"en": "Is this correct?", "hi": "क्या यह सही है?", "mr": "हे बरोबर आहे का?"}
 FIX = {"en": "What should I change? You can say the crop, amount, place, readiness or storage again.",
        "hi": "क्या बदलना है? फसल, मात्रा, जगह या भंडारण फिर से बताइए।", "mr": "काय बदलायचे आहे? पीक, प्रमाण, ठिकाण किंवा साठवण पुन्हा सांगा."}
@@ -63,14 +73,32 @@ def yes_no(text: str):
     return None
 
 
-def extract(text: str, awaiting: str | None = None) -> dict:
+def _crop(t: str, low: str) -> str | None:
+    """Longest alias wins; ASCII aliases need word boundaries (so 'price' never matches 'rice'), plural -s/-es allowed."""
+    pairs = sorted(((a, k) for k, al in MD.crop_catalogue().items() for a in al), key=lambda p: -len(p[0]))
+    for a, k in pairs:
+        if (a.isascii() and re.search(rf"\b{re.escape(a)}(?:e?s)?\b", low)) or (not a.isascii() and a in t):
+            return k
+    return None
+
+
+def _geocode(db, place: str) -> dict | None:
+    place = place.strip(" .,!?")
+    if not re.search(r"[^\W\d_]", place):
+        return None
+    if db is not None:
+        return geocoding.geocode(db, place)
+    with database.SessionLocal() as s:
+        return geocoding.geocode(s, place)
+
+
+def extract(text: str, awaiting: str | None = None, db=None) -> dict:
     t = text.translate(DEV).replace(",", "")
     low = t.lower()
     out = {}
-    for crop, c in demo_data.CROPS.items():
-        if any(a in low for a in c["aliases"]):
-            out["crop"] = crop
-            break
+    crop = _crop(t, low)
+    if crop:
+        out["crop"] = crop
     m = re.search(r"(\d+(?:\.\d+)?)\s*(kilograms?|kgs?|quintals?|qtl|tonnes?|tons?|किलो|किग्रा|क्विंटल|टन)?", low)
     if m and (m.group(2) or awaiting == "qty"):
         unit = m.group(2) or "kg"
@@ -79,8 +107,15 @@ def extract(text: str, awaiting: str | None = None) -> dict:
             out["qty"] = {"original_qty": val, "original_unit": unit, "qty_kg": val * UNIT_KG[unit]}
     for key in sorted(demo_data.PLACES, key=len, reverse=True):
         if (key.isascii() and re.search(rf"\b{re.escape(key)}\b", low)) or (not key.isascii() and key in t):
-            out["location"] = {"name": key.title() if key.isascii() else key, "lat": demo_data.PLACES[key][0], "lon": demo_data.PLACES[key][1]}
+            out["location"] = {"name": key.title() if key.isascii() else key, "lat": demo_data.PLACES[key][0], "lon": demo_data.PLACES[key][1],
+                               "status": "approximate"}
             break
+    if "location" not in out:  # any Indian place: "... near <place>", or the whole answer when we asked for the location
+        near = NEAR.search(text.translate(DEV))
+        place = near.group(1) if near else (LEAD.sub("", " " + text) if awaiting == "location" and not ({"crop", "qty"} & out.keys()) else None)
+        hit = _geocode(db, place) if place else None
+        if hit:
+            out["location"] = hit
     if awaiting in ("ready", "can_store"):
         yn = yes_no(t)
         if yn is not None:
@@ -126,7 +161,7 @@ def _missing(s):
 
 def _readback(s):
     sl, L = s["slots"], s["lang"]
-    crop = NAMES[sl["crop"]][L]
+    crop = NAMES.get(sl["crop"], {}).get(L, sl["crop"])
     q = sl["qty"]
     qty = f"{q['original_qty']:g} {q['original_unit']} ({q['qty_kg']:,.0f} kg)"
     yn = YN[L]
@@ -140,8 +175,20 @@ def _readback(s):
     return parts[L] + " " + CONFIRM_TAIL[L]
 
 
-def chat(sid: str, text: str, lang: str | None = None) -> dict:
-    s = SESSIONS.get(sid) or new_session(sid, lang or "en")
+def chat(sid: str, text: str, lang: str | None = None, *, db=None) -> dict:
+    """One conversation turn. With `db`, state is loaded from and saved to conversation_sessions (survives restarts)."""
+    s = SESSIONS.get(sid) or (SS.load(db, sid) if db is not None else None)
+    if s:
+        SESSIONS[sid] = s
+    else:
+        s = new_session(sid, lang or "en")
+    r = _turn(s, text, lang, db)
+    if db is not None:
+        SS.save(db, sid, s, confirmed=s["state"] == "confirmed")
+    return r
+
+
+def _turn(s: dict, text: str, lang: str | None, db) -> dict:
     text = (text or "").strip()
     first = not s["history"] and not text
     s["lang"] = lang or detect_lang(text, s["lang"])
@@ -152,7 +199,7 @@ def chat(sid: str, text: str, lang: str | None = None) -> dict:
         return _reply(s, GREET[L] + Q["crop"][L])
     if s["state"] == "confirming":
         yn = yes_no(text)
-        found = extract(text)
+        found = extract(text, db=db)
         if found:
             s["slots"].update(found)
             s["state"] = "collecting"
@@ -164,14 +211,15 @@ def chat(sid: str, text: str, lang: str | None = None) -> dict:
             s["awaiting"] = None
             return _reply(s, FIX[L])
     else:
-        found = extract(text, s["awaiting"])
+        found = extract(text, s["awaiting"], db=db)
         if llm.enabled():
             for k, v in (llm.extract_slots(text, s["slots"]) or {}).items():
                 found.setdefault(k, v)
         s["slots"].update(found)
         if not found:
-            hint = (PLACE_HELP[L] + ", ".join(sorted({k.title() for k in demo_data.PLACES if k.isascii()}))) if s["awaiting"] == "location" else ""
-            return _reply(s, UNKNOWN[L] + hint + " " + Q[s["awaiting"] or "crop"][L])
+            if s["awaiting"] == "location":  # unknown place, or geocoder unreachable: ask again, never guess
+                return _reply(s, PLACE_HELP[L] + " " + Q["location"][L])
+            return _reply(s, UNKNOWN[L] + Q[s["awaiting"] or "crop"][L])
     miss = _missing(s)
     if miss:
         s["awaiting"] = miss[0]
@@ -191,3 +239,25 @@ def _reply(s, text, done=False):
                 "location": sl["location"], "ready": sl["ready"], "can_store": sl["can_store"], "variety": sl.get("variety"),
                 "grade": sl.get("grade"), "harvest_date": sl.get("harvest_date"), "sell_pref": sl.get("sell_pref"), "lang": s["lang"]}
     return {"reply": text, "lang": s["lang"], "state": s["state"], "awaiting": s["awaiting"], "slots": sl, "done": done, "profile": prof}
+
+
+def on_confirm(db, sid: str, profile: dict) -> int:
+    """Persist a CONFIRMED profile as farmer_profiles + farmer_inventory; returns the inventory id."""
+    from datetime import date as _date
+    loc = profile["location"]
+    fp = db.scalar(select(FarmerProfile).where(FarmerProfile.session_id == sid))
+    if not fp:
+        fp = FarmerProfile(session_id=sid, location_name=loc["name"])
+        db.add(fp)
+    fp.location_name, fp.lat, fp.lon = loc["name"], loc.get("lat"), loc.get("lon")
+    fp.preferred_language, fp.can_store, fp.sell_pref = profile.get("lang") or "en", bool(profile["can_store"]), profile.get("sell_pref")
+    db.flush()
+    hd = profile.get("harvest_date")
+    inv = FarmerInventory(farmer_profile_id=fp.id, crop_key=profile["crop"],
+                          commodity_id=db.scalar(select(Commodity.id).where(Commodity.key == profile["crop"])),
+                          variety=profile.get("variety"), grade=profile.get("grade"), qty_kg=profile["qty_kg"],
+                          original_qty=profile["original_qty"], original_unit=profile["original_unit"],
+                          harvest_date=_date.fromisoformat(hd) if hd else None, ready=bool(profile["ready"]))
+    db.add(inv)
+    db.commit()
+    return inv.id
