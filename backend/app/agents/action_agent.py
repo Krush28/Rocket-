@@ -198,7 +198,9 @@ def route(text: str) -> tuple[str, dict]:
     if has("track", "my order", "order status", "where is the order", "order kahan", "order kaha", "order kuthe", "ऑर्डर स्टेटस", "ऑर्डर कहाँ", "ऑर्डर कहां",
            "ऑर्डर कुठे", "ऑर्डर की स्थिति", "ऑर्डरची स्थिती"):
         return "track_order", {}
-    if has("forecast", "predict", "next week", "will the price", "price go", "भाव अनुमान", "अनुमान", "अंदाज", "आगे भाव", "भविष्य"):
+    if has("forecast", "predict", "next week", "will the price", "price go", "price will", "agle hafte", "agle week", "aage bhav", "rahega", "badhega",
+           "girega", "भाव अनुमान", "अनुमान", "अंदाज", "आगे भाव", "भविष्य", "अगले हफ्ते", "अगले सप्ताह", "रहेगा", "बढ़ेगा", "गिरेगा", "पुढच्या आठवड्यात",
+           "पुढील आठवड्यात", "वाढेल", "असेल"):
         return "forecast", {}
     if has("sell now", "hold", "wait", "should i sell", "should i keep", "बेचूँ", "बेचूं", "रोकूँ", "रोकूं", "थांबू", "विकू का", "रोक") \
             and not has("where", "which mandi", "कहाँ", "कहां", "कुठे"):
@@ -207,7 +209,8 @@ def route(text: str) -> tuple[str, dict]:
         return "confidence", {}
     if has("spoil", "rot", "fresh", "खराब", "सड़"):
         return "spoilage", {}
-    if has("storage", "warehouse", "cold store", "transport", "truck", "भंडारण", "गोदाम", "साठवण", "ट्रक", "ढुलाई", "वाहतूक"):
+    if has("storage", "warehouse", "cold store", "godam", "godown", "gudam", "sheetgruh", "transport", "truck", "gaadi", "भंडारण", "गोदाम", "साठवण",
+           "शीतगृह", "कोल्ड", "ट्रक", "ढुलाई", "वाहतूक"):
         return "logistics", {}
     if has("read", "say again", "repeat", "tell me", "सुनाओ", "सुनाइए", "ऐका", "पुन्हा सांगा"):
         return "read_aloud", {}
@@ -220,7 +223,8 @@ def route(text: str) -> tuple[str, dict]:
         return "retail", {"crop": found.get("crop"), "city": "", "text": text}
     if has("price", "rate", "bhav", "भाव", "दाम", "किंमत"):
         return "price_of", {"text": low}
-    if has("best", "which mandi", "where should", "where to sell", "compare", "rank", "सबसे अच्छ", "कहाँ बेच", "कहां बेच", "कुठे विक", "तुलना", "show me"):
+    if has("best", "which mandi", "where should", "where to sell", "compare", "rank", "kahan bech", "kaha bech", "kidhar bech", "konsi mandi", "kaunsi mandi",
+           "kuthe vik", "सबसे अच्छ", "कहाँ बेच", "कहां बेच", "कुठे विक", "कौन सी मंडी", "कोणती मंडई", "तुलना", "show me"):
         return "compare", {}
     for k in ("order", "compare", "forecast"):
         if has(f"open {k}", f"go to {k}", f"show {k}"):
@@ -556,6 +560,13 @@ def _activate(st, crop, lang):
 # ---------------------------------------------------------------- entry point
 def handle(sid: str, text: str, lang: str | None, db) -> dict:
     res = _handle(sid, text, lang, db)
+    st0 = STATE.get(sid)
+    if st0 and st0.pop("reask", None) and st0.get("pending") and res.get("state") != "confirming_action":
+        L0 = res.get("lang", "en")  # "yes, but first tell me the price": answer that, then ask the pending question again
+        p0 = st0["pending"]
+        res["reply"] = (res.get("reply") or "") + " " + rt(L0, "confirm", what=_confirm_text(p0["tool"], p0["args"], L0))
+        res["state"] = "confirming_action"
+        res["chips"] = [{"en": "Yes", "hi": "हाँ", "mr": "होय"}[L0], {"en": "No", "hi": "नहीं", "mr": "नाही"}[L0]]
     from app.core import present
     res["reply"] = present.text(res.get("reply") or "")
     st, L = STATE.get(sid), res.get("lang", "en")
@@ -591,7 +602,13 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
 
     if st["pending"]:  # a yes/no for an action with consequences
         yn = P.yes_no(text)
-        pend, st["pending"] = st["pending"], None
+        if yn is None and text and not P.is_cancel(text) and not P.hedged(text):  # unclear: ask the local LLM with the exact question as context
+            yn = llm.yes_no(rt("en", "confirm", what=_confirm_text(st["pending"]["tool"], st["pending"]["args"], "en")), text)
+        pend = st["pending"]
+        if yn is not None or P.is_cancel(text) or not text:
+            st["pending"] = None  # answered (or dropped); an unclear reply keeps the question open and it is asked again below
+        else:
+            st["reask"] = True
         if yn is True:
             return _out(_execute_confirmed(pend["tool"], pend["args"], st, L, db), sid, L, "plan", [{"tool": pend["tool"], "confirmed": True}])
         if yn is False:
@@ -619,7 +636,7 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
         if tool in ("start_over", "set_language", "help", "schemes"):
             return _out(run_tool(tool, args, st, L, db), sid, L, "collecting", [{"tool": tool}])
         pend = intake.pending(sid, db)
-        if pend and tool in QUESTION_TOOLS and "qty" not in P.extract(text):  # a question mid-intake: never add it as a crop
+        if pend and tool in QUESTION_TOOLS and "qty" not in P.extract(text) and P.yes_no(text) is None:  # a question mid-intake: never add it as a crop
             return _out({"reply": rt(L, "finish_first") + " " + intake.prompt(pend, L), "lang": L}, sid, L, "collecting", [{"tool": tool}],
                         awaiting=pend.get("awaiting"))
         if not text and not intake.pending(sid, db):  # returning farmer: remembered crops, no questions

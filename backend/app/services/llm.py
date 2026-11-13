@@ -159,3 +159,19 @@ def grounded_answer(question: str, facts: str, lang: str) -> str | None:
     if not out or any(n not in allowed for n in _NUM.findall(out.replace(",", ""))):
         return None
     return out
+
+
+def yes_no(question: str, answer: str) -> bool | None:
+    """Context-aware yes/no when the rules are unsure ("haan na, par pehle bata kitna milega?" -> unclear; "go for it bhai" -> yes)."""
+    if not enabled():
+        return None
+    raw = _gen("A farmer was asked a yes/no question by a selling assistant. Decide what the farmer's reply means. "
+               f"Question: {json.dumps(question, ensure_ascii=False)}. Reply: {json.dumps(answer, ensure_ascii=False)}. "
+               "yes = agrees / confirms / wants it done; no = refuses / not now / wants to change something; unclear = asks something else.",
+               schema={"type": "object", "required": ["meaning"], "properties": {"meaning": {"type": "string", "enum": ["yes", "no", "unclear"]}}},
+               max_tokens=20, timeout=10)
+    try:
+        m = json.loads(raw or "{}").get("meaning")
+    except ValueError:
+        return None
+    return True if m == "yes" else False if m == "no" else None

@@ -78,12 +78,71 @@ def _has(text, words):
     return any((f" {w.strip()} " in t) or (w.strip() and not w.isascii() and w in t) for w in words)
 
 
+_PUNCT = re.compile(r"[\s.,!?;:।॥|\"'“”‘’()\[\]\-–—/]+")
+YES_PH = ["yes", "yeah", "yea", "yep", "yup", "ya", "y", "yess", "haan", "han", "haa", "ha", "hm", "hmm", "ho", "hoy", "ji", "haanji", "ok", "okay", "okk",
+          "sure", "right", "correct", "perfect", "fine", "good", "great", "done", "sahi", "theek", "thik", "bilkul", "zaroor", "jaroor", "chalega",
+          "chalo", "kar do", "kardo", "karo", "proceed", "confirm", "confirmed", "go ahead", "go on", "do it", "please do", "of course", "absolutely",
+          "definitely", "ready", "sell it", "book it", "agreed", "हाँ", "हां", "हा", "जी", "हो", "होय", "ठीक", "सही", "बरोबर", "बिल्कुल", "बिलकुल",
+          "ज़रूर", "जरूर", "चलेगा", "चालेल", "कर दो", "कर दीजिए", "करो", "करा", "करून टाका", "तयार", "तैयार", "हाँजी", "ओके", "हम्म"]
+NO_PH = ["no", "nope", "nah", "n", "na", "nahi", "nahin", "nai", "nako", "not", "dont", "don't", "do not", "never", "cancel", "stop", "wait", "later",
+         "ruko", "ruk", "mat", "rehne do", "rahne do", "cannot", "can't", "cant", "नहीं", "नही", "ना", "नाही", "नको", "मत", "रुको", "थांबा", "नंतर",
+         "बाद", "रद्द", "नाहीं"]
+POS_IDIOM = ["why not", "no problem", "not a problem", "no issue", "no doubt", "not bad", "कोई बात नहीं", "हरकत नाही", "काही हरकत नाही"]
+HARD_NO = ["not now", "not today", "not yet", "later", "wait", "ruko", "mat", "dont", "don't", "do not", "cancel", "stop", "cannot", "can't", "cant",
+           "not ready", "nahi kar sakta", "nahi kar sakte", "नहीं कर सकता", "नहीं कर सकते", "शक्य नाही", "taiyar nahi", "nahi taiyar", "तैयार नहीं", "तयार नाही", "अभी नहीं", "बाद में", "नंतर", "थांबा", "रुको", "मत", "रद्द"]
+
+
+HEDGE = ["but", "first", "before", "pehle", "pahle", "lekin", "magar", "par pehle", "tell me", "batao", "bataiye", "how much", "kitna", "kitne", "what",
+         "पहले", "लेकिन", "मगर", "बताओ", "बताइए", "कितना", "आधी", "पण आधी", "सांगा", "किती"]
+
+
+_BASE_YES, _BASE_NO = list(YES_PH), list(NO_PH)
+
+
+def reload_learned() -> None:
+    """Phrases the bug hunter confirmed twice with the local LLM (app/qa/learned_phrases.json) extend the yes/no word lists."""
+    import json
+    from pathlib import Path
+    f = Path(__file__).resolve().parents[1] / "qa" / "learned_phrases.json"
+    try:
+        d = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+    except ValueError:
+        d = {}
+    YES_PH[:] = _BASE_YES + [p for p in d.get("yes", []) if p not in _BASE_YES]
+    NO_PH[:] = _BASE_NO + [p for p in d.get("no", []) if p not in _BASE_NO]
+
+
+def _norm(text: str) -> str:
+    """Lowercase, Devanagari digits, punctuation -> spaces ("Yes, go ahead." == "yes go ahead"), padded for whole-phrase matching."""
+    return " " + " ".join(p for p in _PUNCT.split(text.lower().translate(DEV)) if p) + " "
+
+
+def hedged(text: str) -> bool:
+    """A condition or a question inside the answer ("yes, but first ...", "kitna milega?"): never execute on it."""
+    t = _norm(text)
+    return "?" in text or any(f" {w} " in t for w in HEDGE)
+
+
+reload_learned()
+
+
 def yes_no(text: str):
-    t = text.lower().translate(DEV)
-    if _has(t, NO):
-        return False
-    if _has(t, YES):
+    """Yes / no / None (unclear) for an answer to a yes-no question, in English, Hinglish, Hindi or Marathi, punctuation-proof.
+    Whole words/phrases only (so नाशिक never reads as ना). Mixed answers: a hard refusal wins ("yes but not today" -> no),
+    anything else mixed is unclear (the caller may ask the local LLM with the question as context)."""
+    t = _norm(text)
+    for p in POS_IDIOM:
+        t = t.replace(f" {p} ", " yes ")
+    has = lambda ws: any(f" {w} " in t for w in ws)  # noqa: E731
+    pos, neg = has(YES_PH), has(NO_PH)
+    if pos and not neg and ("?" in text or has(HEDGE)):
+        return None  # "yes, but first tell me the price": a condition or question, not a plain yes
+    if pos and not neg:
         return True
+    if neg and not pos:
+        return False
+    if pos and neg:
+        return False if has(HARD_NO) else None
     return None
 
 

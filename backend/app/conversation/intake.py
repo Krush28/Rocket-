@@ -92,6 +92,9 @@ def _apply(s, text, aw, db):
             found = True
             if "qty" in f:
                 s["lots"][f["crop"]] = f["qty"]
+        elif "qty" in f and aw in (None, "confirm") and len(s["crops"]) == 1:  # read-back: "no, it is 60 quintal" corrects the only crop
+            s["lots"][s["crops"][0]] = f["qty"]
+            found = True
         elif "qty" in f and aw == "qty" and s["await_crop"]:
             s["lots"][s["await_crop"]] = f["qty"]
             found = True
@@ -102,6 +105,9 @@ def _apply(s, text, aw, db):
         found = _apply_llm(s, text, aw, db) or found  # free speech: "do ton baingan hai Satara ke paas, abhi taiyar"
     if aw in ("ready", "can_store"):
         yn = P.yes_no(text)
+        if yn is None and text and not P.hedged(text):  # unclear: the local LLM reads it with the question as context
+            from app.services import llm
+            yn = llm.yes_no(P.Q[aw]["en"], text)
         if yn is not None:
             s[aw] = yn
             found = True
@@ -147,6 +153,11 @@ def _apply_llm(s, text, aw, db) -> bool:
         if hit:
             s["location"], found = hit, True
     return found
+
+
+def _facts(s) -> str:
+    import json
+    return json.dumps([s["crops"], s["lots"], (s["location"] or {}).get("name"), s["ready"], s["can_store"]], sort_keys=True, default=str)
 
 
 def last_unit(lots: dict) -> str | None:
@@ -195,9 +206,16 @@ def _step(s, text, lang, db, sid) -> dict:
     if not text:  # page reload mid-intake: repeat the current question, no "sorry"
         pass
     elif aw == "confirm":
-        found = _apply(s, text, None, db)
+        before = _facts(s)
+        _apply(s, text, None, db)
+        changed = _facts(s) != before  # "yes, we are ready to sell" repeats known facts: that is a confirmation, not a correction
         yn = P.yes_no(text)
-        if not found and yn is True:
+        if yn is None and not changed and text and not P.hedged(text):
+            from app.services import llm
+            yn = llm.yes_no("Is this correct? " + _t("read", "en", lots=lots_text(s["lots"], "en", s["crops"]), loc=s["location"]["name"],
+                                                      ready="", store=""), text)
+        found = changed
+        if not changed and yn is True:
             data = {"location": s["location"], "ready": s["ready"], "can_store": s["can_store"], "lang": L, "lots": {c: s["lots"][c] for c in s["crops"]}}
             farmers.save(db, sid, data)
             return {"reply": P.START[L], "lang": L, "awaiting": None, "done": True, "farmer": data}
