@@ -33,3 +33,16 @@ def explain(facts: dict, lang: str) -> str | None:
     if not enabled():
         return None
     return _gen(f"Explain this selling recommendation to a farmer in {lang}, in 3 short sentences. Use ONLY these facts, do not invent numbers: {json.dumps(facts, default=str)}")
+
+
+def pick_tool(text: str, tools: list[str], ctx: dict) -> dict | None:
+    """Ask the local model to choose ONE tool name. Only the name is trusted: args are re-derived by deterministic rules (agent.py)."""
+    if not enabled():
+        return None
+    raw = _gen(f"You control a farmer's selling assistant. Choose exactly one tool for the request. Tools: {tools}. Context: {ctx}. "
+               f"Request: {text!r}. Reply as JSON: {{\"tool\": \"<name or unknown>\"}}", as_json=True)
+    try:
+        d = json.loads(raw or "{}")
+        return {"tool": d.get("tool")} if isinstance(d, dict) else None
+    except Exception:
+        return None

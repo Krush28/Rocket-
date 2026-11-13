@@ -22,6 +22,9 @@ explanations; all numbers come from `costs.py`, `forecast.py`, `logistics.py`.
 - `backend/app/costs.py` deterministic money maths; `logistics.py` OR-Tools shared-load; `orders.py` order/tracking state machine (SQLite)
 - `frontend/index.html` single-page UI (no build step)
 
+## The action agent
+`POST /api/agent` turns a free-form request into tool calls that DO things: open a tab, show an option, compare mandis, read the forecast, explain sell-vs-hold, change a cost and recalculate, start a new lot, create and track an order, request transport or storage, switch language. Rules route EN/HI/MR requests today; set `KRISHIMITRA_LLM=ollama` (plus `OLLAMA_URL`, `OLLAMA_MODEL`) and the local model picks the tool name while the arguments stay rule-parsed and validated. Orders, bookings and sale confirmation always ask yes/no first. Nothing is ever booked with a third party: requests are logged in the app only.
+
 ## Live data (data.gov.in / Agmarknet)
 1. Get a free key at data.gov.in (My Account) and set `DATA_GOV_API_KEY`.
 2. Pull prices: `python -m app.adapters refresh` (or `POST /api/admin/refresh`). Optional backfill from an Agmarknet/CEDA export: `python -m app.adapters import file.csv`.

@@ -153,6 +153,31 @@ summary:after{content:"›";float:right;transform:rotate(90deg);color:var(--mute
 @keyframes bl{0%,80%,100%{opacity:.25}40%{opacity:1}}
 svg text{fill:var(--muted);font-size:11px;font-family:var(--font)}
 .hidden{display:none!important}
+#landing{position:fixed;inset:0;z-index:50;background:var(--green);color:var(--on);display:flex;flex-direction:column;padding:22px 22px 26px;overflow:auto}
+.lp-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.lp-top .logo{color:#fff}
+.lp-top .seg{background:var(--forest2)}.lp-top .pill{color:var(--on)}.lp-top .seg .pill.on{background:var(--on);color:var(--ink)}
+.lp-mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:18px;max-width:760px;width:100%;margin:0 auto}
+#lp-title{font-family:var(--disp);font-weight:800;font-size:clamp(30px,6vw,52px);letter-spacing:-.035em;line-height:1.08;margin:0}
+#lp-sub{color:#A9C9B4;font-size:clamp(16px,2.4vw,20px);margin:0}
+#lp-caption{font-size:clamp(20px,3.2vw,28px);line-height:1.35;min-height:3.8em;display:flex;align-items:center;justify-content:center;font-weight:500}
+.orb{width:152px;height:152px;border-radius:50%;border:0;background:var(--sun);color:var(--ink);display:grid;place-items:center;box-shadow:0 0 0 14px #2D6A52,0 0 0 30px #1C5A43;margin:26px 0 12px;transition:transform .2s}
+.orb svg{width:62px;height:62px}
+.orb.rec{background:var(--red);color:#fff;animation:orb 1.3s infinite}
+@keyframes orb{50%{box-shadow:0 0 0 22px #2D6A52,0 0 0 48px #1C5A43}}
+#lp-state{font-weight:600;font-size:18px}
+#lp-crops{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;min-height:40px}
+#lp-crops span{background:var(--forest2);color:var(--on);border-radius:999px;padding:7px 16px;font-size:16px}
+.lp-bot{max-width:760px;width:100%;margin:0 auto;display:grid;gap:12px}
+#lp-form{display:flex;gap:10px}
+#lp-txt{background:#fff}
+.linkbtn{background:transparent;border:0;color:#A9C9B4;text-decoration:underline;min-height:44px;font-size:15px}
+.cropbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:-12px}
+.cropbar .lbl{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-right:4px}
+.cropbar button{border:0;border-radius:999px;background:var(--fill);color:var(--ink);padding:0 18px;min-height:44px;font-weight:600}
+.cropbar button.on{background:var(--green);color:var(--on)}
+
+.msg.act{background:transparent;color:var(--muted);font-size:13px;padding:3px 10px;align-self:flex-start;border:1px dashed var(--dash);border-radius:12px}
 :focus-visible{outline:3px solid rgba(46,125,79,.5);outline-offset:2px}
 @media(max-width:700px){.wrap{padding:0 14px 60px}.slip{padding:28px 22px;gap:28px}.card{padding:22px 20px;border-radius:24px}.logo{font-size:22px}.qf{grid-template-columns:1fr}.opt{grid-template-columns:36px minmax(0,1fr)}.opt .on{grid-column:2;text-align:left}.opt .od{padding-left:0}.win span{font-size:11px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
@@ -160,6 +185,24 @@ svg text{fill:var(--muted);font-size:11px;font-family:var(--font)}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
+<div id="landing" role="main">
+  <div class="lp-top">
+    <div class="logo"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><rect width="44" height="44" rx="12" fill="#F2B01E"/><g stroke="#0F3D2E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="translate(9 9)"><path d="M13 4v17M8 22h10M4 9h18"/><path d="M4 9l-2.5 6h5zM22 9l-2.5 6h5z"/></g></svg><span>KrishiMitra</span></div>
+    <div class="seg" role="group" aria-label="Language"><button class="pill on" data-lang="en">EN</button><button class="pill" data-lang="hi">हिं</button><button class="pill" data-lang="mr">मरा</button></div>
+  </div>
+  <div class="lp-mid">
+    <h1 id="lp-title">Talk to KrishiMitra</h1>
+    <p id="lp-sub"></p>
+    <div id="lp-caption" aria-live="polite"></div>
+    <button class="orb" id="lp-orb" aria-label="Tap and speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    <div id="lp-state">Tap and speak</div>
+    <div id="lp-crops" aria-live="polite"></div>
+  </div>
+  <div class="lp-bot">
+    <form id="lp-form" autocomplete="off"><input type="text" id="lp-txt" placeholder="Or type here" aria-label="Message"><button class="send" type="submit" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></form>
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><button class="linkbtn" id="lp-hands">Hands-free</button><button class="linkbtn" id="lp-skip">Open dashboard</button></div>
+  </div>
+</div>
 <div class="wrap">
 <header>
   <div class="logo">
@@ -214,11 +257,13 @@ svg text{fill:var(--muted);font-size:11px;font-family:var(--font)}
 </div>
 </div>
 
+<script src="/static/i18n.js"></script>
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const inr=n=>n==null?"-":(n<0?"−":"")+"₹"+Math.abs(Math.round(n)).toLocaleString("en-IN");
-const S={sid:null,lang:"en",speak:true,plan:null,order:null,mandi:null,rec:null,listening:false};
+const DEV_ID=(()=>{try{let d=localStorage.kmDevice;if(!d){d=(crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2)+Date.now());localStorage.kmDevice=d}return d}catch(e){return null}})();
+const S={sid:DEV_ID,crops:[],hands:false,spoke:false,lang:"en",speak:true,plan:null,order:null,mandi:null,rec:null,listening:false};
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const LOC={en:"en-IN",hi:"hi-IN",mr:"mr-IN"};
 const UI={
@@ -230,22 +275,45 @@ const CHIPS={
   hi:["मेरे पास निफाड के पास २०० क्विंटल प्याज है","हाँ","नहीं"],
   mr:["माझ्याकडे निफाड जवळ २०० क्विंटल कांदा आहे","होय","नाही"]};
 
+const AGENT_CHIPS={en:["Where should I sell?","Show the forecast","Should I hold?","Book transport","Set commission to 3","Create the order"],
+  hi:["कहाँ बेचूँ?","भाव अनुमान दिखाओ","क्या रोकूँ?","ट्रक बुक करो","ऑर्डर बनाओ"],mr:["कुठे विकू?","भाव अंदाज दाखवा","थांबू का?","ट्रक बुक करा","ऑर्डर तयार करा"]};
+function renderChips(list){$("#chips").innerHTML=list.map(c=>`<button class="chip">${esc(c)}</button>`).join("");$$("#chips .chip").forEach(b=>b.onclick=()=>send(b.textContent))}
+function actNote(tr){const a=Object.entries(tr.args||{}).map(([k,v])=>typeof v==="object"?k:k+"="+v).join(", ");
+  const d=document.createElement("div");d.className="msg act";d.textContent="Agent · "+tr.tool.replaceAll("_"," ")+(a?" ("+a+")":"")+(tr.confirmed?" · confirmed":"");$("#chat").appendChild(d);$("#chat").scrollTop=1e9}
+function runActions(r){
+  stopWorking();
+  if((r.actions||[]).some(a=>a.type==="plan"))hideLanding();
+  for(const a of r.actions||[]){
+    if(a.type==="reset"){startOver();return}
+    if(a.type==="plan"){S.plan=a.plan;renderPlan(a.plan)}
+    else if(a.type==="tab"&&S.plan){showTab(a.value);$(".tabs")?.scrollIntoView({behavior:"smooth",block:"start"})}
+    else if(a.type==="open_option"){const el=$$("article.opt")[a.index];if(el&&el.querySelector(".od").classList.contains("hidden"))el.click()}
+    else if(a.type==="order"){S.order=a.order;if(S.plan)renderOrder()}
+    else if(a.type==="lang"){S.lang=a.value;applyLang()}
+  }
+  (r.trace||[]).filter(x=>x.tool!=="run_plan").forEach(actNote);
+  renderChips(r.chips&&r.chips.length?r.chips:(S.plan?AGENT_CHIPS[S.lang]:CHIPS[S.lang]));
+}
 function applyLang(){
   const u=UI[S.lang];document.documentElement.lang=S.lang;
   $("#h-assist").textContent=u.assist;$("#send").setAttribute("aria-label",u.send);$("#txt").placeholder=u.ph;$("#tagline").textContent=u.tag;
   $$("[data-lang]").forEach(b=>b.classList.toggle("on",b.dataset.lang===S.lang));
-  $("#chips").innerHTML=CHIPS[S.lang].map(c=>`<button class="chip">${esc(c)}</button>`).join("");
-  $$("#chips .chip").forEach(b=>b.onclick=()=>send(b.textContent));
+renderChips(S.plan?AGENT_CHIPS[S.lang]:CHIPS[S.lang]);
   $("#micnote").textContent=SR?"":"Voice input needs Chrome or Edge. Typing works everywhere.";
   const set=(id,k)=>{const e=$(id);if(e)e.textContent=t(k)};
+  set("#lp-title","lp_title");set("#lp-sub","lp_sub");set("#lp-state","lp_hint");set("#lp-skip","lp_skip");set("#lp-hands",S.hands?"lp_hands":"lp_hands_off");
+  if($("#lp-txt"))$("#lp-txt").placeholder=t("lp_type");
   set("#micCap","tap");set("#resetBtn","startover");set("#qf-h","quick");set("#l_crop","crop");set("#l_qty","qty");set("#l_place","place");set("#l_ready","ready");set("#l_store","store");set("#q_go","go");
   if(S.plan)renderPlan(S.plan);
 }
-$$("[data-lang]").forEach(b=>b.onclick=()=>{S.lang=b.dataset.lang;applyLang()});
+$$("[data-lang]").forEach(b=>b.onclick=()=>{S.lang=b.dataset.lang;try{localStorage.kmLang=S.lang;localStorage.kmLangManual="1"}catch(e){}applyLang()});
 $("#speakBtn").onclick=e=>{S.speak=!S.speak;e.target.setAttribute("aria-pressed",S.speak);e.target.textContent=S.speak?"Voice on":"Voice off";if(!S.speak)speechSynthesis.cancel()};
 
-function say(text){ if(!S.speak||!window.speechSynthesis)return; speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);u.lang=LOC[S.lang];u.rate=.95;speechSynthesis.speak(u)}
+function say(text){
+  const again=()=>{if(S.hands&&!S.listening)setTimeout(startListen,250)};
+  if(!S.speak||!window.speechSynthesis){again();return}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang=LOC[S.lang];u.rate=.95;u.onend=again;u.onerror=again;speechSynthesis.speak(u)}
 function bubble(who,text){const d=document.createElement("div");d.className="msg "+who;d.textContent=text;$("#chat").appendChild(d);$("#chat").scrollTop=1e9}
 async function api(path,body){
   const r=await fetch(path,body?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}:undefined);
@@ -254,27 +322,47 @@ async function api(path,body){
 
 function typing(on){let e=$("#typing");if(on&&!e){e=document.createElement("div");e.id="typing";e.className="msg k typing";e.innerHTML="<i></i><i></i><i></i>";$("#chat").appendChild(e);$("#chat").scrollTop=1e9}else if(!on&&e)e.remove()}
 async function send(text){
-  text=(text??$("#txt").value).trim(); if(!text&&S.sid)return;
+  text=(text??$("#txt").value).trim(); if(!text&&S.started)return; S.started=true;
   if(text)bubble("f",text); $("#txt").value="";
   typing(true); if(S.state==="confirming"&&/^(yes|y|ok|okay|haan|हाँ|हां|होय)/i.test(text))showWorking();
   try{
-    const r=await api("/api/chat",{session_id:S.sid,text,lang:/[ऀ-ॿ]/.test(text)?null:S.lang});
-    typing(false); S.sid=r.session_id; S.state=r.state; if(r.lang&&r.lang!==S.lang){S.lang=r.lang;applyLang()}
+    const r=await api("/api/agent",{session_id:S.sid,text,lang:/[ऀ-ॿ]/.test(text)?null:S.lang});
+    typing(false); S.sid=r.session_id; S.state=r.state; S.crops=r.crops||[]; lpUpdate(r); if(r.lang&&r.lang!==S.lang){S.lang=r.lang;applyLang()}
     bubble("k",r.reply); say(r.reply);
-    if(r.plan){S.plan=r.plan;renderPlan(r.plan)}else stopWorking();
+    runActions(r);
   }catch(e){typing(false);stopWorking();bubble("k","Sorry, something went wrong: "+e.message)}
 }
 $("#send").onclick=()=>send(); $("#txt").onkeydown=e=>{if(e.key==="Enter")send()};
 let rec=null;
-$("#mic").onclick=()=>{
-  if(!SR){alert("Voice input needs Chrome or Edge. Please type instead.");return}
-  if(S.listening){rec&&rec.stop();return}
-  speechSynthesis.cancel(); rec=new SR(); rec.lang=LOC[S.lang]; rec.interimResults=false;
-  rec.onstart=()=>{S.listening=true;$("#mic").classList.add("rec");$("#micCap").textContent=t("listening")};
-  rec.onend=()=>{S.listening=false;$("#mic").classList.remove("rec");$("#micCap").textContent=t("tap")};
-  rec.onerror=e=>{bubble("k","I could not hear you ("+e.error+"). You can also type.")};
-  rec.onresult=e=>send(e.results[0][0].transcript); rec.start();
+function startListen(){
+  if(!SR){lpNote(t("lp_no_voice"));return}
+  if(S.listening)return;
+  try{speechSynthesis.cancel()}catch(e){}
+  rec=new SR(); rec.lang=LOC[S.lang]; rec.interimResults=false;
+  rec.onstart=()=>{S.listening=true;$("#mic").classList.add("rec");$("#lp-orb").classList.add("rec");$("#micCap").textContent=t("listening");$("#lp-state").textContent=t("lp_listening")};
+  rec.onend=()=>{S.listening=false;$("#mic").classList.remove("rec");$("#lp-orb").classList.remove("rec");$("#micCap").textContent=t("tap");$("#lp-state").textContent=t("lp_hint")};
+  rec.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed"){S.hands=false;lpNote(t("lp_mic_blocked"))}else if(e.error!=="no-speech"&&e.error!=="aborted")bubble("k","I could not hear you ("+e.error+"). You can also type.")};
+  rec.onresult=e=>{$("#lp-state").textContent=t("lp_thinking");send(e.results[0][0].transcript)};
+  try{rec.start()}catch(e){}
+}
+function toggleListen(){ if(S.listening){rec&&rec.stop();S.hands=false;return} S.hands=true; startListen() }
+$("#mic").onclick=toggleListen;
+function lpNote(msg){$("#lp-caption").textContent=msg}
+function lpUpdate(r){
+  const el=$("#lp-caption"); if(el&&r.reply)el.textContent=r.reply;
+  const c=$("#lp-crops"); if(c)c.innerHTML=(S.crops||[]).map(x=>`<span>${esc(x.label)}${x.qty?" · "+esc(x.qty)+" "+esc(x.unit):""}</span>`).join("");
+}
+function landingOn(){return !$("#landing").classList.contains("hidden")}
+function hideLanding(){$("#landing").classList.add("hidden")}
+$("#lp-orb").onclick=()=>{
+  if(S.listening){rec&&rec.stop();S.hands=false;return}
+  S.hands=true;
+  if(!S.spoke){S.spoke=true;const txt=$("#lp-caption").textContent;if(S.speak&&txt&&window.speechSynthesis){say(txt);return}}
+  startListen();
 };
+$("#lp-form").onsubmit=ev=>{ev.preventDefault();const v=$("#lp-txt").value;$("#lp-txt").value="";if(v.trim())send(v)};
+$("#lp-skip").onclick=hideLanding;
+$("#lp-hands").onclick=e=>{S.hands=!S.hands;e.target.textContent=S.hands?t("lp_hands"):t("lp_hands_off")};
 
 // ---------- charts
 function lineChart(hist,fc){
@@ -320,7 +408,8 @@ const T={
 Object.assign(T.en,{settle:"Settlement estimate",grossl:"Gross sale",keepl:"You keep",real:"What is real here",locked:"locked",now:"Now",youtake:"You take home about",kept:"kept",read:"Read aloud"});
 Object.assign(T.hi,{settle:"निपटान अनुमान",grossl:"कुल बिक्री",keepl:"आपके हाथ में",real:"यहाँ क्या असली है",locked:"बंद",now:"अभी",youtake:"आप घर ले जाएँगे लगभग",kept:"बचत",read:"सुनिए"});
 Object.assign(T.mr,{settle:"निपटारा अंदाज",grossl:"एकूण विक्री",keepl:"तुमच्या हातात",real:"इथे काय खरे आहे",locked:"बंद",now:"आत्ता",youtake:"तुम्ही घरी न्याल सुमारे",kept:"बचत",read:"ऐका"});
-const t=k=>(T[S.lang]&&T[S.lang][k])||T.en[k];
+for(const L of ["en","hi","mr"])Object.assign(T[L],(window.I18N||{})[L]||{});
+const t=k=>(T[S.lang]&&T[S.lang][k])||T.en[k]||k;
 
 // ---------- plan render
 const AGENTS=["Mandi Discovery","Price Intelligence","Market Activity","Buyers","Cold Storage","Transport","Shared Load","Price Forecast","Sell vs Hold","Net Realization","Recommendation"];
@@ -353,7 +442,8 @@ function renderPlan(p){
     if(h){const x=h.net-sh.sell_now.net;return `<div class="${x>=0?"up":"dn"}" title="Extra net vs selling now"><b>${d} d</b><span>${(x>=0?"+":"")+inr(x)}</span></div>`}
     return `<div title="${esc(skipBy[d]||"")}"><b>${d} d</b><span>${t("locked")}</span></div>`}).join("");
   const live=p.data_mode==="LIVE", pdate=p.prices[dest]?.latest_date||"";
-  $("#right").innerHTML=`
+  const cropbar=(S.crops||[]).length>1?`<div class="cropbar"><span class="lbl">${t("crops_label")}</span>${S.crops.map(c=>`<button class="${c.active?"on":""}" data-crop="${esc(c.crop)}">${esc(c.label)}</button>`).join("")}</div>`:"";
+  $("#right").innerHTML=cropbar+`
   <section class="slip">
     <div class="l">
       <div class="eyebrow">${esc(pr.original_qty)} ${esc(pr.original_unit)} ${esc(pr.crop)} · ${esc(pr.location.name)}</div>
@@ -386,6 +476,7 @@ function renderPlan(p){
       <li>Warehouses, transporters, buyers: demo only</li></ul>
       ${r.confidence?`<div class="cap" style="margin-top:20px">How sure are we? ${esc(r.confidence.label.toUpperCase())}</div><ul>${[...r.confidence.contributors.map(x=>"+ "+x),...r.confidence.detractors.map(x=>"− "+x)].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}</div>
   </section>`;
+  $$("[data-crop]").forEach(bt=>bt.onclick=()=>send("show "+bt.dataset.crop));
   $("#mkOrder").onclick=()=>createOrder(b); $("#speakReco").onclick=()=>say(r.explanation);
 
   const best=p.options[0];
@@ -522,7 +613,23 @@ async function loadHealth(){
     $("#modePill").textContent=live?"LIVE DATA":"DEMO DATA"; $("#modePill").classList.toggle("live",live);
     $("#banner").innerHTML=live?"<b>LIVE mandi prices</b> from data.gov.in (Agmarknet). Buyers, warehouses, transporters and shared-load partners are still DEMO. Costs are editable estimates; forecasts appear only once enough history exists.":"<b>DEMO DATA.</b> "+esc(h.note)+" Costs are estimates you can edit. Nothing is a real quote, offer or guaranteed price."}catch(e){}
 }
-S.welcomeHTML=$("#right").innerHTML; applyLang(); bindForm(); loadHealth(); send("");
+function regionLang(lat,lon){ // rough boxes, deliberately approximate; the language switcher always wins
+  if(lat>=14.8&&lat<15.8&&lon>=73.6&&lon<=74.4)return "en";            // Goa
+  if(lat>=15.6&&lat<=22.1&&lon>=72.6&&lon<=80.9)return "mr";            // Maharashtra
+  if(lat>=23&&lat<=31.6&&lon>=73&&lon<=88)return "hi";                  // Hindi belt
+  return null}
+async function initLang(){
+  let L=null,manual=false;
+  try{L=localStorage.kmLang;manual=localStorage.kmLangManual==="1"}catch(e){}
+  if(!L){const n=(navigator.language||"en").toLowerCase();L=n.startsWith("mr")?"mr":n.startsWith("hi")?"hi":"en"}
+  S.lang=L;
+  if(!manual&&navigator.geolocation&&!sessionStorage.kmGeo){
+    sessionStorage.kmGeo="1";
+    navigator.geolocation.getCurrentPosition(p=>{const g=regionLang(p.coords.latitude,p.coords.longitude);
+      if(g&&g!==S.lang&&localStorage.kmLangManual!=="1"){S.lang=g;try{localStorage.kmLang=g}catch(e){};applyLang()}},()=>{},{timeout:4000,maximumAge:3600000});
+  }
+}
+S.welcomeHTML=$("#right").innerHTML; initLang().then(()=>{applyLang(); bindForm(); loadHealth(); send("")});
 </script>
 </body>
 </html>

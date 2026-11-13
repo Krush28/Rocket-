@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import adapters, demo_data as D, forecast as F, llm, orchestrator, orders, profile as P
+from . import adapters, agent, demo_data as D, forecast as F, llm, orchestrator, orders, profile as P
 
 app = FastAPI(title="KrishiMitra - KRISHI-X engine", version="0.1.0")
 FRONT = Path(__file__).resolve().parents[2] / "frontend"
@@ -105,6 +105,18 @@ def refresh():
 @app.get("/api/meta")
 def meta_():
     return {"crops": list(D.CROPS), "places": sorted({k.title() for k in D.PLACES if k.isascii()}), "mandis": list(D.MANDIS)}
+
+
+class AgentIn(BaseModel):
+    session_id: str | None = None
+    text: str = ""
+    lang: str | None = None
+
+
+@app.post("/api/agent")
+def agent_endpoint(b: AgentIn):
+    """The action agent: free-form request -> tools that open views, change the plan, or (after confirmation) create orders."""
+    return agent.handle(b.session_id or uuid.uuid4().hex[:10], b.text, b.lang)
 
 
 @app.post("/api/chat")
