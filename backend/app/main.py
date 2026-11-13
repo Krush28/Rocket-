@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func, select, text
 
-from app.api.routes import admin, chat, market, orders, voice
+from app.api.routes import admin, agent, chat, market, orders, voice
 from app.core import ratelimit
 from app.core.config import settings
 from app.db import database
@@ -15,7 +15,7 @@ app = FastAPI(title="KRISHI-X API", version="0.2.0",
 app.middleware("http")(ratelimit.middleware)  # registered first = inner layer, so CORS headers also reach 429 responses
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=False,
                    allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-Admin-Token"])
-for r in (chat.router, market.router, orders.router, admin.router, voice.router):
+for r in (agent.router, chat.router, market.router, orders.router, admin.router, voice.router):
     app.include_router(r, prefix="/api")
 
 

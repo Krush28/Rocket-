@@ -214,7 +214,7 @@ def _turn(s: dict, text: str, lang: str | None, db) -> dict:
             return _reply(s, FIX[L])
     else:
         found = extract(text, s["awaiting"], db=db)
-        if llm.enabled():
+        if llm.enabled() and not found:  # slow path only when the rules found nothing
             for k, v in (llm.extract_slots(text, s["slots"]) or {}).items():
                 found.setdefault(k, v)
         s["slots"].update(found)
