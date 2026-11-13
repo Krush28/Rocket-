@@ -603,6 +603,17 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
             _activate(st, st["active"], L)
         return _out({"reply": intake.welcome_back(st["farmer"], L), "actions": [{"type": "plan", "plan": st["plan"]}]}, sid, L, "plan", [{"tool": "resume"}], done=True)
 
+    if not st["plan"] and text and not ((intake.pending(sid, db) or {}).get("crops")):  # server restarted mid-conversation: rebuild from the DB
+        farmer = farmers.load(db, sid)
+        if farmer:
+            intake.forget(sid, db)  # an empty intake started by the restart must not shadow the farmer's saved crops
+            st["farmer"] = farmer
+            for o in ops.farmer_overview(db, sid)["orders"]:
+                if o["status"] not in ("sale_confirmed", "cancelled") and o["payload"]["profile"]["crop"] in farmer["lots"]:
+                    st["orders"][o["payload"]["profile"]["crop"]] = o["id"]
+            first = next((c for c in farmer["lots"] if c in st["orders"]), next(iter(farmer["lots"])))
+            _activate(st, first, lang or farmer.get("lang") or L)
+
     if not st["plan"]:
         tool, args = route(text) if text else ("unknown", {})
         if tool in ("start_over", "set_language", "help", "schemes"):

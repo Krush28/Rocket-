@@ -92,3 +92,12 @@ def test_end_to_end_sell_and_hold_with_portals(db, monkeypatch):
     assert b["status"] == "requested" and b["days"] == w.min_days
     assert ops.booking_action(db, b["id"], "confirm", "op")["status"] == "confirmed"
     assert ops.notifications(db, ["device:e1"])[0]["title"] == "Storage confirmed"
+
+
+def test_restart_mid_conversation_restores_farmer_and_open_order(db, monkeypatch):
+    _plan(db, "r1", monkeypatch)
+    say(db, "r1", "sell it")
+    oid = say(db, "r1", "yes")["actions"][0]["order"]["id"]
+    A.STATE.clear()  # backend restart: in-memory plans are gone
+    r = say(db, "r1", "track my order")
+    assert oid in r["reply"] and r["state"] == "plan"
