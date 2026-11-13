@@ -249,7 +249,8 @@ def net_realization(st):
                          [f"{costs._pct(h['p_decline'])} chance price ends below today's", "Forecast is not a guarantee", "Storage availability must be confirmed"],
                          downside=low, tr=sum(t["total"] for t in h["transport"].values())))
     shr = st.get("shared", {})
-    if shr.get("status") == "ok" and shr["you"]["saving"] > 0:
+    # the pool is simulated: in LIVE mode it must not be ranked next to real prices (still shown under shared_load)
+    if shr.get("status") == "ok" and shr["you"]["saving"] > 0 and not MD.live():
         base = next((o for o in opts if o["type"] == "mandi_now" and o["destination"] == shr["destination"]), None)
         if base:
             o = dict(base)

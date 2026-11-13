@@ -39,6 +39,7 @@ def test_orchestrator_live_ranks_real_mandi(db):
     assert p["prices"]["Mapusa APMC, North Goa, Goa"]["meta"]["verification"] == "official"
     assert any(o["type"] == "mandi_now" for o in p["options"])
     assert p["retail"] == []  # no real retail source: nothing invented
+    assert not any(o["type"] == "shared_transport" for o in p["options"])  # simulated pool never ranked beside real prices
 
 
 def test_unknown_shelf_life_skips_hold(db):

@@ -238,6 +238,8 @@ def _reply(s, text, done=False):
         prof = {"crop": sl["crop"], "qty_kg": q["qty_kg"], "original_qty": q["original_qty"], "original_unit": q["original_unit"],
                 "location": sl["location"], "ready": sl["ready"], "can_store": sl["can_store"], "variety": sl.get("variety"),
                 "grade": sl.get("grade"), "harvest_date": sl.get("harvest_date"), "sell_pref": sl.get("sell_pref"), "lang": s["lang"]}
+    if done:
+        s["profile"] = prof  # kept in the session so /api/plan can re-run without re-asking
     return {"reply": text, "lang": s["lang"], "state": s["state"], "awaiting": s["awaiting"], "slots": sl, "done": done, "profile": prof}
 
 

@@ -1,31 +1,32 @@
+"""KRISHI-X API. Run in Docker: `docker compose up backend` (applies migrations, then serves on :8000)."""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import os
+from sqlalchemy import func, select, text
 
-from app.api.routes.chat import router as chat_router
-from app.api.routes.voice import router as voice_router
-from app.db.database import init_db
+from app.api.routes import admin, chat, market, orders, voice
+from app.core import ratelimit
+from app.core.config import settings
+from app.db import database
+from app.models import MandiPrice
+from app.repositories import market_data as MD
 
-app = FastAPI(
-    title="KRISHI-X API",
-    description="Voice-first mandi price intelligence and farm-to-market platform",
-    version="0.1.0",
-)
+app = FastAPI(title="KRISHI-X API", version="0.2.0",
+              description="Voice-first mandi price intelligence: net realization, sell vs hold, storage and transport.")
+app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=False,
+                   allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-Admin-Token"])
+app.middleware("http")(ratelimit.middleware)
+for r in (chat.router, market.router, orders.router, admin.router, voice.router):
+    app.include_router(r, prefix="/api")
 
-origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[origin.strip() for origin in origins],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(chat_router, prefix="/api")
-app.include_router(voice_router, prefix="/api")
-
-init_db()
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "krishi-x-api"}
+    try:
+        with database.SessionLocal() as s:
+            s.execute(text("select 1"))
+            last = s.scalar(select(func.max(MandiPrice.price_date)))
+        ok = True
+    except Exception:
+        ok, last = False, None
+    return {"status": "ok", "db": ok, "data_mode": ("LIVE" if MD.live() else "DEMO DATA") if ok else "unknown",
+            "last_price_date": str(last) if last else None}
