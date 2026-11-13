@@ -15,7 +15,7 @@ from app.db import database
 from app.models import NameTranslation, Place
 
 DEVA = re.compile(r"[ऀ-ॿ]")
-FILLER = {"village", "vill", "taluka", "tal", "tehsil", "district", "dist", "state", "india", "near", "post", "po", "my", "farm", "is", "in", "at",
+FILLER = {"are", "arre", "hey", "hello", "bhai", "bhaiya", "ok", "अरे", "ये", "यह", "तो", "भी", "दूसरा", "दूसरी", "देखो", "हाँ", "ना", "village", "vill", "taluka", "tal", "tehsil", "district", "dist", "state", "india", "near", "post", "po", "my", "farm", "is", "in", "at",
           "गाँव", "गांव", "गाव", "तालुका", "तहसील", "ज़िला", "जिला", "जिल्हा", "राज्य", "भारत", "के", "पास", "मेरा", "खेत", "माझे", "शेत", "आहे", "है", "में"}
 PIN = re.compile(r"(?<!\d)(\d{6})(?!\d)")
 ADM_CODES = {"ADM1", "ADM2", "ADM3"}

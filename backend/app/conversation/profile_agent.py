@@ -82,14 +82,15 @@ _PUNCT = re.compile(r"[\s.,!?;:।॥|\"'“”‘’()\[\]\-–—/]+")
 YES_PH = ["yes", "yeah", "yea", "yep", "yup", "ya", "y", "yess", "haan", "han", "haa", "ha", "hm", "hmm", "ho", "hoy", "ji", "haanji", "ok", "okay", "okk",
           "sure", "right", "correct", "perfect", "fine", "good", "great", "done", "sahi", "theek", "thik", "bilkul", "zaroor", "jaroor", "chalega",
           "chalo", "kar do", "kardo", "karo", "proceed", "confirm", "confirmed", "go ahead", "go on", "do it", "please do", "of course", "absolutely",
-          "definitely", "ready", "sell it", "book it", "agreed", "हाँ", "हां", "हा", "जी", "हो", "होय", "ठीक", "सही", "बरोबर", "बिल्कुल", "बिलकुल",
+          "definitely", "ready", "sell it", "book it", "agreed", "go for it", "bana do", "bana dijiye", "kar dijiye", "kar dena", "order kar do", "बना दो", "बना दीजिए", "carry on", "lets do it", "let s do it", "sounds good", "alright", "all right", "fair enough", "हाँ", "हां", "हा", "जी", "हो", "होय", "ठीक", "सही", "बरोबर", "बिल्कुल", "बिलकुल",
           "ज़रूर", "जरूर", "चलेगा", "चालेल", "कर दो", "कर दीजिए", "करो", "करा", "करून टाका", "तयार", "तैयार", "हाँजी", "ओके", "हम्म"]
 NO_PH = ["no", "nope", "nah", "n", "na", "nahi", "nahin", "nai", "nako", "not", "dont", "don't", "do not", "never", "cancel", "stop", "wait", "later",
          "ruko", "ruk", "mat", "rehne do", "rahne do", "cannot", "can't", "cant", "नहीं", "नही", "ना", "नाही", "नको", "मत", "रुको", "थांबा", "नंतर",
          "बाद", "रद्द", "नाहीं"]
 POS_IDIOM = ["why not", "no problem", "not a problem", "no issue", "no doubt", "not bad", "कोई बात नहीं", "हरकत नाही", "काही हरकत नाही"]
 HARD_NO = ["not now", "not today", "not yet", "later", "wait", "ruko", "mat", "dont", "don't", "do not", "cancel", "stop", "cannot", "can't", "cant",
-           "not ready", "nahi kar sakta", "nahi kar sakte", "नहीं कर सकता", "नहीं कर सकते", "शक्य नाही", "taiyar nahi", "nahi taiyar", "तैयार नहीं", "तयार नाही", "अभी नहीं", "बाद में", "नंतर", "थांबा", "रुको", "मत", "रद्द"]
+           "not ready", "nahi ho sakta", "nahi rakh", "rakh nahi", "mushkil", "difficult", "नहीं रख", "रख नहीं", "नहीं हो सकता", "कठीण",
+           "can not", "do not", "will not", "wo not", "nahi kar sakta", "nahi kar sakte", "नहीं कर सकता", "नहीं कर सकते", "शक्य नाही", "taiyar nahi", "nahi taiyar", "तैयार नहीं", "तयार नाही", "अभी नहीं", "बाद में", "नंतर", "थांबा", "रुको", "मत", "रद्द"]
 
 
 HEDGE = ["but", "first", "before", "pehle", "pahle", "lekin", "magar", "par pehle", "tell me", "batao", "bataiye", "how much", "kitna", "kitne", "what",
@@ -114,7 +115,10 @@ def reload_learned() -> None:
 
 def _norm(text: str) -> str:
     """Lowercase, Devanagari digits, punctuation -> spaces ("Yes, go ahead." == "yes go ahead"), padded for whole-phrase matching."""
-    return " " + " ".join(p for p in _PUNCT.split(text.lower().translate(DEV)) if p) + " "
+    t = text.lower().translate(DEV).replace("’", "'")
+    t = re.sub(r"\bcan't\b|\bcannot\b", "can not", t)
+    t = re.sub(r"n't\b", " not", t)  # don't -> do not, won't -> wo not: the apostrophe must not hide a refusal
+    return " " + " ".join(p for p in _PUNCT.split(t) if p) + " "
 
 
 def hedged(text: str) -> bool:

@@ -11,6 +11,7 @@ from app.services import llm
 MULTI = re.compile(r"\b(and|then|aur|phir|plus)\b|और|आणि|फिर|नंतर|तसेच", re.I)  # "also"/"bhi" mean "too", not a second request
 SHOP = re.compile(r"shop|retail|dukan|dukaan|consumer|दुकान|खुदरा|किरकोळ", re.I)
 LANGWORD = re.compile(r"english|hindi|marathi|angrezi|इंग्रजी|अंग्रेज|हिंदी|हिन्दी|मराठी", re.I)
+WEAK = {"help", "read_aloud", "list_crops", "spoilage", "show_tab", "set_qty", "confidence", "explain_decision", "forecast", "price_of"}
 COST = {"commission": "commission_pct", "hamali": "hamali_per_qtl", "risk": "risk_allowance_pct", "road_factor": "road_factor"}
 
 
@@ -18,6 +19,8 @@ def wants_brain(text: str, rule_tool: str) -> bool:
     """LLM only when the rules do not understand, or one sentence carries several requests."""
     if not llm.enabled() or not text:
         return False
+    if rule_tool in WEAK and len(text.split()) >= 7:  # "can you help me find cold storage": a generic word must not beat the real intent
+        return True
     if rule_tool in ("unknown", "explain"):
         return True
     # a second request joined to a question ("price at Pune and should I hold?"); clear single actions stay on the fast rules
