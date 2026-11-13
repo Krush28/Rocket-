@@ -174,7 +174,7 @@ def route(text: str) -> tuple[str, dict]:
     for words, code in (("hindi हिंदी हिन्दी", "hi"), ("marathi मराठी", "mr"), ("english अंग्रेजी अंग्रेज़ी इंग्रजी", "en")):
         if has(*words.split()) and (has("speak", "switch", "change", "language", "in ", "please", "बोल", "भाषा", "बदल", "मध्ये", "में") or len(low.split()) <= 2):
             return "set_language", {"lang": code}
-    if has("weather", "mausam", "barish", "baarish", "rain", "मौसम", "बारिश", "हवामान", "पाऊस"):
+    if has("weather", "mausam", "barish", "baarish", "rain", "temperature", "tapman", "मौसम", "बारिश", "हवामान", "पाऊस", "तापमान"):
         return "weather", {}
     if DASH_RX.search(low) and not has("create", "book ", "बुक कर", "cancel", "रद्द"):  # "show my tickets", "mera hisab dikhao"
         return "dashboard", {"section": dash_section(low)}
@@ -294,7 +294,7 @@ def run_tool(tool: str, args: dict, st: dict, lang: str, db) -> dict:
     if tool == "no_crop":
         return {"reply": rt(lang, "no_crop"), "actions": []}
     if tool == "weather":
-        return {"reply": rt(lang, "no_weather"), "actions": []}
+        return _weather(st, lang)
     if tool == "explain":  # without the LLM: the deterministic verdict and its reasons
         tool = "explain_decision"
     if tool not in ("help", "start_over", "set_language", "set_lot", "schemes", "weather", "thanks", "dashboard") and not plan:
@@ -555,6 +555,36 @@ def _chosen_option(st: dict) -> dict | None:
                  and o.get("hold_days") == c.get("hold_days")), None)  # "hold 15 days" is not "hold 30 days" at the same mandi
 
 
+WX = {"en": dict(clear="clear sky", partly="partly cloudy", cloudy="cloudy", fog="foggy", drizzle="light rain", rain="rain", storm="thunderstorm"),
+      "hi": dict(clear="साफ़ आसमान", partly="हल्के बादल", cloudy="बादल", fog="कोहरा", drizzle="हल्की बारिश", rain="बारिश", storm="आंधी-तूफ़ान"),
+      "mr": dict(clear="स्वच्छ आकाश", partly="थोडे ढग", cloudy="ढगाळ", fog="धुके", drizzle="हलका पाऊस", rain="पाऊस", storm="वादळी पाऊस")}
+WX_ADV = {"en": dict(rain="Rain likely on {day}: cover your produce and avoid open trucks that day.", heat="Very hot days ahead: move perishable crops early in the morning.",
+                     wind="Strong wind expected: tie down covers on loaded trucks.", clear="Good dry weather for harvest and transport."),
+          "hi": dict(rain="{day} को बारिश की संभावना: माल ढककर रखें और उस दिन खुले ट्रक से न भेजें।", heat="आगे बहुत गर्मी है: जल्दी खराब होने वाली फसल सुबह जल्दी भेजें।",
+                     wind="तेज़ हवा की संभावना: लदे ट्रक पर तिरपाल कसकर बाँधें।", clear="कटाई और ढुलाई के लिए अच्छा सूखा मौसम है।"),
+          "mr": dict(rain="{day} ला पावसाची शक्यता: माल झाकून ठेवा आणि त्या दिवशी उघड्या ट्रकने पाठवू नका.", heat="पुढे खूप ऊन आहे: लवकर खराब होणारे पीक सकाळी लवकर पाठवा.",
+                     wind="जोरदार वाऱ्याची शक्यता: भरलेल्या ट्रकवरील ताडपत्री घट्ट बांधा.", clear="काढणी आणि वाहतुकीसाठी चांगले कोरडे हवामान आहे.")}
+DAYS = {"en": "Mon Tue Wed Thu Fri Sat Sun".split(), "hi": "सोमवार मंगलवार बुधवार गुरुवार शुक्रवार शनिवार रविवार".split(),
+        "mr": "सोमवार मंगळवार बुधवार गुरुवार शुक्रवार शनिवार रविवार".split()}
+
+
+def _weather(st: dict, lang: str) -> dict:
+    """Farm weather now + the most useful advice for selling in the next 3 days (Open-Meteo)."""
+    from app.services import weather as W
+    loc = ((st.get("farmer") or {}).get("location")) or ((st.get("plan") or {}).get("profile") or {}).get("location")
+    w = W.forecast(loc["lat"], loc["lon"]) if loc else None
+    if not w:
+        return {"reply": rt(lang, "no_weather"), "actions": []}
+    L2 = lang if lang in WX else "en"
+    adv = w["advice"][0]
+    day = DAYS[L2][date.fromisoformat(adv["day"]).weekday()] if adv.get("day") else ""
+    c = w["current"]
+    reply = {"en": f"Weather near {loc['name']}: {c['temp']}°C now, {WX[L2][c['kind']]}. ",
+             "hi": f"{loc['name']} के पास मौसम: अभी {c['temp']}°C, {WX[L2][c['kind']]}। ",
+             "mr": f"{loc['name']} जवळ हवामान: आत्ता {c['temp']}°C, {WX[L2][c['kind']]}. "}[L2] + WX_ADV[L2][adv["key"]].format(day=day)
+    return {"reply": reply, "actions": [_tab("weather")], "weather": w}
+
+
 def _mandi_name(key: str, lang: str) -> str:
     """Spoken mandi name: market and district, in Devanagari for hi/mr when known."""
     short = ", ".join(key.split(", ")[:2])
@@ -759,7 +789,7 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
 
     if not st["plan"]:
         tool, args = route(text) if text else ("unknown", {})
-        if tool in ("start_over", "set_language", "help", "schemes", "dashboard"):
+        if tool in ("start_over", "set_language", "help", "schemes", "weather", "dashboard"):
             return _out(run_tool(tool, args, st, L, db), sid, L, "collecting", [{"tool": tool}])
         pend = intake.pending(sid, db)
         if pend and tool in QUESTION_TOOLS and "qty" not in P.extract(text) and P.yes_no(text) is None:  # a question mid-intake: never add it as a crop

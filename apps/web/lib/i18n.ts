@@ -90,6 +90,16 @@ const CROPS: Record<string, Record<Lang, string>> = {
   onion: { en: "onion", hi: "प्याज", mr: "कांदा" }, tomato: { en: "tomato", hi: "टमाटर", mr: "टोमॅटो" }, potato: { en: "potato", hi: "आलू", mr: "बटाटा" },
 };
 export const cropName = (c: string, l: Lang) => CROPS[c]?.[l] ?? c;
+
+/** A picture for every crop family, so farmers recognise their lots at a glance. */
+const ICONS: [RegExp, string][] = [[/onion/, "🧅"], [/tomato/, "🍅"], [/potato|sweet potato/, "🥔"], [/brinjal/, "🍆"], [/chilli|capsicum|pepper/, "🌶️"],
+  [/carrot|raddish|radish|beet/, "🥕"], [/garlic/, "🧄"], [/ginger/, "🫚"], [/cabbage|cauliflower|knool|lettuce|methi|spinach|coriander|leaves|amaranth|mint/, "🥬"],
+  [/cucumbar|cucumber|gourd|guard|pumpkin|tinda|parval|kundru/, "🥒"], [/peas|beans|cowpea|cluster|drumstick|bhindi|ladies/, "🫛"], [/corn|maize/, "🌽"],
+  [/banana/, "🍌"], [/mango/, "🥭"], [/grape/, "🍇"], [/apple|custard|sapota|chikoo/, "🍎"], [/orange|mousambi|kinnow|lime|lemon/, "🍊"],
+  [/water melon|karbuja|melon/, "🍉"], [/pineapple/, "🍍"], [/papaya|guava|pomegranate|fig|dates/, "🍈"], [/coconut/, "🥥"], [/mushroom/, "🍄"],
+  [/paddy|rice|wheat|jowar|bajra|ragi|millet|barley/, "🌾"], [/gram|dal|arhar|tur|moong|urd|masur|lentil|soya|groundnut|mustard|sesam|cashew|walnut|almond/, "🥜"],
+  [/cotton/, "☁️"], [/rose|marigold|jasmine|flower/, "🌼"]];
+export const cropIcon = (c: string) => (ICONS.find(([r]) => r.test(c.toLowerCase())) ?? [null, "🌱"])[1];
 const UNITS: Record<string, "kg" | "quintal" | "tonne"> = { kg: "kg", kgs: "kg", kilogram: "kg", kilograms: "kg", quintal: "quintal", quintals: "quintal", qtl: "quintal", tonne: "tonne", tonnes: "tonne", ton: "tonne", tons: "tonne" };
 export const unitName = (u: string, l: Lang) => (UNITS[u.toLowerCase()] ? (T[UNITS[u.toLowerCase()]][l] as string) : u);
 export const isLang = (x: unknown): x is Lang => x === "en" || x === "hi" || x === "mr";

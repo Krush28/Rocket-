@@ -2,8 +2,9 @@
 
 import type { Crop, Option, Order, Plan } from "@/lib/api";
 import Journey from "./Journey";
+import Weather from "./Weather";
 import MandiMap from "./MandiMap";
-import { cropName, isKey, rupees, t, unitName, type Key, type Lang } from "@/lib/i18n";
+import { cropIcon, cropName, isKey, rupees, t, unitName, type Key, type Lang } from "@/lib/i18n";
 import PriceChart from "./PriceChart";
 
 const card = "rounded-[22px] bg-white p-5 scroll-mt-4";
@@ -49,7 +50,7 @@ export default function Results({ plan: p, lang, order, crops, onSay }: Props) {
             {crops.map((c) => (
               <button key={c.crop} onClick={() => !c.active && onSay(c.label)} aria-pressed={c.active}
                 className={`min-h-[44px] rounded-full px-4 text-[16px] font-semibold ${c.active ? "bg-forest text-cream" : "bg-white text-ink"}`}>
-                {c.label}{c.qty ? ` · ${c.qty} ${unitName(c.unit, lang)}` : ""}
+                <span aria-hidden className="mr-1.5">{cropIcon(c.crop)}</span>{c.label}{c.qty ? ` · ${c.qty} ${unitName(c.unit, lang)}` : ""}
               </button>
             ))}
           </nav>
@@ -106,6 +107,7 @@ export default function Results({ plan: p, lang, order, crops, onSay }: Props) {
           </section>
         )}
 
+        {prof.location?.lat != null && prof.location.lon != null && <Weather lat={prof.location.lat} lon={prof.location.lon} place={prof.location.name} lang={lang} />}
         <MandiMap plan={p} lang={lang} names={NAMES} onSay={onSay} />
 
         {ranked.length > 0 && (

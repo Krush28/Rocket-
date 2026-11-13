@@ -8,6 +8,7 @@ import AgentBar from "@/components/AgentBar";
 import { agent, series, type AgentReply } from "@/lib/api";
 import { dashboard, isSample, type CropCard, type Dash, type DashOrder } from "@/lib/dash";
 import { cropName, isLang, statusName, unitName, type Lang } from "@/lib/i18n";
+import Weather from "@/components/Weather";
 import { isEchoOfRecent, listen, rememberReply, speak, stopSpeaking } from "@/lib/speech";
 
 // ---------------------------------------------------------------- words (farmer language, short)
@@ -496,6 +497,8 @@ function DashboardPage() {
               <SayChip text={SAY.forecast[l]} onSay={send} /><SayChip text={SAY.tickets[l]} onSay={send} /><SayChip text={SAY.phone[l]} onSay={send} />
             </div>
 
+            {d?.farmer?.location?.lat != null && d.farmer.location.lon != null &&
+              <Weather lat={d.farmer.location.lat} lon={d.farmer.location.lon} place={place(d.farmer.location.name)} lang={l} />}
             <Card id="crops" icon="crops" title={w("crops", l)}>
               <div className="grid gap-5 lg:grid-cols-2">{d.crops.map((c) => <CropBlock key={c.crop} c={c} l={l} onSay={send} />)}</div>
             </Card>
