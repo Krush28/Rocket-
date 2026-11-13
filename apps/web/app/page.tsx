@@ -9,7 +9,7 @@ import { DoneCard } from "@/components/Journey";
 import { agent, type AgentReply, type Crop, type Order, type Plan } from "@/lib/api";
 import { farmer } from "@/lib/ops";
 import { isLang, t, type Lang } from "@/lib/i18n";
-import { isEcho, listen, speak, stopSpeaking } from "@/lib/speech";
+import { isEchoOfRecent, listen, rememberReply, speak, stopSpeaking } from "@/lib/speech";
 
 const DEVICE = "kxDevice", LANG = "kxLang";
 const SWITCH: Record<Lang, string> = { en: "switch to english", hi: "हिंदी में बोलो", mr: "मराठी मध्ये बोला" };
@@ -38,8 +38,10 @@ export default function Home() {
   const picked = useRef(false), handsFree = useRef(false), stop = useRef<() => void>(), started = useRef(false), langRef = useRef<Lang>("en");
 
   const replyRef = useRef("");
+  const echoes = useRef(0);
   function apply(r: AgentReply) {
     replyRef.current = r.reply || "";
+    rememberReply(r.reply || "");
     const l = isLang(r.lang) ? r.lang : langRef.current;
     langRef.current = l; setLang(l); setReply(r.reply); setAi(r.ai ?? ""); setCrops(r.crops ?? []); setChips(r.chips ?? []); setAwaiting(r.awaiting ?? null);
     let reset = false;
@@ -75,7 +77,12 @@ export default function Home() {
     try {
       const said = (await listen(langRef.current, (s) => { stop.current = s; })).trim();
       setListening(false);
-      if (said && isEcho(said, replyRef.current)) { void mic(true); return; } // the mic heard our own voice: ignore it, listen again
+      if (said && isEchoOfRecent(said)) {  // the mic heard our own voice: never act on it
+        echoes.current += 1;
+        if (echoes.current >= 2) { handsFree.current = false; echoes.current = 0; return; } // stop instead of looping; farmer taps the mic
+        void mic(true); return;
+      }
+      echoes.current = 0;
       if (said) await send(said); else handsFree.current = false; // silence ends the loop
     } catch (e) { handsFree.current = false; setListening(false); setError(e instanceof Error ? e.message : "Microphone error."); }
   }

@@ -13,7 +13,30 @@ function recognizer(): (new () => Rec) | null {
 }
 
 /** Browser speech recognition when available; otherwise record up to 15 s and send to the backend transcriber. */
-export function listen(lang: Lang, onStop?: (stop: () => void) => void): Promise<string> {
+/** True while any of our own voice is playing (browser voice or the offline audio). */
+export function isSpeaking(): boolean {
+  if (typeof window === "undefined") return false;
+  return !!window.speechSynthesis?.speaking || (!!audio && !audio.paused && !audio.ended);
+}
+
+/** Half-duplex: resolve only after 600 ms of continuous silence from our own voice (max 60 s), so the mic never hears us. */
+export function waitSilence(): Promise<void> {
+  return new Promise((done) => {
+    let quiet = 0;
+    const t0 = Date.now();
+    const t = setInterval(() => {
+      quiet = isSpeaking() ? 0 : quiet + 100;
+      if (quiet >= 600 || Date.now() - t0 > 60000) { clearInterval(t); done(); }
+    }, 100);
+  });
+}
+
+export async function listen(lang: Lang, onStop?: (stop: () => void) => void): Promise<string> {
+  await waitSilence();
+  return listenNow(lang, onStop);
+}
+
+function listenNow(lang: Lang, onStop?: (stop: () => void) => void): Promise<string> {
   const R = recognizer();
   if (R) {
     return new Promise((resolve, reject) => {
@@ -28,7 +51,7 @@ export function listen(lang: Lang, onStop?: (stop: () => void) => void): Promise
     });
   }
   if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) return Promise.reject(new Error("No microphone here. Please type instead."));
-  return navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => new Promise<string>((resolve, reject) => {
+  return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }).then((stream) => new Promise<string>((resolve, reject) => {
     const rec = new MediaRecorder(stream); const chunks: Blob[] = [];
     rec.ondataavailable = (e) => chunks.push(e.data);
     rec.onstop = () => { stream.getTracks().forEach((t) => t.stop()); transcribe(new Blob(chunks, { type: rec.mimeType })).then(resolve, reject); };
@@ -66,11 +89,30 @@ export function speak(text: string, lang: Lang): Promise<void> {
   }
   return fetch(`${API}/api/voice/speak`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, lang }) })
     .then((r) => (r.ok ? r.blob() : Promise.reject()))
-    .then((b) => new Promise<void>((done) => { audio = new Audio(URL.createObjectURL(b)); audio.onended = () => done(); audio.onerror = () => done(); audio.play().catch(() => done()); }))
+    .then((b) => new Promise<void>((done) => { audio = new Audio(URL.createObjectURL(b)); audio.onended = () => setTimeout(done, 400); audio.onerror = () => done(); audio.play().catch(() => done()); }))
     .catch(() => undefined);
 }
 
 /** True when what the mic heard is mostly our own last reply (speaker echo), so it must not be sent as the farmer's answer. */
+const recent: string[] = []; // our last few replies: an echo can be of any of them
+
+export function rememberReply(text: string) {
+  if (text) { recent.push(text); if (recent.length > 4) recent.shift(); }
+}
+
+/** Echo of our own voice: most of the heard words come from one of our recent replies (short echoes count too). */
+export function isEchoOfRecent(heard: string): boolean {
+  const norm = (x: string) => x.toLowerCase().replace(/[^\p{L}\p{M}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+  const h = norm(heard);
+  if (!h) return false;
+  return recent.some((r) => {
+    const rr = norm(r);
+    if (rr.includes(h) && h.split(" ").length >= 2) return true;
+    const hw = h.split(" ").filter((w) => w.length > 1), rw = new Set(rr.split(" "));
+    return hw.length >= 2 && hw.filter((w) => rw.has(w)).length / hw.length >= 0.6;
+  });
+}
+
 export function isEcho(heard: string, lastReply: string): boolean {
   const words = (x: string) => x.toLowerCase().replace(/[^\p{L}\p{M}\p{N}\s]/gu, " ").split(/\s+/).filter((w) => w.length > 1);
   const h = words(heard), r = new Set(words(lastReply));

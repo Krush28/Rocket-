@@ -241,3 +241,16 @@ def test_order_uses_the_crop_the_farmer_names(db):
     r = say(db, "oc1", "15 quintal")
     assert r["state"] == "confirming_action" and A.STATE["oc1"]["active"] == "potato"
     assert "could not find that crop" in say(db, "oc1", "I have 2 quintal dragon fruit")["reply"]
+
+
+def test_farmer_can_choose_another_option(db):
+    _plan(db, "co1")
+    r = say(db, "co1", "choose the second option")
+    assert "option 2" in r["reply"]
+    say(db, "co1", "sell it")
+    o = say(db, "co1", "yes")["actions"][0]["order"]
+    second = [x for x in A.STATE["co1"]["plan"]["options"] if x.get("destination")][1]
+    assert o["payload"]["option"]["label"] == second["label"]
+    k = len([x for x in A.STATE["co1"]["plan"]["options"] if x.get("destination")])
+    if k < 9:
+        assert "only" in say(db, "co1", "option 9")["reply"]
