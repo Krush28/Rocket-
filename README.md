@@ -39,6 +39,15 @@ cd apps/web && npm run build
 
 > On this Windows machine the host Python venv cannot load pandas (Windows Application Control blocks its DLLs), so the backend runs and is tested in Docker.
 
+## Voice agent (ported from Rocket)
+
+- `POST /api/agent` is the whole farmer experience. **Multi-crop intake:** "I grow onion and tomato" asks the quantity for each, then the village, readiness and storage, reads it back, and runs nothing before "yes". **Actions:** "where should I sell", "show the forecast", "should I hold", "how sure are you", "book transport", "set hamali to 15", "create the order" (asks yes/no first), "track my order", "switch to Hindi", "start over".
+- **Memory:** the browser keeps a random device id. Returning farmers get "welcome back" with their crops, and saying a crop name switches to it.
+- **Speed:** rules answer first (every turn takes about 5–120 ms on real data). The local LLM is asked only when the rules do not understand, and only its tool name is trusted.
+- **Languages:** EN / हिं / मरा. Agent replies, plan sentences and the whole UI follow the chosen language. Mandi and place names stay as the government data spells them.
+- **Voice:** the browser's speech recognition and voice come first. Offline fallbacks run in the backend: Piper TTS (`/api/voice/speak`; hi_IN-priyamvada, mr_IN-google, en_US-amy) and faster-whisper STT (`/api/voice/transcribe`). Models download once into the `models` volume.
+- **Local LLM (optional):** install [Ollama](https://ollama.com), run `ollama pull qwen3:4b`, and the backend uses it automatically via `host.docker.internal:11434`. If it is not running, the agent falls back to rules instantly.
+
 ## What is real and what is not
 
 | Data | Status |
