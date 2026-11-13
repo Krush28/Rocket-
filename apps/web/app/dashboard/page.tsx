@@ -8,7 +8,7 @@ import AgentBar from "@/components/AgentBar";
 import { agent, series, type AgentReply } from "@/lib/api";
 import { dashboard, isSample, type CropCard, type Dash, type DashOrder } from "@/lib/dash";
 import { cropName, isLang, statusName, unitName, type Lang } from "@/lib/i18n";
-import { listen, speak, stopSpeaking } from "@/lib/speech";
+import { isEchoOfRecent, listen, rememberReply, speak, stopSpeaking } from "@/lib/speech";
 
 // ---------------------------------------------------------------- words (farmer language, short)
 const W = {
@@ -387,18 +387,26 @@ function DashboardPage() {
     try {
       const r = await agent(sid, text, langRef.current);
       const l = apply(r);
+      rememberReply(r.reply || "");
       void load(sid, l);
       if (handsFree.current && r.reply) { await speak(r.reply, l); if (handsFree.current) void mic(true); }
     } catch (e) { setErr(e instanceof Error ? e.message : "Could not reach KRISHI-X."); }
     finally { setBusy(false); }
   }
 
+  const echoes = useRef(0);
   async function mic(auto = false) {
     if (listening && !auto) { handsFree.current = false; stop.current?.(); stopSpeaking(); return; }
     handsFree.current = true; setListening(true);
     try {
       const said = (await listen(langRef.current, (s) => { stop.current = s; })).trim();
       setListening(false);
+      if (said && isEchoOfRecent(said)) {  // our own voice: never act on it; two in a row -> stop and wait for a tap
+        echoes.current += 1;
+        if (echoes.current >= 2) { handsFree.current = false; echoes.current = 0; return; }
+        void mic(true); return;
+      }
+      echoes.current = 0;
       if (said) await send(said); else handsFree.current = false;
     } catch (e) { handsFree.current = false; setListening(false); setErr(e instanceof Error ? e.message : "Microphone error."); }
   }

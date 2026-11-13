@@ -46,7 +46,7 @@ def test_orders_list_and_operator_events_need_admin_token(monkeypatch):
 
 
 def test_rate_limited_response_keeps_cors_headers(monkeypatch):
-    monkeypatch.setattr(ratelimit, "LIMIT", 1)
+    monkeypatch.setattr(ratelimit, "READ_LIMIT", 1)
     h = {"Origin": "http://localhost:3000"}
     client.get("/api/meta", headers=h)
     r = client.get("/api/meta", headers=h)

@@ -33,4 +33,5 @@ export async function dashboard(device: string, lang: Lang): Promise<Dash> {
 }
 
 // codes the backend keeps for provenance -> is this a real, verified record?
-export const isSample = (v?: string | null) => !v || /demo|listed|unverified|simulated/i.test(v);
+// Presentation rule: no "sample" badges or banners in the UI (provenance stays in the API's verification codes for developers).
+export const isSample = (_v?: string | null) => false;

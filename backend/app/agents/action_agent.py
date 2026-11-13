@@ -39,10 +39,11 @@ R = {
         new_lot="New lot: {lot} near {loc}. {msg}", add_which="Which crop do you want to add, and how much? For example \"20 quintal potato\".",
         need_unit="{n} what: kg, quintal or tonne?", removed="Removed {crop}. {msg}", last_lot="{crop} is your only crop. Say \"start over\" to begin again.",
         qty_set="Changed to {lot}. {msg}", loc_set="Farm place changed to {loc}. {msg}", price_none="I have no {crop} price for that place in today's data.",
-        other_crop="{crop} prices: ", fc_gate="No forecast for {dest} passed the reliability check yet, so I will not guess. Selling at today's price is the safe choice.",
+        other_crop="{crop} prices: ", chosen="Okay, option {n}: {label}. You keep about ₹{net}{diff}. Say \"sell it\" to make the order.",
+        chosen_diff=" (₹{d} less than the best)", no_option="I have only {k} options for this crop. Say a number from 1 to {k}, or a mandi name.", fc_gate="No forecast for {dest} passed the reliability check yet, so I will not guess. Selling at today's price is the safe choice.",
         no_crop="I could not find that crop in today's market data. Please say its common name, for example \"onion\", \"rice\" or \"papaya\".", no_weather="I do not have weather data. I can help with mandi prices, sell or hold, transport, storage, orders and government schemes.", thanks="You are welcome. Ask me anything about selling your crop.", finish_first="Let us first finish your details.", retail="{crop} in {city} shops: about Rs {lo} to Rs {hi} per kg (estimate from mandi prices; shop prices are not what a farmer gets).",
         no_retail="I have no recent {crop} mandi prices near {city} to estimate shop prices.", schemes="Opening government schemes for {state}.",
-        w_create="create the sale order for the best option", w_request_transport="request transport", w_request_storage="send the storage enquiry",
+        w_create="create the sale order", w_request_transport="request transport", w_request_storage="send the storage enquiry",
         w_pickup="mark it picked up", w_deliver="mark it delivered", w_confirm_sale="confirm the final sale", w_cancel="cancel the order",
         t_compare="the mandi comparison", t_forecast="the forecast", t_logistics="storage and transport", t_order="the order"),
     "hi": dict(
@@ -69,10 +70,11 @@ R = {
         new_lot="नया माल: {loc} के पास {lot}। {msg}", add_which="कौन सी फसल जोड़नी है और कितनी? जैसे \"20 क्विंटल आलू\"।",
         need_unit="{n} क्या: किलो, क्विंटल या टन?", removed="{crop} हटा दिया। {msg}", last_lot="{crop} आपकी अकेली फसल है। नए सिरे से शुरू करने के लिए \"नए सिरे से\" बोलिए।",
         qty_set="बदल दिया: {lot}। {msg}", loc_set="खेत की जगह बदलकर {loc} कर दी। {msg}", price_none="आज के डेटा में उस जगह का {crop} भाव नहीं है।",
-        other_crop="{crop} के भाव: ", fc_gate="{dest} का कोई अनुमान अभी भरोसे की जाँच में पास नहीं हुआ, इसलिए मैं अंदाज़ा नहीं लगाऊँगा। आज के भाव पर बेचना सुरक्षित है।",
+        other_crop="{crop} के भाव: ", chosen="ठीक है, विकल्प {n}: {label}। आपके हाथ में लगभग ₹{net}{diff}। ऑर्डर बनाने के लिए \"बेच दो\" बोलिए।",
+        chosen_diff=" (सबसे अच्छे से ₹{d} कम)", no_option="इस फसल के सिर्फ़ {k} विकल्प हैं। 1 से {k} तक कोई नंबर या मंडी का नाम बोलिए।", fc_gate="{dest} का कोई अनुमान अभी भरोसे की जाँच में पास नहीं हुआ, इसलिए मैं अंदाज़ा नहीं लगाऊँगा। आज के भाव पर बेचना सुरक्षित है।",
         no_crop="आज के बाज़ार डेटा में यह फसल नहीं मिली। कृपया उसका आम नाम बोलिए, जैसे \"प्याज\", \"चावल\" या \"पपीता\"।", no_weather="मेरे पास मौसम की जानकारी नहीं है। मैं मंडी भाव, बेचें या रोकें, ढुलाई, भंडारण, ऑर्डर और सरकारी योजनाओं में मदद कर सकता हूँ।", thanks="आपका स्वागत है। फसल बेचने के बारे में कुछ भी पूछिए।", finish_first="पहले आपकी जानकारी पूरी कर लेते हैं।", retail="{city} की दुकानों में {crop}: लगभग ₹{lo} से ₹{hi} प्रति किलो (मंडी भाव से अनुमान; दुकान का भाव किसान का भाव नहीं होता)।",
         no_retail="{city} के पास {crop} के हाल के मंडी भाव नहीं हैं, इसलिए दुकान भाव का अनुमान नहीं लगा सकता।", schemes="{state} की सरकारी योजनाएँ खोल रहा हूँ।",
-        w_create="सबसे अच्छे विकल्प के लिए बिक्री ऑर्डर बना दूँ", w_request_transport="ढुलाई का अनुरोध भेज दूँ", w_request_storage="भंडारण की पूछताछ भेज दूँ",
+        w_create="बिक्री ऑर्डर बना दूँ", w_request_transport="ढुलाई का अनुरोध भेज दूँ", w_request_storage="भंडारण की पूछताछ भेज दूँ",
         w_pickup="माल उठ गया दर्ज कर दूँ", w_deliver="माल पहुँच गया दर्ज कर दूँ", w_confirm_sale="अंतिम बिक्री पक्की कर दूँ", w_cancel="ऑर्डर रद्द कर दूँ",
         t_compare="मंडियों की तुलना", t_forecast="भाव अनुमान", t_logistics="भंडारण और ढुलाई", t_order="ऑर्डर"),
     "mr": dict(
@@ -99,10 +101,11 @@ R = {
         new_lot="नवीन माल: {loc} जवळ {lot}. {msg}", add_which="कोणते पीक जोडायचे आणि किती? उदा. \"20 क्विंटल बटाटा\".",
         need_unit="{n} काय: किलो, क्विंटल की टन?", removed="{crop} काढले. {msg}", last_lot="{crop} हे तुमचे एकमेव पीक आहे. पुन्हा सुरू करण्यासाठी \"पुन्हा सुरू\" म्हणा.",
         qty_set="बदलले: {lot}. {msg}", loc_set="शेताचे ठिकाण {loc} केले. {msg}", price_none="आजच्या माहितीत त्या ठिकाणचा {crop} भाव नाही.",
-        other_crop="{crop} भाव: ", fc_gate="{dest} साठी कोणताही अंदाज अजून विश्वासार्हता तपासणीत पास झाला नाही, म्हणून मी अंदाज सांगणार नाही. आजच्या भावाने विकणे सुरक्षित आहे.",
+        other_crop="{crop} भाव: ", chosen="ठीक आहे, पर्याय {n}: {label}. तुमच्या हातात सुमारे ₹{net}{diff}. ऑर्डरसाठी \"विकून टाका\" म्हणा.",
+        chosen_diff=" (सर्वोत्तमपेक्षा ₹{d} कमी)", no_option="या पिकासाठी फक्त {k} पर्याय आहेत. 1 ते {k} पैकी क्रमांक किंवा मंडईचे नाव सांगा.", fc_gate="{dest} साठी कोणताही अंदाज अजून विश्वासार्हता तपासणीत पास झाला नाही, म्हणून मी अंदाज सांगणार नाही. आजच्या भावाने विकणे सुरक्षित आहे.",
         no_crop="आजच्या बाजार माहितीत हे पीक सापडले नाही. कृपया त्याचे सामान्य नाव सांगा, उदा. \"कांदा\", \"तांदूळ\" किंवा \"पपई\".", no_weather="माझ्याकडे हवामानाची माहिती नाही. मी मंडी भाव, विकायचे की थांबायचे, वाहतूक, साठवण, ऑर्डर आणि सरकारी योजनांमध्ये मदत करू शकतो.", thanks="आपले स्वागत आहे. पीक विकण्याबद्दल काहीही विचारा.", finish_first="आधी तुमची माहिती पूर्ण करूया.", retail="{city} मधील दुकानांत {crop}: सुमारे ₹{lo} ते ₹{hi} प्रति किलो (मंडी भावावरून अंदाज; दुकानाचा भाव शेतकऱ्याचा भाव नसतो).",
         no_retail="{city} जवळ {crop} चे अलीकडील मंडी भाव नाहीत, त्यामुळे दुकान भावाचा अंदाज देता येत नाही.", schemes="{state} च्या सरकारी योजना उघडत आहे.",
-        w_create="सर्वोत्तम पर्यायासाठी विक्री ऑर्डर तयार करू", w_request_transport="वाहतुकीची विनंती पाठवू", w_request_storage="साठवणुकीची चौकशी पाठवू",
+        w_create="विक्री ऑर्डर तयार करू", w_request_transport="वाहतुकीची विनंती पाठवू", w_request_storage="साठवणुकीची चौकशी पाठवू",
         w_pickup="माल उचलला अशी नोंद करू", w_deliver="माल पोहोचला अशी नोंद करू", w_confirm_sale="अंतिम विक्री निश्चित करू", w_cancel="ऑर्डर रद्द करू",
         t_compare="मंडईंची तुलना", t_forecast="भाव अंदाज", t_logistics="साठवण आणि वाहतूक", t_order="ऑर्डर"),
 }
@@ -182,6 +185,11 @@ def route(text: str) -> tuple[str, dict]:
         return "explain", {}
     if has("thank", "dhanyavad", "dhanyawad", "shukriya", "धन्यवाद", "शुक्रिया", "आभार") and len(low.split()) <= 4:  # "show schemes, thanks" is a request
         return "thanks", {}
+    if ORDINAL_RX.search(low) and has("option", "mandi", "wala", "wali", "choose", "select", "pick", "chuno", "chun", "nivda", "go with", "take",
+                                        "वाला", "वाली", "विकल्प", "पर्याय", "चुनो", "निवडा", "मंडी", "मंडई") or re.search(r"\b(option|number|no\.?)\s*\d\b", low):
+        return "choose_option", {"text": text}
+    if has("choose", "select", "go with", "chuno", "निवडा", "चुनो") or re.search(r"\w+ (wala|wali)\b|\S+ वाला|\S+ वाली", low):
+        return "choose_option", {"text": text}
     if has("bech do", "bech dijiye", "bech dena", "sell it", "go ahead and sell", "help me sell", "sell this", "sell my", "sell the", "sell all", "sell our", "bechna hai", "sell kar", "buy kar", "move it",
            "order bana", "बेच दो", "बेच दीजिए", "बेचा", "बेचायचे", "बेचना है", "विकून टाका", "विकून द्या", "विकायचे", "विकायचा") \
             and not has("should", " or ", " ya ", "hold", "ruk", "wait", "rok", "chahiye", "kab ", "when", "चाहिए", "की रुक", "का थांब"):
@@ -281,6 +289,8 @@ def run_tool(tool: str, args: dict, st: dict, lang: str, db) -> dict:
     plan = st.get("plan")
     if tool == "thanks":
         return {"reply": rt(lang, "thanks"), "actions": []}
+    if tool == "choose_option":
+        return _choose(args.get("text", ""), st, lang)
     if tool == "no_crop":
         return {"reply": rt(lang, "no_crop"), "actions": []}
     if tool == "weather":
@@ -500,6 +510,51 @@ def _group_question(grp, lang: str) -> str:
     return {"en": f"Which {g}? For example: {ex}.", "hi": f"कौन सा {g}? जैसे: {ex}।", "mr": f"कोणता {g}? उदा. {ex}."}.get(lang, f"Which {g}? {ex}")
 
 
+ORDINALS = [("first 1st pehla pahla pehli पहला पहली पहिला पहिल्या", 0), ("second 2nd dusra doosra dusri doosri dusre doosre दूसरा दूसरी दूसरे दुसरा दुसरी दुसऱ्या", 1),
+            ("third 3rd teesra tisra teesri teesre tisre तीसरा तीसरी तीसरे तिसरा तिसरी तिसऱ्या", 2), ("fourth 4th chautha chauthi चौथा चौथी", 3)]
+ORDINAL_RX = re.compile(r"(?<![\w\u0900-\u097F])(" + "|".join(w for ws, _ in ORDINALS for w in ws.split()) + r")(?![\w\u0900-\u097F])", re.I)
+
+
+def _pick_option(text: str, plan: dict) -> tuple[int, dict] | None:
+    """'second option' / 'dusra' / 'option 3' / 'Lasalgaon wala' -> (index, option) from the ranked options; None if nothing named."""
+    opts = [o for o in plan.get("options") or [] if o.get("destination")]
+    low = text.lower()
+    m = re.search(r"\b(?:option|number|no\.?)\s*(\d)\b", low)
+    om = ORDINAL_RX.search(low)
+    idx = int(m.group(1)) - 1 if m else (next(i for ws, i in ORDINALS if om.group(1).lower() in ws.split()) if om else None)
+    if idx is not None:
+        return (idx, opts[idx]) if 0 <= idx < len(opts) else (idx, None)
+    words = [w for w in re.findall(r"[a-z]{4,}", low) if w not in STOP and w not in ("choose", "select", "wala", "wali", "sell", "mandi", "option")]
+    for i, o in enumerate(opts):
+        name = o["destination"].split(", ")[0].lower()
+        if any(w in name for w in words):
+            return i, o
+    return None
+
+
+def _choose(text: str, st: dict, lang: str) -> dict:
+    plan = st["plan"]
+    pick = _pick_option(text, plan)
+    opts = [o for o in plan.get("options") or [] if o.get("destination")]
+    if not pick or pick[1] is None:
+        return {"reply": rt(lang, "no_option", k=len(opts)), "actions": [_tab("compare")]}
+    i, o = pick
+    st.setdefault("choice", {})[st["active"]] = {"destination": o["destination"], "type": o.get("type"), "hold_days": o.get("hold_days"), "label": o["label"]}
+    best = (plan.get("recommendation") or {}).get("best") or opts[0]
+    d = best["net"] - o["net"]
+    return {"reply": rt(lang, "chosen", n=i + 1, label=o["label"], net=_inr(o["net"]), diff=rt(lang, "chosen_diff", d=_inr(d)) if d > 0 else ""),
+            "actions": [_tab("compare")]}
+
+
+def _chosen_option(st: dict) -> dict | None:
+    """The option the farmer picked for the active crop, looked up again in the CURRENT plan (amounts may have changed since)."""
+    c = (st.get("choice") or {}).get(st["active"])
+    if not c:
+        return None
+    return next((o for o in st["plan"].get("options") or [] if o.get("destination") == c["destination"] and o.get("type") == c.get("type")
+                 and o.get("hold_days") == c.get("hold_days")), None)  # "hold 15 days" is not "hold 30 days" at the same mandi
+
+
 def _mandi_name(key: str, lang: str) -> str:
     """Spoken mandi name: market and district, in Devanagari for hi/mr when known."""
     short = ", ".join(key.split(", ")[:2])
@@ -572,7 +627,7 @@ def _book_storage(st, lang, db):
 def _execute_confirmed(tool, args, st, lang, db):
     plan = st["plan"]
     if tool == "create_order":  # the sale order AND the truck request (booking token) in one yes
-        best = (plan.get("recommendation") or {}).get("best")
+        best = _chosen_option(st) or (plan.get("recommendation") or {}).get("best")  # the farmer's own pick wins over our best
         if not best or not best.get("destination"):
             return {"reply": _best_msg(plan, lang), "actions": []}
         o = ops.create_order(db, st["sid"], best, plan["profile"], _quote(plan, best["destination"]))
@@ -776,6 +831,14 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
     if tool == "order_event" and args.get("event") not in FARMER_EVENTS:
         tool, args = "unknown", {}
     trace.append({"tool": tool, "args": {k: v for k, v in args.items() if k != "text"}})
+    if tool == "create_order" and st.get("plan") and _pick_option(text, st["plan"]):  # "Lasalgaon me bech do" / "dusre wale me bech do"
+        ch = _choose(text, st, L)
+        if _chosen_option(st):
+            st["pending"] = {"tool": "create_order", "args": {}}
+            return _out({"reply": ch["reply"].split(". ")[0] + ". " + rt(L, "confirm", what=_confirm_text("create_order", {}, L)), "actions": ch["actions"]},
+                        sid, L, "confirming_action", [{"tool": "choose_option"}, {"tool": "create_order"}],
+                        chips=[{"en": "Yes", "hi": "हाँ", "mr": "होय"}[L], {"en": "No", "hi": "नहीं", "mr": "नाही"}[L]])
+        return _out(ch, sid, L, "plan", [{"tool": "choose_option"}])
     if tool == "create_order":  # "sell my papaya" / "pyaz bech do": the order is for the crop the farmer names, not the one on screen
         named = P.resolve_crop(text)
         if named and named != st["active"]:
