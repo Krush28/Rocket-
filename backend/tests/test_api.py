@@ -56,9 +56,16 @@ def test_admin_import_needs_token_and_rejects_outside_data_raw(monkeypatch):
 
 
 def test_rate_limit_429(monkeypatch):
-    monkeypatch.setattr(ratelimit, "LIMIT", 3)
+    monkeypatch.setattr(ratelimit, "READ_LIMIT", 3)
     codes = [client.get("/api/meta").status_code for _ in range(4)]
     assert codes == [200, 200, 200, 429]
+
+
+def test_polling_does_not_starve_actions(monkeypatch):
+    monkeypatch.setattr(ratelimit, "READ_LIMIT", 2)
+    monkeypatch.setattr(ratelimit, "LIMIT", 2)
+    [client.get("/api/meta") for _ in range(3)]  # screens polling hit their own limit
+    assert client.post("/api/agent", json={"session_id": "rl1", "text": ""}).status_code == 200  # a farmer's request still goes through
 
 
 def test_health_reports_mode():

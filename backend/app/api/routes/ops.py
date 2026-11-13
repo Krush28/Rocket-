@@ -185,7 +185,8 @@ def dashboard(device: str, lang: str = "en", db: Session = Depends(get_db)):
     """Everything for the farmer's dashboard in one call: crops, forecast, tickets, storage, transport contacts, chat, alerts."""
     from app.agents.action_agent import STATE
     from app.services import dashboard as D
-    return D.build(db, device[:100], lang, STATE.get(device[:100]))
+    from app.core import present
+    return present.clean(D.build(db, device[:100], lang, STATE.get(device[:100])))  # same neutral wording as plans and replies
 
 
 @router.get("/schemes")

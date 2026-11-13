@@ -53,13 +53,29 @@ def _forecast(plan: dict, mandi: str | None) -> dict | None:
             "note": "Forecast from past prices, checked against simple baselines. Not a guarantee."}
 
 
+def _transport_to_best(plan: dict, best: dict) -> dict | None:
+    """Truck options to the BEST mandi (the transport agent only quotes the nearest few; same cost model beyond them)."""
+    dest = (best or {}).get("destination")
+    rows = plan.get("transport") or []
+    hit = next((t for t in rows if t.get("destination") == dest), None)
+    if hit or not dest or not best.get("distance_km"):
+        return hit or (rows[0] if rows else None)
+    from app.services import costs
+    from app.services import demo_data as D
+    qtl, km = plan["profile"]["qty_kg"] / 100, best["distance_km"]
+    opts = [{"transporter": v["name"], "vehicle": v["vehicle"], "verification": "unverified", "quote_status": "ESTIMATE - no quote requested",
+             "phone": None, "total": round(-(-qtl // v["capacity_qtl"]) * (v["base"] + v["per_km"] * km)),
+             "per_qtl": round(-(-qtl // v["capacity_qtl"]) * (v["base"] + v["per_km"] * km) / qtl, 1)} for v in D.TRANSPORTERS if not v["refrigerated"]]
+    return {"destination": dest, "distance_km": km, "est_hours": round(km / 40, 1), "options": sorted(opts, key=lambda o: o["total"]), **costs.transport(qtl, km)}
+
+
 def _crop_card(plan: dict, crop: str, farmer: dict) -> dict:
     rec = plan.get("recommendation") or {}
     best = rec.get("best") or {}
     dec = rec.get("decision") or (plan.get("sell_vs_hold") or {}).get("decision") or {}
     sells = [o for o in plan.get("options") or [] if o.get("type") != "hold"][:4]
     store = (plan.get("storage") or [None])[0]
-    trans = (plan.get("transport") or [None])[0]
+    trans = _transport_to_best(plan, best)
     lot = farmer["lots"][crop]
     return {
         "crop": crop, "label": CR.name(crop, plan["profile"].get("lang") or "en"), "qty_kg": lot["qty_kg"],
