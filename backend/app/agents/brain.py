@@ -116,6 +116,10 @@ def _exec(tool: str, a: dict, text: str, st: dict, L: str, db) -> dict | None:
         return {"confirm": ("order_event", {"event": ev})} if st.get("order_id") or ev == "request_storage" else {"reply": A.rt(L, "no_order"), "actions": []}
     if tool == "retail_price":
         return A.run_tool("retail", {"crop": _crop_key(a.get("crop"), text), "city": a.get("city") or ""}, st, L, db)
+    if tool == "show_dashboard":
+        from app.agents.action_agent import dash_section
+        sec = a.get("section") if a.get("section") in A.DASH_NAMES["en"] else dash_section(low)
+        return A.run_tool("dashboard", {"section": sec}, st, L, db)
     if tool == "show_schemes":  # the farmer's own words win; the model's args only fill what the words did not say
         said = SC.parse(text)
         m_state = SC.parse(str(a.get("state") or "")).get("state")

@@ -132,6 +132,8 @@ PLAN_TOOLS = {
     "retail_price": "ONLY shop / retail / consumer price in a city (args crop, city)",
     "show_schemes": "government schemes / yojana / subsidy / bima (insurance) / pension / MSP help. args: state (Indian state named), "
                     "category (insurance|income|market|storage|farming), scheme (a scheme's name if one is named)",
+    "show_dashboard": "open the farmer's dashboard / summary / my tickets / my bookings / transporter phone / what I did so far "
+                      "(args section: home|crops|forecast|tickets|storage|transport|chat|alerts)",
     "switch_language": "speak another language (args lang: en|hi|mr)",
     "explain": "why / explain / how far / how much is a cost / compare two options / any other question about the plan, prices, costs or farming",
     "chat": "greeting, thanks, or something unrelated to selling crops",
@@ -143,6 +145,7 @@ PLAN_SCHEMA = {"type": "object", "required": ["calls"], "properties": {"calls": 
             "crop": {"type": "string"}, "qty": {"type": "number"}, "unit": {"type": "string", "enum": ["kg", "quintal", "tonne"]},
             "place": {"type": "string"}, "city": {"type": "string"}, "state": {"type": "string"},
             "category": {"type": "string", "enum": ["insurance", "income", "market", "storage", "farming"]}, "scheme": {"type": "string"},
+            "section": {"type": "string", "enum": ["home", "crops", "forecast", "tickets", "storage", "transport", "chat", "alerts"]},
             "name": {"type": "string"}, "value": {"type": "number"}, "lang": {"type": "string", "enum": ["en", "hi", "mr"]}}}}}}}}
 
 

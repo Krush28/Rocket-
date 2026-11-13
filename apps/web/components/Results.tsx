@@ -34,7 +34,10 @@ export default function Results({ plan: p, lang, order, crops, onSay }: Props) {
     <main className="min-h-screen bg-paper pb-56" lang={lang}>
       <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-5 sm:px-6">
         <header className="flex items-center justify-between gap-3">
-          <span className="font-display text-[22px] font-extrabold tracking-tight">{lang === "en" ? "KRISHI-X" : "कृषि-एक्स"}</span>
+          <span className="flex items-center gap-3">
+            <span className="font-display text-[22px] font-extrabold tracking-tight">{lang === "en" ? "KRISHI-X" : "कृषि-एक्स"}</span>
+            <a href={`/dashboard?lang=${lang}`} className="inline-flex min-h-[40px] items-center rounded-full bg-forest px-4 text-[14px] font-bold text-cream">{{ en: "My dashboard", hi: "मेरा डैशबोर्ड", mr: "माझा डॅशबोर्ड" }[lang]}</a>
+          </span>
           <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-semibold tracking-wide ${live ? "bg-okbg text-forest" : "bg-note text-ink"}`}>
             <span className={`h-2 w-2 rounded-full ${live ? "bg-[#2E7D4F]" : "bg-mustard"}`} />
             {live ? `${t("live", lang)} · ${firstPrice?.latest_date ?? ""}` : allStale && p.data_mode === "LIVE" ? `${t("old", lang)} · ${firstPrice?.latest_date ?? ""}` : t("demo", lang)}

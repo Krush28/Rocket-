@@ -180,6 +180,14 @@ def overview(u=Depends(user), db: Session = Depends(get_db)):
     return {**ops.admin_overview(db), "price_job": mandi_api.status()}
 
 
+@router.get("/dashboard/{device}")
+def dashboard(device: str, lang: str = "en", db: Session = Depends(get_db)):
+    """Everything for the farmer's dashboard in one call: crops, forecast, tickets, storage, transport contacts, chat, alerts."""
+    from app.agents.action_agent import STATE
+    from app.services import dashboard as D
+    return D.build(db, device[:100], lang, STATE.get(device[:100]))
+
+
 @router.get("/schemes")
 def schemes(state: str | None = None, lang: str = "en", category: str | None = None, q: str | None = None):
     """Government schemes for a state (central + that state's), in en / hi / mr, each with its official portal.

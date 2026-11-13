@@ -49,7 +49,7 @@ export default function Home() {
       else if (a.type === "lang" && isLang(a.value)) { picked.current = true; store(LANG, a.value); langRef.current = a.value; setLang(a.value); }
       else if (a.type === "reset") { reset = true; setPlan(null); setOrder(null); setCrops([]); setDone(false); }
       else if (a.type === "done") setDone(true);
-      else if (a.type === "nav") router.push(`/${a.value}?${new URLSearchParams({ state: a.state || "", lang: l, ...(a.cat ? { cat: a.cat } : {}), ...(a.q ? { q: a.q } : {}) })}`);
+      else if (a.type === "nav") router.push(`/${a.value}?${new URLSearchParams({ state: a.state || "", lang: l, ...(a.cat ? { cat: a.cat } : {}), ...(a.q ? { q: a.q } : {}), ...(a.section ? { section: a.section } : {}) })}`);
       else if (a.type === "tab") setTimeout(() => document.getElementById(`sec-${a.value}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
     }
     return { l, reset };

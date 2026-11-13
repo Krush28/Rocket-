@@ -121,6 +121,15 @@ QUESTION_TOOLS = {"compare", "forecast", "explain_decision", "price_of", "retail
 FARMER_EVENTS = {"request_transport", "request_storage", "pickup", "deliver", "confirm_sale", "cancel"}  # never the transporter's/operator's events
 
 
+DASH_SAY = {"en": "Opening your dashboard: {x}.", "hi": "आपका डैशबोर्ड खोल रहा हूँ: {x}।", "mr": "तुमचा डॅशबोर्ड उघडतो: {x}."}
+DASH_NAMES = {"en": {"home": "everything at a glance", "crops": "your crops and best mandi", "forecast": "the price forecast", "tickets": "your tickets",
+                     "storage": "your storage", "transport": "transport and contacts", "chat": "our conversation", "alerts": "your alerts"},
+              "hi": {"home": "सब एक नज़र में", "crops": "आपकी फसलें और सबसे अच्छी मंडी", "forecast": "भाव का अनुमान", "tickets": "आपके टिकट",
+                     "storage": "आपका भंडारण", "transport": "ढुलाई और संपर्क", "chat": "हमारी बातचीत", "alerts": "आपकी सूचनाएँ"},
+              "mr": {"home": "सर्व एका नजरेत", "crops": "तुमची पिके आणि सर्वोत्तम मंडई", "forecast": "भावाचा अंदाज", "tickets": "तुमची तिकिटे",
+                     "storage": "तुमची साठवण", "transport": "वाहतूक आणि संपर्क", "chat": "आपली बातचीत", "alerts": "तुमच्या सूचना"}}
+
+
 def rt(lang, key, **kw):
     return (R.get(lang) or R["en"]).get(key, R["en"][key]).format(**kw)
 
@@ -141,6 +150,13 @@ def _status(s, lang):
 
 
 # ---------------------------------------------------------------- intent router (rules: fast, offline)
+DASH_RX = re.compile(r"dashboard|dash board|डैशबोर्ड|डॅशबोर्ड|my ticket|ticket|टिकट|तिकीट|my booking|bookings|बुकिंग|summary|सारांश|सब कुछ दिखा|"
+                     r"sab kuch dikha|sab dikhao|mera hisab|मेरा हिसाब|माझा हिशोब|my account|everything i did|my history|"
+                     r"(transporter|driver|truck|tempo|gaadi|ड्राइवर|ट्रक|गाड़ी|गाडी|ट्रान्सपोर्ट|ट्रांसपोर्ट).{0,24}(phone|number|contact|nambar|नंबर|फोन|फ़ोन|क्रमांक)")
+DASH_SECTIONS = (("ticket|टिकट|तिकीट|order|ऑर्डर", "tickets"), ("storage|godown|godam|गोदाम|भंडारण|साठवण|cold|शीतगृह", "storage"),
+                 ("transport|truck|ट्रक|गाड़ी|गाडी|driver|phone|फोन|नंबर|number|contact", "transport"),
+                 ("forecast|अनुमान|अंदाज|prediction|भविष्य", "forecast"), ("chat|बातचीत|गप्पा|conversation|what i said|मैंने क्या", "chat"),
+                 ("alert|notification|सूचना|message|मेसेज", "alerts"), ("crop|फसल|पीक|mandi|मंडी|मंडई", "crops"))
 SCHEME_RX = re.compile(r"scheme|yojana|yojna|subsid|bima|beema|insurance|pension|योजना|अनुदान|सब्सिडी|बीमा|विमा|पेंशन|पेन्शन")
 
 
@@ -154,6 +170,8 @@ def route(text: str) -> tuple[str, dict]:
             return "set_language", {"lang": code}
     if has("weather", "mausam", "barish", "baarish", "rain", "मौसम", "बारिश", "हवामान", "पाऊस"):
         return "weather", {}
+    if DASH_RX.search(low) and not has("create", "book ", "बुक कर", "cancel", "रद्द"):  # "show my tickets", "mera hisab dikhao"
+        return "dashboard", {"section": dash_section(low)}
     sp = SC.parse(text)
     if SCHEME_RX.search(low) or sp.get("q"):  # "punjab ki bima yojana", "PM kisan dikhao": exactly that state / kind / scheme
         return "schemes", sp
@@ -239,6 +257,10 @@ def route(text: str) -> tuple[str, dict]:
     return "unknown", {}
 
 
+def dash_section(low: str) -> str:
+    return next((sec for words, sec in DASH_SECTIONS if re.search(words, low)), "home")
+
+
 def _tab(t):
     return {"type": "tab", "value": t}
 
@@ -258,7 +280,7 @@ def run_tool(tool: str, args: dict, st: dict, lang: str, db) -> dict:
         return {"reply": rt(lang, "no_weather"), "actions": []}
     if tool == "explain":  # without the LLM: the deterministic verdict and its reasons
         tool = "explain_decision"
-    if tool not in ("help", "start_over", "set_language", "set_lot", "schemes", "weather", "thanks") and not plan:
+    if tool not in ("help", "start_over", "set_language", "set_lot", "schemes", "weather", "thanks", "dashboard") and not plan:
         return {"reply": rt(lang, "need_plan"), "actions": []}
     if tool == "help":
         return {"reply": rt(lang, "help"), "actions": []}
@@ -283,6 +305,9 @@ def run_tool(tool: str, args: dict, st: dict, lang: str, db) -> dict:
         for f in more:
             out = _set_lot({"crop": f["crop"], "qty": f["qty"]}, st, lang, db)
         return out
+    if tool == "dashboard":
+        sec = args.get("section") if args.get("section") in DASH_NAMES["en"] else "home"
+        return {"reply": DASH_SAY[lang].format(x=DASH_NAMES[lang][sec]), "actions": [{"type": "nav", "value": "dashboard", "section": sec}]}
     if tool == "schemes":
         state = args.get("state") or _farm_state(st)
         reply, flt = SC.say(state, lang, args.get("category"), args.get("q"), gazetteer.dev_name(state) if lang != "en" else state)
@@ -586,8 +611,12 @@ def handle(sid: str, text: str, lang: str | None, db) -> dict:
     res["ai"] = llm.provider()  # cloud | local | rules: the UI says when a sentence was sent to a cloud model
     if st and text and text.strip():  # short memory of the conversation, for "it", "that mandi", "wahan"
         h = st.setdefault("history", [])
-        h.append({"u": text.strip()[:160], "a": res["reply"][:200]})
+        from datetime import datetime, timezone
+        h.append({"u": text.strip()[:160], "a": res["reply"][:200], "at": datetime.now(timezone.utc).isoformat()})
         del h[:-6]
+        from app.services import dashboard
+        log = dashboard.load_chat(db, sid) + [{"u": text.strip()[:300], "a": res["reply"][:600], "at": h[-1]["at"], "lang": L}]
+        dashboard.save_chat(db, sid, log)
     if st and st.get("farmer") and st.get("plan"):
         res["crops"] = [{"crop": c, "label": intake.crop_label(c, L), "qty": q["original_qty"], "unit": intake.unit_label(q["original_unit"], L),
                          "active": c == st["active"]} for c, q in st["farmer"]["lots"].items()]
@@ -654,7 +683,7 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
 
     if not st["plan"]:
         tool, args = route(text) if text else ("unknown", {})
-        if tool in ("start_over", "set_language", "help", "schemes"):
+        if tool in ("start_over", "set_language", "help", "schemes", "dashboard"):
             return _out(run_tool(tool, args, st, L, db), sid, L, "collecting", [{"tool": tool}])
         pend = intake.pending(sid, db)
         if pend and tool in QUESTION_TOOLS and "qty" not in P.extract(text) and P.yes_no(text) is None:  # a question mid-intake: never add it as a crop
