@@ -52,15 +52,30 @@ export function speak(text: string, lang: Lang): Promise<void> {
     return new Promise((done) => {
       const u = new SpeechSynthesisUtterance(text);
       u.lang = BCP47[lang]; u.voice = v; u.rate = 1.05;
-      u.onend = () => done(); u.onerror = () => done();
+      let finished = false;
+      const end = () => { if (!finished) { finished = true; setTimeout(done, 350); } }; // short gap so the mic never catches our own last word
+      u.onend = end; u.onerror = end;
       window.speechSynthesis.speak(u);
-      setTimeout(done, 400 + text.length * 120); // never hang the loop if onend does not fire
+      // onend sometimes never fires (Chrome): poll the real speaking state instead of guessing from the text length
+      const t0 = Date.now();
+      const poll = setInterval(() => {
+        if (finished) return clearInterval(poll);
+        if ((!window.speechSynthesis.speaking && Date.now() - t0 > 800) || Date.now() - t0 > 60000) { clearInterval(poll); end(); }
+      }, 250);
     });
   }
   return fetch(`${API}/api/voice/speak`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, lang }) })
     .then((r) => (r.ok ? r.blob() : Promise.reject()))
     .then((b) => new Promise<void>((done) => { audio = new Audio(URL.createObjectURL(b)); audio.onended = () => done(); audio.onerror = () => done(); audio.play().catch(() => done()); }))
     .catch(() => undefined);
+}
+
+/** True when what the mic heard is mostly our own last reply (speaker echo), so it must not be sent as the farmer's answer. */
+export function isEcho(heard: string, lastReply: string): boolean {
+  const words = (x: string) => x.toLowerCase().replace(/[^\p{L}\p{M}\p{N}\s]/gu, " ").split(/\s+/).filter((w) => w.length > 1);
+  const h = words(heard), r = new Set(words(lastReply));
+  if (h.length < 4 || r.size === 0) return false;
+  return h.filter((w) => r.has(w)).length / h.length >= 0.7;
 }
 
 export const stopSpeaking = () => { if (typeof window !== "undefined") { window.speechSynthesis?.cancel(); audio?.pause(); } };

@@ -164,8 +164,25 @@ def last_unit(lots: dict) -> str | None:
     return next((q["original_unit"] for q in reversed(list(lots.values()))), None)
 
 
+CHIPS = {"ready": {"en": ["Yes, ready now", "Not yet"], "hi": ["हाँ, अभी तैयार", "अभी नहीं"], "mr": ["हो, आता तयार", "अजून नाही"]},
+         "can_store": {"en": ["Yes, I can store", "No storage"], "hi": ["हाँ, रख सकता हूँ", "नहीं रख सकता"], "mr": ["हो, ठेवू शकतो", "साठवण नाही"]},
+         "confirm": {"en": ["Yes, correct", "Change something"], "hi": ["हाँ, सही है", "कुछ बदलना है"], "mr": ["हो, बरोबर", "काही बदलायचे आहे"]}}
+HINT = {  # second miss on the same question: say it differently, with an example answer, instead of repeating it word for word
+    "qty": {"en": "Please say a number with a unit, for example \"50 quintal\" or \"2 tonne\".", "hi": "संख्या और इकाई बोलिए, जैसे \"50 क्विंटल\" या \"2 टन\"।",
+            "mr": "संख्या आणि एकक सांगा, उदा. \"50 क्विंटल\" किंवा \"2 टन\"."},
+    "location": {"en": "Say your village and district, or your 6-digit pincode, for example \"Niphad, Nashik\" or \"422303\".",
+                 "hi": "अपना गाँव और ज़िला, या 6 अंकों का पिनकोड बोलिए, जैसे \"निफाड, नाशिक\" या \"422303\"।",
+                 "mr": "तुमचे गाव आणि जिल्हा किंवा 6 अंकी पिनकोड सांगा, उदा. \"निफाड, नाशिक\" किंवा \"422303\"."},
+    "crops": {"en": "Just say the crop name, for example \"onion\" or \"tomato and potato\".", "hi": "बस फसल का नाम बोलिए, जैसे \"प्याज\" या \"टमाटर और आलू\"।",
+              "mr": "फक्त पिकाचे नाव सांगा, उदा. \"कांदा\" किंवा \"टोमॅटो आणि बटाटा\"."},
+    "ready": {"en": "Just say yes or no, or tap a button below.", "hi": "बस हाँ या नहीं बोलिए, या नीचे बटन दबाइए।", "mr": "फक्त हो किंवा नाही म्हणा, किंवा खालचे बटण दाबा."},
+}
+HINT["can_store"] = HINT["ready"]
+
+
 def _reply(s, text, **extra):
-    return {"reply": text, "lang": s["lang"], "awaiting": s["awaiting"], "done": False, **extra}
+    chips = CHIPS.get(s["awaiting"], {}).get(s["lang"]) or CHIPS.get(s["awaiting"], {}).get("en")
+    return {"reply": text, "lang": s["lang"], "awaiting": s["awaiting"], "done": False, **({"chips": chips} if chips else {}), **extra}
 
 
 def step(sid: str, text: str, lang: str | None = None, *, db) -> dict:
@@ -224,8 +241,13 @@ def _step(s, text, lang, db, sid) -> dict:
             return _reply(s, P.FIX[L])
     elif not _apply(s, text, aw, db):
         if aw == "location":
-            return _reply(s, P.PLACE_HELP[L] + " " + P.Q["location"][L])
+            s["misses"] = s.get("misses", 0) + 1
+            return _reply(s, HINT["location"][L if L in HINT["location"] else "en"] if s["misses"] >= 2 else P.PLACE_HELP[L] + " " + P.Q["location"][L])
+        s["misses"] = s.get("misses", 0) + 1
+        if s["misses"] >= 2 and aw in HINT:  # never the identical sentence twice in a row
+            return _reply(s, HINT[aw][L if L in HINT[aw] else "en"])
         return _reply(s, P.UNKNOWN[L] + (_t("crops_again", L) if aw == "crops" else _question(s, aw, L)))
+    s["misses"] = 0
     aw, crop = _missing(s)
     s["awaiting"], s["await_crop"] = aw, crop
     if aw == "confirm":

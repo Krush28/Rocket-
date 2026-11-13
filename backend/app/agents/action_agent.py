@@ -673,7 +673,7 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
             st["farmer"] = r["farmer"]
             actions.append({"type": "plan", "plan": _activate(st, next(iter(r["farmer"]["lots"])), r["lang"])})
         return _out({"reply": r["reply"], "actions": actions, "lang": r["lang"]}, sid, r["lang"], "plan" if r["done"] else "collecting", [{"tool": "intake"}],
-                    done=r["done"], awaiting=r.get("awaiting"))
+                    done=r["done"], awaiting=r.get("awaiting"), **({"chips": r["chips"]} if r.get("chips") else {}))
 
     trace, pre = [], []
     f = P.extract(text, "qty" if st.get("await") else None)

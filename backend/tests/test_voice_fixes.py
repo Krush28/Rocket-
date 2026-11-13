@@ -213,3 +213,14 @@ def test_mentioning_the_same_lot_does_not_swallow_the_request(db):
     _plan(db, "n3")
     r = say(db, "n3", "is there cold storage for these 50 quintal onion?")
     assert "storage" in r["reply"].lower() and "New lot" not in r["reply"]
+
+
+def test_intake_never_repeats_the_same_sentence_and_offers_buttons(db):
+    say(db, "m9", "")
+    say(db, "m9", "onion")
+    r1 = say(db, "m9", "hmm")
+    r2 = say(db, "m9", "hmm")
+    assert r1["reply"] != r2["reply"] and "50 quintal" in r2["reply"]  # second miss: rephrased with an example
+    say(db, "m9", "50 quintal")
+    r = say(db, "m9", "Niphad")
+    assert r["awaiting"] == "ready" and r.get("chips") == ["Yes, ready now", "Not yet"]

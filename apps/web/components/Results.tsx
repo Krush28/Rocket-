@@ -2,6 +2,7 @@
 
 import type { Crop, Option, Order, Plan } from "@/lib/api";
 import Journey from "./Journey";
+import MandiMap from "./MandiMap";
 import { cropName, isKey, rupees, t, unitName, type Key, type Lang } from "@/lib/i18n";
 import PriceChart from "./PriceChart";
 
@@ -101,6 +102,8 @@ export default function Results({ plan: p, lang, order, crops, onSay }: Props) {
             {rec?.confidence && <p className="mt-1 text-[13px] text-muted">{[...rec.confidence.detractors, ...rec.confidence.contributors].slice(0, 3).join(" · ")}</p>}
           </section>
         )}
+
+        <MandiMap plan={p} lang={lang} names={NAMES} onSay={onSay} />
 
         {ranked.length > 0 && (
           <section id="sec-compare" className={`${card} py-2`}>
