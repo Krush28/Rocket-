@@ -1,0 +1,125 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import AgentBar from "@/components/AgentBar";
+import Landing from "@/components/Landing";
+import Results from "@/components/Results";
+import { useRouter } from "next/navigation";
+import { DoneCard } from "@/components/Journey";
+import { agent, type AgentReply, type Crop, type Order, type Plan } from "@/lib/api";
+import { farmer } from "@/lib/ops";
+import { isLang, t, type Lang } from "@/lib/i18n";
+import { isEcho, listen, speak, stopSpeaking } from "@/lib/speech";
+
+const DEVICE = "kxDevice", LANG = "kxLang";
+const SWITCH: Record<Lang, string> = { en: "switch to english", hi: "हिंदी में बोलो", mr: "मराठी मध्ये बोला" };
+
+function store(k: string, v?: string) {
+  try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { /* private mode: memory only */ }
+  return null;
+}
+
+// One voice agent for the whole app: intake (confirm first) -> plan -> spoken commands. The device id is how a farmer is remembered.
+export default function Home() {
+  const [sid, setSid] = useState("");
+  const [lang, setLang] = useState<Lang>("en");
+  const [reply, setReply] = useState("");
+  const [ai, setAi] = useState("");  // "cloud" when a cloud model read the sentence: shown as a label
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [crops, setCrops] = useState<Crop[]>([]);
+  const [chips, setChips] = useState<string[]>([]);
+  const [awaiting, setAwaiting] = useState<string | null>(null);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [done, setDone] = useState(false);
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [error, setError] = useState("");
+  const picked = useRef(false), handsFree = useRef(false), stop = useRef<() => void>(), started = useRef(false), langRef = useRef<Lang>("en");
+
+  const replyRef = useRef("");
+  function apply(r: AgentReply) {
+    replyRef.current = r.reply || "";
+    const l = isLang(r.lang) ? r.lang : langRef.current;
+    langRef.current = l; setLang(l); setReply(r.reply); setAi(r.ai ?? ""); setCrops(r.crops ?? []); setChips(r.chips ?? []); setAwaiting(r.awaiting ?? null);
+    let reset = false;
+    for (const a of r.actions ?? []) {
+      if (a.type === "plan") setPlan(a.plan);
+      else if (a.type === "order") setOrder(a.order);
+      else if (a.type === "lang" && isLang(a.value)) { picked.current = true; store(LANG, a.value); langRef.current = a.value; setLang(a.value); }
+      else if (a.type === "reset") { reset = true; setPlan(null); setOrder(null); setCrops([]); setDone(false); }
+      else if (a.type === "done") setDone(true);
+      else if (a.type === "nav") router.push(`/${a.value}?${new URLSearchParams({ state: a.state || "", lang: l, ...(a.cat ? { cat: a.cat } : {}), ...(a.q ? { q: a.q } : {}), ...(a.section ? { section: a.section } : {}) })}`);
+      else if (a.type === "tab") setTimeout(() => document.getElementById(`sec-${a.value}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+    }
+    return { l, reset };
+  }
+
+  async function send(text: string, id = sid) {
+    setBusy(true); setError("");
+    try {
+      const r = await agent(id, text, picked.current ? langRef.current : undefined);
+      const { l, reset } = apply(r);
+      if (reset) return send("", id);
+      if (handsFree.current && r.reply) {
+        await speak(r.reply, l);
+        if (handsFree.current) void mic(true); // hands-free loop: listen again right after speaking
+      }
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not reach KRISHI-X."); }
+    finally { setBusy(false); }
+  }
+
+  async function mic(auto = false) {
+    if (listening && !auto) { handsFree.current = false; stop.current?.(); stopSpeaking(); return; }
+    handsFree.current = true; setListening(true); setError("");
+    try {
+      const said = (await listen(langRef.current, (s) => { stop.current = s; })).trim();
+      setListening(false);
+      if (said && isEcho(said, replyRef.current)) { void mic(true); return; } // the mic heard our own voice: ignore it, listen again
+      if (said) await send(said); else handsFree.current = false; // silence ends the loop
+    } catch (e) { handsFree.current = false; setListening(false); setError(e instanceof Error ? e.message : "Microphone error."); }
+  }
+
+  function chooseLang(l: Lang) {
+    picked.current = true; store(LANG, l); langRef.current = l; setLang(l);
+    void send(SWITCH[l]);
+  }
+
+  function resetAll() {  // clears crops, plan, orders in progress and any half-done step on the server, then greets fresh
+    if (!window.confirm(t("resetAsk", langRef.current))) return;
+    handsFree.current = false; stop.current?.(); stopSpeaking(); setListening(false); setOrder(null); setPlan(null); setCrops([]);
+    void send("start over");
+  }
+
+  useEffect(() => {  // live order journey: the transporter's accept / pickup / deliver show up here without asking
+    if (!sid || !order || ["sale_confirmed", "cancelled"].includes(order.status)) return;
+    const t = setInterval(() => {
+      farmer(sid).then((f) => { const o = f.orders.find((x) => x.id === order.id); if (o && o.status !== order.status) setOrder(o); }).catch(() => {});
+    }, 5000);
+    return () => clearInterval(t);
+  }, [sid, order]);
+
+  useEffect(() => {
+    if (started.current) return; // StrictMode runs effects twice in dev
+    started.current = true;
+    let id = store(DEVICE);
+    if (!id) { id = crypto.randomUUID(); store(DEVICE, id); }
+    const saved = store(LANG), nav = navigator.language.slice(0, 2);
+    const l: Lang = isLang(saved) ? saved : isLang(nav) ? nav : "en";
+    picked.current = isLang(saved) || nav === "hi" || nav === "mr";
+    langRef.current = l; setLang(l); setSid(id);
+    void send("", id); // greeting, or "welcome back" with the remembered crops
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const doneCard = done && order ? <DoneCard order={order} lang={lang} onClose={() => setDone(false)}
+    onAgain={() => { setDone(false); setOrder(null); setPlan(null); setCrops([]); void send("start over"); }} /> : null;
+  const voice = { lang, reply, ai, chips, busy, listening, error, onMic: () => mic(), onSend: (text: string) => send(text), onLang: chooseLang, onReset: resetAll };
+  if (!plan) return <Landing {...voice} crops={crops} awaiting={awaiting} sid={sid} />;
+  return (
+    <>
+      <Results plan={plan} lang={lang} order={order} crops={crops} onSay={(t) => send(t)} />
+      <AgentBar {...voice} sid={sid} />
+      {doneCard}
+    </>
+  );
+}

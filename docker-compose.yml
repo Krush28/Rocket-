@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: krishix
+      POSTGRES_PASSWORD: krishix  # local dev only; override for any shared deployment
+      POSTGRES_DB: krishix
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U krishix"]
+      interval: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://krishix:krishix@db:5432/krishix
+      # local LLM on the host (Ollama, GPU). Unreachable = instant fallback to rules.
+      KRISHIMITRA_LLM: ${KRISHIMITRA_LLM:-ollama}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-krishix}
+      # offline voice models (downloaded once into the models volume)
+      PIPER_DIR: /models/piper
+      HF_HOME: /models/hf
+      WHISPER_MODEL: ${WHISPER_MODEL:-small}
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app"  # dev: auto-reload on code changes
+    ports: ["8000:8000"]
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+      - models:/models
+    depends_on:
+      db: {condition: service_healthy}
+
+  web:
+    build:
+      context: ./apps/web
+      args: {NEXT_PUBLIC_API_BASE_URL: "http://localhost:8000"}
+    ports: ["3000:3000"]
+    depends_on: [backend]
+
+volumes:
+  pgdata:
+  models:

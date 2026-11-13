@@ -1,0 +1,759 @@
+"""KRISHI-X voice action agent (ported from Rocket's agent.py). A free-form request -> ONE tool -> executed by deterministic Python:
+open views, compare, forecast, explain the verdict, change cost assumptions, start/switch lots, create and track orders.
+Speed: fast rules first; the local LLM (llm.pick_tool) is asked only when the rules do not understand, and only argument-free tools
+are accepted from it (arguments are always rule-parsed and validated). Anything with consequences asks yes/no first.
+Every reply is in the farmer's language (en/hi/mr). shortcut: per-process STATE cache (plans); farmer memory and intake are in the DB."""
+import re
+from datetime import date
+
+from app.agents import orchestrator
+from app.conversation import intake, profile_agent as P
+from app.repositories import farmers, market_data as MD
+from app.services import gazetteer, llm, ops
+from app.services import schemes as SC
+from app.services.geo import haversine_km
+
+STATE: dict = {}
+R = {
+    "en": dict(
+        need_plan="Tell me your crops, amount and village first, then I can do that.", confirm="Shall I {what}? Say yes or no.",
+        cancelled="Okay, I did not do it.", dropped="Okay, I dropped the unfinished step.", reset="Starting over.", lang="Switched to English.",
+        unknown="I did not understand. Try: \"where should I sell\", \"show the forecast\", \"should I hold\", \"book transport\" or \"create the order\".",
+        best="Best option: {label}. You keep about ₹{net}.", tab="Showing {x}.",
+        help="I can tell you where to sell, compare mandis, explain sell now or hold, show the forecast, storage and transport, check a price, "
+             "change a cost (\"set commission to 3\"), add a crop, and create and track an order. Say \"start over\" for a new farmer.",
+        fc_none="No reliable forecast yet for {dest}: only {n} day(s) of stored prices, about 120 are needed. I will not guess.",
+        fc_ok="Forecast for {dest}: {txt}. Not a guarantee.", fc_h="in {d} days about ₹{p} (₹{lo} to ₹{hi})",
+        store="Nearest storage: {name}, about ₹{cost} for 7 days (estimate; the operator confirms space). ", no_store="No suitable storage nearby. ",
+        truck="Transport to {dest}: about ₹{cost} by {veh} (estimate).", conf="Confidence is {label}. {why}", no_conf="No confidence available.",
+        spoil="Spoilage risk on the best trip: {level} ({p}, about {h} hours).", no_spoil="No spoilage estimate for this crop.",
+        price="{mandi}: modal ₹{m} per quintal (₹{lo} to ₹{hi}), {age}", today="today", days_old="{n} days old",
+        no_order="There is no order yet. Say \"create the order\" to make one.", order="Order {id} is {status}.",
+        made="Done. Order {id} created for {label}, expected net ₹{net}. This is an expectation, not a final sale.",
+        transport_sent="Truck request {tr} sent to transporters (fare about ₹{fare}, estimate). I will tell you when one accepts.",
+        storage_sent="Storage request {id} sent to {name} for {days} days, about ₹{cost} (estimate). The operator will confirm.", event_done="Done. Order is now {status}.",
+        could_not="I could not do that now: {e}.", cant_change="I cannot change that setting.",
+        updated="Updated and recalculated. {msg}", payer_note=" The buyer pays commission by default, so your net does not change. Say \"seller pays\" to include it.",
+        where="Which village or town is the produce in?", not_yet="You have not told me about {crop} yet. Say, for example, \"I have 50 quintal {crop}\".",
+        crops="Your crops: {list}. Say a crop name to switch.", none_yet="none yet", no_use="No usable prices for that crop nearby.",
+        new_lot="New lot: {lot} near {loc}. {msg}", add_which="Which crop do you want to add, and how much? For example \"20 quintal potato\".",
+        need_unit="{n} what: kg, quintal or tonne?", removed="Removed {crop}. {msg}", last_lot="{crop} is your only crop. Say \"start over\" to begin again.",
+        qty_set="Changed to {lot}. {msg}", loc_set="Farm place changed to {loc}. {msg}", price_none="I have no {crop} price for that place in today's data.",
+        other_crop="{crop} prices: ", no_weather="I do not have weather data. I can help with mandi prices, sell or hold, transport, storage, orders and government schemes.", thanks="You are welcome. Ask me anything about selling your crop.", finish_first="Let us first finish your details.", retail="{crop} in {city} shops: about Rs {lo} to Rs {hi} per kg (estimate from mandi prices; shop prices are not what a farmer gets).",
+        no_retail="I have no recent {crop} mandi prices near {city} to estimate shop prices.", schemes="Opening government schemes for {state}.",
+        w_create="create the sale order for the best option", w_request_transport="request transport", w_request_storage="send the storage enquiry",
+        w_pickup="mark it picked up", w_deliver="mark it delivered", w_confirm_sale="confirm the final sale", w_cancel="cancel the order",
+        t_compare="the mandi comparison", t_forecast="the forecast", t_logistics="storage and transport", t_order="the order"),
+    "hi": dict(
+        need_plan="पहले अपनी फसल, मात्रा और गाँव बताइए, फिर मैं यह कर दूँगा।", confirm="क्या मैं {what}? हाँ या नहीं बोलिए।",
+        cancelled="ठीक है, मैंने नहीं किया।", dropped="ठीक है, अधूरा काम छोड़ दिया।", reset="नए सिरे से शुरू करते हैं।", lang="हिंदी में बदल दिया।",
+        unknown="मैं समझा नहीं। कहिए: \"कहाँ बेचूँ\", \"भाव अनुमान दिखाओ\", \"रोकूँ या बेचूँ\", \"ट्रक बुक करो\" या \"ऑर्डर बनाओ\"।",
+        best="सबसे अच्छा विकल्प: {label}। आपके हाथ में लगभग ₹{net}।", tab="{x} दिखा रहा हूँ।",
+        help="मैं बता सकता हूँ कहाँ बेचें, मंडियों की तुलना, अभी बेचें या रोकें, भाव अनुमान, भंडारण और ढुलाई, किसी मंडी का भाव, खर्च बदलना "
+             "(\"कमीशन 3 करो\"), नई फसल जोड़ना, और ऑर्डर बनाना व देखना। नए किसान के लिए \"नए सिरे से\" बोलिए।",
+        fc_none="{dest} के लिए अभी भरोसेमंद अनुमान नहीं: सिर्फ़ {n} दिन के भाव हैं, लगभग 120 चाहिए। मैं अंदाज़ा नहीं लगाऊँगा।",
+        fc_ok="{dest} का अनुमान: {txt}। पक्का नहीं।", fc_h="{d} दिन में लगभग ₹{p} (₹{lo} से ₹{hi})",
+        store="सबसे पास का भंडारण: {name}, 7 दिन का लगभग ₹{cost} (अनुमान; जगह की पुष्टि संचालक करेगा)। ", no_store="पास में उपयुक्त भंडारण नहीं। ",
+        truck="{dest} तक ढुलाई: {veh} से लगभग ₹{cost} (अनुमान)।", conf="भरोसा {label} है। {why}", no_conf="भरोसे का अनुमान उपलब्ध नहीं।",
+        spoil="सबसे अच्छे रास्ते पर खराब होने का जोखिम: {level} ({p}, लगभग {h} घंटे)।", no_spoil="इस फसल के खराब होने का अनुमान नहीं।",
+        price="{mandi}: मॉडल भाव ₹{m} प्रति क्विंटल (₹{lo} से ₹{hi}), {age}", today="आज का", days_old="{n} दिन पुराना",
+        no_order="अभी कोई ऑर्डर नहीं है। बनाने के लिए \"ऑर्डर बनाओ\" बोलिए।", order="ऑर्डर {id} की स्थिति: {status}।",
+        made="हो गया। {label} के लिए ऑर्डर {id} बना, अपेक्षित कमाई ₹{net}। यह अनुमान है, अंतिम बिक्री नहीं।",
+        transport_sent="ट्रक अनुरोध {tr} ट्रांसपोर्टरों को भेज दिया (किराया लगभग ₹{fare}, अनुमान)। कोई स्वीकार करेगा तो मैं बताऊँगा।",
+        storage_sent="भंडारण अनुरोध {id} {name} को {days} दिन के लिए भेजा, लगभग ₹{cost} (अनुमान)। संचालक पुष्टि करेगा।", event_done="हो गया। ऑर्डर की स्थिति अब: {status}।",
+        could_not="अभी यह नहीं हो सका: {e}।", cant_change="यह सेटिंग नहीं बदल सकता।",
+        updated="बदल दिया और फिर से हिसाब किया। {msg}", payer_note=" कमीशन आम तौर पर खरीदार देता है, इसलिए आपकी कमाई नहीं बदली। जोड़ने के लिए \"कमीशन मैं दूँगा\" बोलिए।",
+        where="माल किस गाँव या शहर में है?", not_yet="आपने अभी {crop} के बारे में नहीं बताया। जैसे बोलिए: \"मेरे पास 50 क्विंटल {crop} है\"।",
+        crops="आपकी फसलें: {list}। बदलने के लिए फसल का नाम बोलिए।", none_yet="अभी कोई नहीं", no_use="पास में इस फसल का उपयोगी भाव नहीं।",
+        new_lot="नया माल: {loc} के पास {lot}। {msg}", add_which="कौन सी फसल जोड़नी है और कितनी? जैसे \"20 क्विंटल आलू\"।",
+        need_unit="{n} क्या: किलो, क्विंटल या टन?", removed="{crop} हटा दिया। {msg}", last_lot="{crop} आपकी अकेली फसल है। नए सिरे से शुरू करने के लिए \"नए सिरे से\" बोलिए।",
+        qty_set="बदल दिया: {lot}। {msg}", loc_set="खेत की जगह बदलकर {loc} कर दी। {msg}", price_none="आज के डेटा में उस जगह का {crop} भाव नहीं है।",
+        other_crop="{crop} के भाव: ", no_weather="मेरे पास मौसम की जानकारी नहीं है। मैं मंडी भाव, बेचें या रोकें, ढुलाई, भंडारण, ऑर्डर और सरकारी योजनाओं में मदद कर सकता हूँ।", thanks="आपका स्वागत है। फसल बेचने के बारे में कुछ भी पूछिए।", finish_first="पहले आपकी जानकारी पूरी कर लेते हैं।", retail="{city} की दुकानों में {crop}: लगभग ₹{lo} से ₹{hi} प्रति किलो (मंडी भाव से अनुमान; दुकान का भाव किसान का भाव नहीं होता)।",
+        no_retail="{city} के पास {crop} के हाल के मंडी भाव नहीं हैं, इसलिए दुकान भाव का अनुमान नहीं लगा सकता।", schemes="{state} की सरकारी योजनाएँ खोल रहा हूँ।",
+        w_create="सबसे अच्छे विकल्प के लिए बिक्री ऑर्डर बना दूँ", w_request_transport="ढुलाई का अनुरोध भेज दूँ", w_request_storage="भंडारण की पूछताछ भेज दूँ",
+        w_pickup="माल उठ गया दर्ज कर दूँ", w_deliver="माल पहुँच गया दर्ज कर दूँ", w_confirm_sale="अंतिम बिक्री पक्की कर दूँ", w_cancel="ऑर्डर रद्द कर दूँ",
+        t_compare="मंडियों की तुलना", t_forecast="भाव अनुमान", t_logistics="भंडारण और ढुलाई", t_order="ऑर्डर"),
+    "mr": dict(
+        need_plan="आधी तुमची पिके, प्रमाण आणि गाव सांगा, मग मी ते करतो.", confirm="मी {what} का? होय किंवा नाही म्हणा.",
+        cancelled="ठीक आहे, मी केले नाही.", dropped="ठीक आहे, अर्धवट काम सोडले.", reset="पुन्हा सुरू करतो.", lang="मराठीत बदलले.",
+        unknown="मला समजले नाही. म्हणा: \"कुठे विकू\", \"भाव अंदाज दाखवा\", \"थांबू का विकू\", \"ट्रक बुक करा\" किंवा \"ऑर्डर तयार करा\".",
+        best="सर्वोत्तम पर्याय: {label}. तुमच्या हातात सुमारे ₹{net}.", tab="{x} दाखवतो.",
+        help="मी सांगू शकतो कुठे विकायचे, मंडईंची तुलना, आता विकायचे की थांबायचे, भाव अंदाज, साठवण व वाहतूक, एखाद्या मंडईचा भाव, खर्च बदलणे "
+             "(\"कमिशन 3 करा\"), नवीन पीक जोडणे, आणि ऑर्डर तयार करणे व पाहणे. नवीन शेतकऱ्यासाठी \"पुन्हा सुरू\" म्हणा.",
+        fc_none="{dest} साठी अजून विश्वासार्ह अंदाज नाही: फक्त {n} दिवसांचे भाव आहेत, सुमारे 120 लागतात. मी अंदाजाने सांगणार नाही.",
+        fc_ok="{dest} चा अंदाज: {txt}. खात्री नाही.", fc_h="{d} दिवसांत सुमारे ₹{p} (₹{lo} ते ₹{hi})",
+        store="जवळची साठवण: {name}, 7 दिवसांसाठी सुमारे ₹{cost} (अंदाज; जागेची खात्री चालक करेल). ", no_store="जवळ योग्य साठवण नाही. ",
+        truck="{dest} पर्यंत वाहतूक: {veh} ने सुमारे ₹{cost} (अंदाज).", conf="खात्री {label} आहे. {why}", no_conf="खात्रीचा अंदाज उपलब्ध नाही.",
+        spoil="सर्वोत्तम प्रवासात माल खराब होण्याचा धोका: {level} ({p}, सुमारे {h} तास).", no_spoil="या पिकाचा खराब होण्याचा अंदाज नाही.",
+        price="{mandi}: मॉडल भाव ₹{m} प्रति क्विंटल (₹{lo} ते ₹{hi}), {age}", today="आजचा", days_old="{n} दिवस जुना",
+        no_order="अजून ऑर्डर नाही. तयार करण्यासाठी \"ऑर्डर तयार करा\" म्हणा.", order="ऑर्डर {id} ची स्थिती: {status}.",
+        made="झाले. {label} साठी ऑर्डर {id} तयार, अपेक्षित कमाई ₹{net}. हा अंदाज आहे, अंतिम विक्री नाही.",
+        transport_sent="ट्रक विनंती {tr} वाहतूकदारांना पाठवली (भाडे सुमारे ₹{fare}, अंदाज). कोणी स्वीकारल्यावर मी सांगेन.",
+        storage_sent="साठवण विनंती {id} {name} कडे {days} दिवसांसाठी पाठवली, सुमारे ₹{cost} (अंदाज). चालक खात्री करेल.", event_done="झाले. ऑर्डरची स्थिती आता: {status}.",
+        could_not="आत्ता हे करता आले नाही: {e}.", cant_change="ही सेटिंग बदलता येत नाही.",
+        updated="बदलले आणि पुन्हा हिशोब केला. {msg}", payer_note=" कमिशन सहसा खरेदीदार देतो, त्यामुळे तुमची कमाई बदलली नाही. जोडण्यासाठी \"कमिशन मी देतो\" म्हणा.",
+        where="माल कोणत्या गावात किंवा शहरात आहे?", not_yet="तुम्ही अजून {crop} बद्दल सांगितले नाही. उदा. म्हणा: \"माझ्याकडे 50 क्विंटल {crop} आहे\".",
+        crops="तुमची पिके: {list}. बदलण्यासाठी पिकाचे नाव सांगा.", none_yet="अजून काही नाही", no_use="जवळ या पिकाचा वापरण्याजोगा भाव नाही.",
+        new_lot="नवीन माल: {loc} जवळ {lot}. {msg}", add_which="कोणते पीक जोडायचे आणि किती? उदा. \"20 क्विंटल बटाटा\".",
+        need_unit="{n} काय: किलो, क्विंटल की टन?", removed="{crop} काढले. {msg}", last_lot="{crop} हे तुमचे एकमेव पीक आहे. पुन्हा सुरू करण्यासाठी \"पुन्हा सुरू\" म्हणा.",
+        qty_set="बदलले: {lot}. {msg}", loc_set="शेताचे ठिकाण {loc} केले. {msg}", price_none="आजच्या माहितीत त्या ठिकाणचा {crop} भाव नाही.",
+        other_crop="{crop} भाव: ", no_weather="माझ्याकडे हवामानाची माहिती नाही. मी मंडी भाव, विकायचे की थांबायचे, वाहतूक, साठवण, ऑर्डर आणि सरकारी योजनांमध्ये मदत करू शकतो.", thanks="आपले स्वागत आहे. पीक विकण्याबद्दल काहीही विचारा.", finish_first="आधी तुमची माहिती पूर्ण करूया.", retail="{city} मधील दुकानांत {crop}: सुमारे ₹{lo} ते ₹{hi} प्रति किलो (मंडी भावावरून अंदाज; दुकानाचा भाव शेतकऱ्याचा भाव नसतो).",
+        no_retail="{city} जवळ {crop} चे अलीकडील मंडी भाव नाहीत, त्यामुळे दुकान भावाचा अंदाज देता येत नाही.", schemes="{state} च्या सरकारी योजना उघडत आहे.",
+        w_create="सर्वोत्तम पर्यायासाठी विक्री ऑर्डर तयार करू", w_request_transport="वाहतुकीची विनंती पाठवू", w_request_storage="साठवणुकीची चौकशी पाठवू",
+        w_pickup="माल उचलला अशी नोंद करू", w_deliver="माल पोहोचला अशी नोंद करू", w_confirm_sale="अंतिम विक्री निश्चित करू", w_cancel="ऑर्डर रद्द करू",
+        t_compare="मंडईंची तुलना", t_forecast="भाव अंदाज", t_logistics="साठवण आणि वाहतूक", t_order="ऑर्डर"),
+}
+STATUS = {"hi": {"created": "बना", "transport_requested": "ढुलाई माँगी", "storage_enquiry_sent": "भंडारण पूछताछ भेजी", "transport_accepted": "ढुलाई स्वीकार",
+                 "in_transit": "रास्ते में", "delivered": "पहुँच गया", "sale_confirmed": "बिक्री पक्की", "cancelled": "रद्द", "storage_confirmed": "भंडारण पक्का"},
+          "mr": {"created": "तयार", "transport_requested": "वाहतूक मागितली", "storage_enquiry_sent": "साठवण चौकशी पाठवली", "transport_accepted": "वाहतूक स्वीकारली",
+                 "in_transit": "वाटेत", "delivered": "पोहोचला", "sale_confirmed": "विक्री निश्चित", "cancelled": "रद्द", "storage_confirmed": "साठवण निश्चित"}}
+CONF = {"hi": {"low": "कम", "medium": "मध्यम", "high": "ज़्यादा"}, "mr": {"low": "कमी", "medium": "मध्यम", "high": "जास्त"}}
+ACTION = {"hi": {"SELL NOW": "अभी बेचें", "HOLD": "रोकें", "INSUFFICIENT INFORMATION": "जानकारी कम है"},
+          "mr": {"SELL NOW": "आता विका", "HOLD": "थांबा", "INSUFFICIENT INFORMATION": "माहिती अपुरी"}}
+TOOLS = ["show_tab", "compare", "forecast", "explain_decision", "price_of", "logistics", "confidence", "spoilage", "set_assumption", "set_lot", "add_crop",
+         "remove_lot", "set_qty", "set_location",
+         "create_order", "order_event", "track_order", "read_aloud", "set_language", "start_over", "help", "list_crops"]
+CONFIRM_TOOLS = {"create_order", "order_event"}
+ARGLESS = {"add_crop", "compare", "forecast", "explain_decision", "logistics", "confidence", "spoilage", "track_order", "read_aloud", "create_order", "start_over", "help", "list_crops"}
+ALLOWED_ASSUMPTIONS = {"commission_pct", "hamali_per_qtl", "road_factor", "risk_allowance_pct", "commission_payer", "financing_annual_pct", "ambient_temp_c"}
+QUESTION_TOOLS = {"compare", "forecast", "explain_decision", "price_of", "retail", "logistics", "confidence", "spoilage", "track_order",
+                  "create_order", "order_event", "read_aloud"}
+FARMER_EVENTS = {"request_transport", "request_storage", "pickup", "deliver", "confirm_sale", "cancel"}  # never the transporter's/operator's events
+
+
+DASH_SAY = {"en": "Opening your dashboard: {x}.", "hi": "आपका डैशबोर्ड खोल रहा हूँ: {x}।", "mr": "तुमचा डॅशबोर्ड उघडतो: {x}."}
+DASH_NAMES = {"en": {"home": "everything at a glance", "crops": "your crops and best mandi", "forecast": "the price forecast", "tickets": "your tickets",
+                     "storage": "your storage", "transport": "transport and contacts", "chat": "our conversation", "alerts": "your alerts"},
+              "hi": {"home": "सब एक नज़र में", "crops": "आपकी फसलें और सबसे अच्छी मंडी", "forecast": "भाव का अनुमान", "tickets": "आपके टिकट",
+                     "storage": "आपका भंडारण", "transport": "ढुलाई और संपर्क", "chat": "हमारी बातचीत", "alerts": "आपकी सूचनाएँ"},
+              "mr": {"home": "सर्व एका नजरेत", "crops": "तुमची पिके आणि सर्वोत्तम मंडई", "forecast": "भावाचा अंदाज", "tickets": "तुमची तिकिटे",
+                     "storage": "तुमची साठवण", "transport": "वाहतूक आणि संपर्क", "chat": "आपली बातचीत", "alerts": "तुमच्या सूचना"}}
+
+
+def rt(lang, key, **kw):
+    return (R.get(lang) or R["en"]).get(key, R["en"][key]).format(**kw)
+
+
+def _inr(n) -> str:
+    s = str(int(round(abs(n))))
+    if len(s) > 3:
+        head, tail, parts = s[:-3], s[-3:], []
+        while len(head) > 2:
+            parts.insert(0, head[-2:])
+            head = head[:-2]
+        s = ",".join(([head] if head else []) + parts + [tail])
+    return ("-" if n < 0 else "") + s
+
+
+def _status(s, lang):
+    return STATUS.get(lang, {}).get(s, s.replace("_", " "))
+
+
+# ---------------------------------------------------------------- intent router (rules: fast, offline)
+DASH_RX = re.compile(r"dashboard|dash board|डैशबोर्ड|डॅशबोर्ड|my ticket|ticket|टिकट|तिकीट|my booking|bookings|बुकिंग|summary|सारांश|सब कुछ दिखा|"
+                     r"sab kuch dikha|sab dikhao|mera hisab|मेरा हिसाब|माझा हिशोब|my account|everything i did|my history|"
+                     r"(transporter|driver|truck|tempo|gaadi|ड्राइवर|ट्रक|गाड़ी|गाडी|ट्रान्सपोर्ट|ट्रांसपोर्ट).{0,24}(phone|number|contact|nambar|नंबर|फोन|फ़ोन|क्रमांक)")
+DASH_SECTIONS = (("ticket|टिकट|तिकीट|order|ऑर्डर", "tickets"), ("storage|godown|godam|गोदाम|भंडारण|साठवण|cold|शीतगृह", "storage"),
+                 ("transport|truck|ट्रक|गाड़ी|गाडी|driver|phone|फोन|नंबर|number|contact", "transport"),
+                 ("forecast|अनुमान|अंदाज|prediction|भविष्य", "forecast"), ("chat|बातचीत|गप्पा|conversation|what i said|मैंने क्या", "chat"),
+                 ("alert|notification|सूचना|message|मेसेज", "alerts"), ("crop|फसल|पीक|mandi|मंडी|मंडई", "crops"))
+SCHEME_RX = re.compile(r"scheme|yojana|yojna|subsid|bima|beema|insurance|pension|योजना|अनुदान|सब्सिडी|बीमा|विमा|पेंशन|पेन्शन")
+
+
+def route(text: str) -> tuple[str, dict]:
+    low = text.translate(P.DEV).lower().replace(",", "")
+    has = lambda *w: any(x in low for x in w)  # noqa: E731
+    if has("start over", "reset", "new farmer", "नए सिरे", "पुन्हा सुरू", "फिर से शुरू"):
+        return "start_over", {}
+    for words, code in (("hindi हिंदी हिन्दी", "hi"), ("marathi मराठी", "mr"), ("english अंग्रेजी अंग्रेज़ी इंग्रजी", "en")):
+        if has(*words.split()) and (has("speak", "switch", "change", "language", "in ", "please", "बोल", "भाषा", "बदल", "मध्ये", "में") or len(low.split()) <= 2):
+            return "set_language", {"lang": code}
+    if has("weather", "mausam", "barish", "baarish", "rain", "मौसम", "बारिश", "हवामान", "पाऊस"):
+        return "weather", {}
+    if DASH_RX.search(low) and not has("create", "book ", "बुक कर", "cancel", "रद्द"):  # "show my tickets", "mera hisab dikhao"
+        return "dashboard", {"section": dash_section(low)}
+    sp = SC.parse(text)
+    if SCHEME_RX.search(low) or sp.get("q"):  # "punjab ki bima yojana", "PM kisan dikhao": exactly that state / kind / scheme
+        return "schemes", sp
+    if re.match(r"\s*(why|kyun|kyon|kyu|क्यों|क्यूँ|कशामुळे)", low) or has("why is", "why not", "explain why", "kyun "):
+        return "explain", {}
+    if has("thank", "dhanyavad", "dhanyawad", "shukriya", "धन्यवाद", "शुक्रिया", "आभार") and len(low.split()) <= 4:  # "show schemes, thanks" is a request
+        return "thanks", {}
+    if has("bech do", "bech dijiye", "bech dena", "sell it", "go ahead and sell", "help me sell", "sell this", "sell kar", "buy kar", "move it",
+           "order bana", "बेच दो", "बेच दीजिए", "बेचा", "बेचायचे", "बेचना है", "विकून टाका", "विकून द्या", "विकायचे", "विकायचा") \
+            and not has("should", " or ", " ya ", "hold", "ruk", "wait", "rok", "chahiye", "kab ", "when", "चाहिए", "की रुक", "का थांब"):
+        return "create_order", {}
+    if has("what can you do", "help", "मदद", "काय करू शकता", "क्या कर सकते"):
+        return "help", {}
+    if has("my crops", "what crops", "which crops", "list crops", "मेरी फसल", "माझी पिके", "कौन सी फसल", "कोणती पिके"):
+        return "list_crops", {}
+    found = P.extract(text)
+    if "crop" in found and (re.search(r"\b(remove|delete|drop)\b", low) or has("हटाओ", "हटा दो", "निकालो", "काढा", "काढून")):
+        return "remove_lot", {"crop": found["crop"]}
+    if "crop" in found and "qty" in found:  # "20 quintal potato", "I also have 20 quintal potato", "मेरे पास 20 क्विंटल आलू भी है"
+        return "set_lot", {**found, "text": text}
+    if has("add more", "add crop", "add another", "another crop", "more crop", "one more", "new crop", "और फसल", "दूसरी फसल", "नई फसल", "फसल जोड़",
+           "आणखी पीक", "दुसरे पीक", "नवीन पीक", "पीक जोड") and "crop" not in found:
+        return "add_crop", {}
+    if has("my farm", "farm is", "village is", "my village", "i am in", "i live", "i'm in", "moved to", "मेरा खेत", "मेरा गाँव", "मेरा गांव", "माझे शेत",
+           "माझे गाव", "खेत अब", "शेत आता"):
+        return "set_location", {"text": text}
+    for rx, k in ((r"(?:commission|कमीशन|कमिशन)\D{0,14}(\d+(?:\.\d+)?)", "commission_pct"), (r"(?:hamali|हमाली)\D{0,14}(\d+(?:\.\d+)?)", "hamali_per_qtl"),
+                  (r"road factor\D{0,8}(\d+(?:\.\d+)?)", "road_factor"), (r"risk(?: allowance)?\D{0,10}(\d+(?:\.\d+)?)", "risk_allowance_pct")):
+        m = re.search(rx, low)
+        if m:
+            return "set_assumption", {k: float(m.group(1))}
+    if has("seller pays", "i pay the commission", "कमीशन मैं दूँगा", "कमिशन मी देतो"):
+        return "set_assumption", {"commission_payer": "seller"}
+    if has("buyer pays"):
+        return "set_assumption", {"commission_payer": "buyer"}
+    m = re.search(r"(?:sold|sale|price|at|@|₹|rs\.?)\s*(\d{3,6})", low)
+    if has("confirm the sale", "confirm sale", "i sold", "sale done", "बेच दिया", "विकले") and m:
+        return "order_event", {"event": "confirm_sale", "actual_price": float(m.group(1))}
+    for phrase, ev in (("book transport", "request_transport"), ("request transport", "request_transport"), ("book a truck", "request_transport"),
+                       ("book truck", "request_transport"), ("ट्रक बुक", "request_transport"), ("गाड़ी बुक", "request_transport"),
+                       ("book storage", "request_storage"), ("storage enquiry", "request_storage"), ("book cold storage", "request_storage"),
+                       ("भंडारण बुक", "request_storage"), ("साठवण बुक", "request_storage"), ("mark delivered", "deliver"), ("it is delivered", "deliver"),
+                       ("पहुँच गया", "deliver"), ("पोहोचला", "deliver"), ("picked up", "pickup"), ("cancel the order", "cancel"), ("cancel order", "cancel"),
+                       ("ऑर्डर रद्द", "cancel")):
+        if phrase in low:
+            return "order_event", {"event": ev}
+    if "qty" in found and "crop" not in found and not has("hamali", "हमाली", "commission", "कमीशन", "transport", "truck", "ढुलाई"):
+        return "set_qty", {"qty": found["qty"]}  # "actually it is 80 quintal" changes the crop on screen
+    if has("create the order", "create order", "place the order", "place order", "sale order", "book it", "ऑर्डर बना", "ऑर्डर तयार", "ऑर्डर कर"):
+        return "create_order", {}
+    if has("track", "my order", "order status", "where is the order", "order kahan", "order kaha", "order kuthe", "ऑर्डर स्टेटस", "ऑर्डर कहाँ", "ऑर्डर कहां",
+           "ऑर्डर कुठे", "ऑर्डर की स्थिति", "ऑर्डरची स्थिती"):
+        return "track_order", {}
+    if has("forecast", "predict", "next week", "will the price", "price go", "price will", "agle hafte", "agle week", "aage bhav", "rahega", "badhega",
+           "girega", "भाव अनुमान", "अनुमान", "अंदाज", "आगे भाव", "भविष्य", "अगले हफ्ते", "अगले सप्ताह", "रहेगा", "बढ़ेगा", "गिरेगा", "पुढच्या आठवड्यात",
+           "पुढील आठवड्यात", "वाढेल", "असेल"):
+        return "forecast", {}
+    if has("sell now", "hold", "wait", "should i sell", "should i keep", "बेचूँ", "बेचूं", "रोकूँ", "रोकूं", "थांबू", "विकू का", "रोक") \
+            and not has("where", "which mandi", "कहाँ", "कहां", "कुठे"):
+        return "explain_decision", {}
+    if has("how sure", "confident", "reliable", "trust", "भरोसा", "किती खात्री"):
+        return "confidence", {}
+    if has("spoil", "rot", "fresh", "खराब", "सड़"):
+        return "spoilage", {}
+    if has("storage", "warehouse", "cold store", "godam", "godown", "gudam", "sheetgruh", "transport", "truck", "gaadi", "भंडारण", "गोदाम", "साठवण",
+           "शीतगृह", "कोल्ड", "ट्रक", "ढुलाई", "वाहतूक"):
+        return "logistics", {}
+    if has("read", "say again", "repeat", "tell me", "सुनाओ", "सुनाइए", "ऐका", "पुन्हा सांगा"):
+        return "read_aloud", {}
+    if has("net", "how much will i", "how much money", "how much do i", "earn", "kitna milega", "कितना पैसा", "कितनी कमाई", "कितना मिलेगा", "किती पैसे",
+           "किती मिळेल", "कमाई"):
+        return "compare", {}
+    if has("shop", "retail", "dukan", "दुकान", "खुदरा", "किरकोळ") and has("price", "rate", "bhav", "भाव", "दाम", "किंमत", "kitne", "कितने", "किती"):
+        return "retail", {"crop": found.get("crop"), "city": "", "text": text}
+    if has("price", "rate", "bhav", "भाव", "दाम", "किंमत"):
+        return "price_of", {"text": low}
+    if has("best", "which mandi", "where should", "where to sell", "compare", "rank", "kahan bech", "kaha bech", "kidhar bech", "konsi mandi", "kaunsi mandi",
+           "kuthe vik", "सबसे अच्छ", "कहाँ बेच", "कहां बेच", "कुठे विक", "कौन सी मंडी", "कोणती मंडई", "तुलना", "show me"):
+        return "compare", {}
+    for k in ("order", "compare", "forecast"):
+        if has(f"open {k}", f"go to {k}", f"show {k}"):
+            return "show_tab", {"tab": k}
+    return "unknown", {}
+
+
+def dash_section(low: str) -> str:
+    return next((sec for words, sec in DASH_SECTIONS if re.search(words, low)), "home")
+
+
+def _tab(t):
+    return {"type": "tab", "value": t}
+
+
+def _best_msg(plan, lang):
+    rec = plan.get("recommendation") or {}
+    b = rec.get("best")
+    return rt(lang, "best", label=b["label"], net=_inr(b["net"])) if b else (rec.get("reason") or rt(lang, "no_use"))
+
+
+# ---------------------------------------------------------------- tools (deterministic)
+def run_tool(tool: str, args: dict, st: dict, lang: str, db) -> dict:
+    plan = st.get("plan")
+    if tool == "thanks":
+        return {"reply": rt(lang, "thanks"), "actions": []}
+    if tool == "weather":
+        return {"reply": rt(lang, "no_weather"), "actions": []}
+    if tool == "explain":  # without the LLM: the deterministic verdict and its reasons
+        tool = "explain_decision"
+    if tool not in ("help", "start_over", "set_language", "set_lot", "schemes", "weather", "thanks", "dashboard") and not plan:
+        return {"reply": rt(lang, "need_plan"), "actions": []}
+    if tool == "help":
+        return {"reply": rt(lang, "help"), "actions": []}
+    if tool == "start_over":
+        STATE.pop(st["sid"], None)
+        farmers.clear(db, st["sid"])
+        intake.forget(st["sid"], db)
+        return {"reply": rt(lang, "reset"), "actions": [{"type": "reset"}]}
+    if tool == "set_language":
+        L2 = args["lang"]
+        if plan and st.get("farmer"):  # re-run so every sentence of the plan is in the new language too
+            st["farmer"]["lang"] = L2
+            _activate(st, st["active"], L2)
+            return {"reply": rt(L2, "lang"), "actions": [{"type": "lang", "value": L2}, {"type": "plan", "plan": st["plan"]}], "lang": L2}
+        return {"reply": rt(L2, "lang"), "actions": [{"type": "lang", "value": L2}], "lang": L2}
+    if tool == "show_tab":
+        return {"reply": rt(lang, "tab", x=rt(lang, "t_" + args["tab"])), "actions": [_tab(args["tab"])]}
+    if tool == "set_lot":  # "50 quintal onion aur 15 quintal chana": every crop with an amount, not only the first
+        segs = [P.extract(x) for x in intake.SEP.split(args.get("text") or "")] if args.get("text") else []
+        more = [f for f in segs if "crop" in f and "qty" in f and f["crop"] != args["crop"]]
+        out = _set_lot(args, st, lang, db)
+        for f in more:
+            out = _set_lot({"crop": f["crop"], "qty": f["qty"]}, st, lang, db)
+        return out
+    if tool == "dashboard":
+        sec = args.get("section") if args.get("section") in DASH_NAMES["en"] else "home"
+        return {"reply": DASH_SAY[lang].format(x=DASH_NAMES[lang][sec]), "actions": [{"type": "nav", "value": "dashboard", "section": sec}]}
+    if tool == "schemes":
+        state = args.get("state") or _farm_state(st)
+        reply, flt = SC.say(state, lang, args.get("category"), args.get("q"), gazetteer.dev_name(state) if lang != "en" else state)
+        return {"reply": reply, "actions": [{"type": "nav", "value": "schemes", "state": state, "cat": flt["category"] or "", "q": flt["q"] or ""}]}
+    if tool == "retail":
+        return _retail(args.get("crop") or plan["profile"]["crop"], args.get("city") or _city_in(args.get("text", "")), st, lang)
+    if tool == "add_crop":
+        st["await"] = {"crop": None}
+        return {"reply": rt(lang, "add_which"), "actions": []}
+    if tool == "remove_lot":
+        return _remove_lot(args["crop"], st, lang, db)
+    if tool == "set_qty":
+        return _set_lot({"crop": st["active"], "qty": args["qty"]}, st, lang, db, key="qty_set")
+    if tool == "set_location":
+        hit = P._geocode(db, args["text"])
+        if not hit:
+            return {"reply": P.PLACE_HELP[lang], "actions": []}
+        st["farmer"]["location"] = hit
+        farmers.save(db, st["sid"], st["farmer"])
+        new = _activate(st, st["active"], lang)
+        return {"reply": rt(lang, "loc_set", loc=hit["name"], msg=_best_msg(new, lang)), "actions": [{"type": "plan", "plan": new}]}
+
+    rec = plan.get("recommendation") or {}
+    best = rec.get("best")
+    if tool == "list_crops":
+        lots = (st.get("farmer") or {}).get("lots", {})
+        return {"reply": rt(lang, "crops", list=intake.lots_text(lots, lang) if lots else rt(lang, "none_yet")), "actions": []}
+    if tool == "compare":
+        return {"reply": _best_msg(plan, lang), "actions": [_tab("compare")]}
+    if tool == "explain_decision":
+        dec = rec.get("decision") or (plan.get("sell_vs_hold") or {}).get("decision") or {}
+        action = ACTION.get(lang, {}).get(dec.get("action"), dec.get("action", ""))
+        return {"reply": f"{action}. {dec.get('reason', '')} {'; '.join(dec.get('factors', [])[:3])}".strip(), "actions": [_tab("compare")]}
+    if tool == "forecast":
+        dest = (plan.get("sell_vs_hold") or {}).get("destination") or (best or {}).get("destination")
+        if not dest:
+            return {"reply": _best_msg(plan, lang), "actions": []}
+        ok = [h for h in (plan.get("forecasts") or {}).get(dest, {}).get("horizons", []) if h["status"] == "ok"]
+        name = dest.split(", ")[0]
+        if ok:
+            txt = "; ".join(rt(lang, "fc_h", d=h["horizon_days"], p=_inr(h["predicted"]), lo=_inr(h["lo"]), hi=_inr(h["hi"])) for h in ok[:3])
+            return {"reply": rt(lang, "fc_ok", dest=name, txt=txt), "actions": [_tab("forecast")]}
+        return {"reply": rt(lang, "fc_none", dest=name, n=len(MD.series(plan["profile"]["crop"], dest))), "actions": [_tab("forecast")]}
+    if tool == "logistics":
+        stor, trs = plan.get("storage") or [], plan.get("transport") or []
+        s = rt(lang, "store", name=stor[0]["name"], cost=_inr(stor[0]["est_cost_7d"])) if stor else rt(lang, "no_store")
+        t = ""
+        if trs and trs[0].get("options"):
+            o = min(trs[0]["options"], key=lambda v: v["total"])
+            t = rt(lang, "truck", dest=trs[0]["destination"].split(", ")[0], cost=_inr(o["total"]), veh=o["vehicle"])
+        return {"reply": s + t, "actions": [_tab("logistics")]}
+    if tool == "confidence":
+        c = rec.get("confidence")
+        if not c:
+            return {"reply": rt(lang, "no_conf"), "actions": []}
+        return {"reply": rt(lang, "conf", label=CONF.get(lang, {}).get(c["label"], c["label"]), why="; ".join(c["detractors"][:2] or c["contributors"][:2])), "actions": []}
+    if tool == "spoilage":
+        sp = (best or {}).get("spoilage")
+        return {"reply": rt(lang, "spoil", level=sp["level"], p=f"{sp['probability']:.0%}", h=sp["transit_hours"]) if sp else rt(lang, "no_spoil"), "actions": []}
+    if tool == "price_of":
+        return _price_of(args.get("text", ""), plan, lang)
+    if tool == "read_aloud":
+        return {"reply": _best_msg(plan, lang), "actions": []}
+    if tool == "track_order":
+        o = ops.get_order(db, st["order_id"]) if st.get("order_id") else None
+        if not o:
+            return {"reply": rt(lang, "no_order"), "actions": []}
+        return {"reply": rt(lang, "order", id=o["id"], status=_status(o["status"], lang)), "actions": [{"type": "order", "order": o}, _tab("order")]}
+    if tool == "set_assumption":
+        bad = [k for k, v in args.items() if k not in ALLOWED_ASSUMPTIONS or (k != "commission_payer" and not (isinstance(v, (int, float)) and 0 <= v <= 1000))]
+        if bad or not args or ("road_factor" in args and not 1 <= args["road_factor"] <= 3):
+            return {"reply": rt(lang, "cant_change"), "actions": []}
+        st["override"] = {**st.get("override", {}), **args}
+        new = _activate(st, st["active"], lang)
+        note = rt(lang, "payer_note") if "commission_pct" in args and new["assumptions"]["commission_payer"] == "buyer" else ""
+        return {"reply": rt(lang, "updated", msg=_best_msg(new, lang)) + note, "actions": [{"type": "plan", "plan": new}]}
+    return {"reply": rt(lang, "unknown"), "actions": []}
+
+
+STOP = {"leaves", "price", "prices", "rate", "rates", "what", "mandi", "market", "today", "show", "tell", "much", "there", "bhav", "the", "for", "kya", "hai",
+        "भाव", "क्या", "है", "में", "का", "की", "मंडी", "आज", "किती", "आहे", "मध्ये", "चा", "ची", "काय", "बताओ", "सांगा", "दाम", "किंमत"}
+
+
+def _norm_dev(s: str) -> str:
+    return re.sub(r"[ँंऺ़]", "", s)
+
+
+def _price_of(low: str, plan: dict, lang: str, crop: str | None = None) -> dict:
+    """Price of the farmer's crop (or another named crop) at a named mandi / town, else the 3 nearest mandis. Latest official row only."""
+    f = P.extract(low)
+    crop = crop or f.get("crop") or plan["profile"]["crop"]
+    rows = MD.mandis_with_prices(crop)
+    words = [w for w in re.findall(r"[a-z]{4,}|[ऀ-ॿ]{2,}", low) if w not in STOP and not P._crop(w, w) and w not in crop]
+    # Devanagari words are compared both as script and as their romanized spellings ("लासलगाँव" -> lasalgaon)
+    latin = {w: ([w] if w.isascii() else [v for x in {w, _norm_dev(w)} for v in gazetteer._latin_variants(x) if len(v) >= 4]) for w in words}
+    words = [_norm_dev(w) for w in words]
+    hits = []
+    for m in rows:
+        dv, nm, ds = _norm_dev(gazetteer.dev_name(m["key"])), m["name"].lower(), (m["district"] or "").lower()
+        name_hit = any(w in dv.split(",")[0] or any(x in nm for x in lat) for w, lat in zip(words, latin.values()))
+        dist_hit = any(w in dv or any(x in ds for x in lat) for w, lat in zip(words, latin.values()))
+        if name_hit or dist_hit:
+            hits.append((0 if name_hit else 1, m))
+    if words and not hits:
+        return {"reply": rt(lang, "price_none", crop=intake.crop_label(crop, lang)), "actions": []}
+    loc = plan["profile"]["location"]
+    near = lambda m: haversine_km((loc["lat"], loc["lon"]), (m["lat"], m["lon"]))  # noqa: E731
+    pick = [m for _, m in sorted(hits, key=lambda h: (h[0], near(h[1])))] if hits else sorted(rows, key=near)
+    out = []
+    for m in pick[:3]:
+        df = MD.series(crop, m["key"])
+        if df.empty:
+            continue
+        r = df.iloc[-1]
+        age = (date.today() - r["date"].date()).days
+        out.append(rt(lang, "price", mandi=_mandi_name(m["key"], lang), m=_inr(r["modal"]), lo=_inr(r["min"]), hi=_inr(r["max"]),
+                      age=rt(lang, "today") if age <= 0 else rt(lang, "days_old", n=age)))
+    head = rt(lang, "other_crop", crop=intake.crop_label(crop, lang)) if crop != plan["profile"]["crop"] else ""
+    return {"reply": head + "; ".join(out) if out else rt(lang, "no_use"), "actions": [_tab("compare")]}
+
+
+RETAIL_MARKUP = {"grain": (1.25, 1.5), "pulse": (1.25, 1.5), "oilseed": (1.2, 1.5), "fibre": (1.1, 1.3), "spice": (1.4, 1.9)}  # else (1.6, 2.4)
+
+
+def _farm_state(st: dict) -> str:
+    loc = (st.get("farmer") or {}).get("location") or {}
+    if loc.get("state"):
+        return loc["state"]
+    best = ((st.get("plan") or {}).get("recommendation") or {}).get("best") or {}
+    guess = (best.get("destination") or "").rsplit(", ", 1)[-1]
+    return guess if guess in SC.ALL_STATES else "Maharashtra"  # a mandi name is not a state
+
+
+def _city_in(text: str) -> str:
+    """A town named in the sentence ('mumbai ki dukano me ...'): the first word the gazetteer knows as a sizeable town."""
+    from app.db import database
+    with database.SessionLocal() as s:
+        for w in re.findall(r"[A-Za-z]{4,}|[ऀ-ॿ]{3,}", text):
+            if w.lower() in STOP or P._crop(w, w.lower()):
+                continue
+            hit = gazetteer.find(s, w)
+            if hit and hit.get("population", 0) >= 50000:
+                return w
+    return ""
+
+
+def _retail(crop: str, city: str, st: dict, lang: str) -> dict:
+    """Shop-price CONTEXT only: median recent mandi modal near the city x a typical retail markup band. Labelled an estimate, never a farmer price."""
+    from app.services import crops as CR
+    from app.db import database
+    loc = None
+    if city:
+        with database.SessionLocal() as s:
+            loc = gazetteer.find(s, city)
+    loc = loc or (st.get("farmer") or {}).get("location")
+    rows = MD.mandis_with_prices(crop)
+    near = [m for m in rows if loc and haversine_km((loc["lat"], loc["lon"]), (m["lat"], m["lon"])) <= 150]
+    vals = []
+    for m in near[:15]:
+        rl = MD.real_only(MD.series(crop, m["key"]))
+        if len(rl) and (date.today() - rl["date"].iloc[-1].date()).days <= 45:
+            vals.append(float(rl["modal"].iloc[-1]))
+    name = city.title() if city else (loc or {}).get("name", "")
+    if not vals:
+        return {"reply": rt(lang, "no_retail", crop=intake.crop_label(crop, lang), city=name), "actions": []}
+    med = sorted(vals)[len(vals) // 2] / 100  # Rs per kg
+    lo, hi = RETAIL_MARKUP.get(CR.params(crop)["category"], (1.6, 2.4))
+    return {"reply": rt(lang, "retail", crop=intake.crop_label(crop, lang), city=name, lo=_inr(med * lo), hi=_inr(med * hi)), "actions": [],
+            "retail": {"crop": crop, "city": name, "mandi_median_per_kg": round(med, 1), "range_per_kg": [round(med * lo), round(med * hi)], "label": "estimate"}}
+
+
+def _mandi_name(key: str, lang: str) -> str:
+    """Spoken mandi name: market and district, in Devanagari for hi/mr when known."""
+    short = ", ".join(key.split(", ")[:2])
+    return gazetteer.dev_name(short) if lang in ("hi", "mr") else short
+
+
+def _remove_lot(crop, st, lang, db):
+    lots = st["farmer"]["lots"]
+    if crop not in lots:
+        return {"reply": rt(lang, "not_yet", crop=intake.crop_label(crop, lang)), "actions": []}
+    if len(lots) == 1:
+        return {"reply": rt(lang, "last_lot", crop=intake.crop_label(crop, lang)), "actions": []}
+    del lots[crop]
+    st["orders"].pop(crop, None)
+    farmers.save(db, st["sid"], st["farmer"])
+    new = _activate(st, st["active"] if st["active"] in lots else next(iter(lots)), lang)
+    return {"reply": rt(lang, "removed", crop=intake.crop_label(crop, lang), msg=_best_msg(new, lang)), "actions": [{"type": "plan", "plan": new}]}
+
+
+def _set_lot(args, st, lang, db, key="new_lot"):
+    crop, q = args["crop"], args["qty"]
+    plan = st.get("plan")
+    loc = args.get("location") or (plan["profile"]["location"] if plan else None)
+    if not loc:
+        return {"reply": rt(lang, "where"), "actions": []}
+    prev = plan["profile"] if plan else {}
+    farmer = st.get("farmer") or {"location": loc, "ready": prev.get("ready", True), "can_store": prev.get("can_store", False), "lang": lang, "lots": {}}
+    farmer["lots"][crop] = dict(q)
+    farmer["location"] = loc
+    st["farmer"] = farmer
+    farmers.save(db, st["sid"], farmer)
+    new = _activate(st, crop, lang)
+    return {"reply": rt(lang, key, lot=intake.lots_text({crop: q}, lang), loc=loc["name"], msg=_best_msg(new, lang)), "actions": [{"type": "plan", "plan": new}]}
+
+
+def _confirm_text(tool, args, lang):
+    return rt(lang, "w_create" if tool == "create_order" else "w_" + args.get("event", "cancel"))
+
+
+def _quote(plan: dict, dest: str) -> dict | None:
+    """Cheapest vehicle estimate to the destination, from the plan's transport agent."""
+    for t in plan.get("transport") or []:
+        if t.get("destination") == dest and t.get("options"):
+            o = min(t["options"], key=lambda v: v["total"])
+            return {"vehicle": o.get("vehicle"), "total": o.get("total"), "distance_km": t.get("distance_km")}
+    best = next((o for o in plan.get("options") or [] if o.get("destination") == dest), None)  # beyond the 4 nearest: same cost model
+    km = (best or {}).get("distance_km")
+    if km:
+        from app.services import costs
+        t = costs.transport(plan["profile"]["qty_kg"] / 100, km)
+        return {"vehicle": t["vehicle"], "total": round(t["total"]), "distance_km": km}
+    return None
+
+
+def _book_storage(st, lang, db):
+    plan = st["plan"]
+    stores = plan.get("storage") or []
+    if not stores:
+        return {"reply": rt(lang, "no_store"), "actions": []}
+    holds = (plan.get("sell_vs_hold") or {}).get("holds") or []
+    days = int(holds[0]["days"]) if holds else 7
+    try:
+        b = ops.book_storage(db, st["sid"], stores[0]["id"], plan["profile"]["crop"], plan["profile"]["qty_kg"], days)
+    except KeyError:
+        return {"reply": rt(lang, "no_store"), "actions": []}
+    return {"reply": rt(lang, "storage_sent", id=b["id"], name=b["warehouse"]["name"], days=b["days"], cost=_inr(b["est_cost"])),
+            "actions": [{"type": "storage", "booking": b}, _tab("logistics")]}
+
+
+def _execute_confirmed(tool, args, st, lang, db):
+    plan = st["plan"]
+    if tool == "create_order":  # the sale order AND the truck request (booking token) in one yes
+        best = (plan.get("recommendation") or {}).get("best")
+        if not best or not best.get("destination"):
+            return {"reply": _best_msg(plan, lang), "actions": []}
+        o = ops.create_order(db, st["sid"], best, plan["profile"], _quote(plan, best["destination"]))
+        o = ops.order_event(db, o["id"], "request_transport")
+        st["order_id"] = st["orders"][st["active"]] = o["id"]
+        tr = o["transport"] or {}
+        return {"reply": rt(lang, "made", id=o["id"], label=best["label"], net=_inr(best["net"])) + " "
+                + rt(lang, "transport_sent", tr=tr.get("id", ""), fare=_inr(tr.get("est_fare") or 0)),
+                "actions": [{"type": "order", "order": o}, _tab("order")]}
+    if args.get("event") == "request_storage":
+        return _book_storage(st, lang, db)
+    if not st.get("order_id"):
+        return {"reply": rt(lang, "no_order"), "actions": []}
+    ev = args["event"]
+    data = None
+    if ev == "confirm_sale":
+        data = {"actual_price": args["actual_price"], "actual_qty_kg": plan["profile"]["qty_kg"],
+                "actual_costs": ((plan.get("recommendation") or {}).get("best") or {}).get("total_deductions", 0)}
+    try:
+        o = ops.order_event(db, st["order_id"], ev, data)
+    except (ValueError, KeyError) as e:
+        return {"reply": rt(lang, "could_not", e=e), "actions": []}
+    if ev == "request_transport":
+        tr = o["transport"] or {}
+        return {"reply": rt(lang, "transport_sent", tr=tr.get("id", ""), fare=_inr(tr.get("est_fare") or 0)), "actions": [{"type": "order", "order": o}, _tab("order")]}
+    acts = [{"type": "order", "order": o}, _tab("order")] + ([{"type": "done"}] if o["status"] == "sale_confirmed" else [])
+    return {"reply": rt(lang, "event_done", status=_status(o["status"], lang)), "actions": acts}
+
+
+# ---------------------------------------------------------------- lots (memory)
+def _profile_for(st, crop, lang):
+    f, lot = st["farmer"], st["farmer"]["lots"][crop]
+    return {"crop": crop, "qty_kg": lot["qty_kg"], "original_qty": lot["original_qty"], "original_unit": lot["original_unit"], "location": f["location"],
+            "ready": f["ready"], "can_store": f["can_store"], "variety": None, "grade": None, "harvest_date": None, "sell_pref": None, "lang": lang}
+
+
+def _activate(st, crop, lang):
+    plan = orchestrator.run(_profile_for(st, crop, lang), st["override"] or None)
+    st["plan"], st["active"] = plan, crop
+    st["order_id"] = st["orders"].get(crop)
+    return plan
+
+
+# ---------------------------------------------------------------- entry point
+def handle(sid: str, text: str, lang: str | None, db) -> dict:
+    res = _handle(sid, text, lang, db)
+    st0 = STATE.get(sid)
+    if st0 and st0.pop("reask", None) and st0.get("pending") and res.get("state") != "confirming_action":
+        L0 = res.get("lang", "en")  # "yes, but first tell me the price": answer that, then ask the pending question again
+        p0 = st0["pending"]
+        res["reply"] = (res.get("reply") or "") + " " + rt(L0, "confirm", what=_confirm_text(p0["tool"], p0["args"], L0))
+        res["state"] = "confirming_action"
+        res["chips"] = [{"en": "Yes", "hi": "हाँ", "mr": "होय"}[L0], {"en": "No", "hi": "नहीं", "mr": "नाही"}[L0]]
+    from app.core import present
+    res["reply"] = present.text(res.get("reply") or "")
+    st, L = STATE.get(sid), res.get("lang", "en")
+    res["ai"] = llm.provider()  # cloud | local | rules: the UI says when a sentence was sent to a cloud model
+    if st and text and text.strip():  # short memory of the conversation, for "it", "that mandi", "wahan"
+        h = st.setdefault("history", [])
+        from datetime import datetime, timezone
+        h.append({"u": text.strip()[:160], "a": res["reply"][:200], "at": datetime.now(timezone.utc).isoformat()})
+        del h[:-6]
+        from app.services import dashboard
+        log = dashboard.load_chat(db, sid) + [{"u": text.strip()[:300], "a": res["reply"][:600], "at": h[-1]["at"], "lang": L}]
+        dashboard.save_chat(db, sid, log)
+    if st and st.get("farmer") and st.get("plan"):
+        res["crops"] = [{"crop": c, "label": intake.crop_label(c, L), "qty": q["original_qty"], "unit": intake.unit_label(q["original_unit"], L),
+                         "active": c == st["active"]} for c, q in st["farmer"]["lots"].items()]
+    else:
+        s = intake.pending(sid, db)
+        res["crops"] = [{"crop": c, "label": intake.crop_label(c, L), "qty": (s["lots"].get(c) or {}).get("original_qty"),
+                         "unit": intake.unit_label((s["lots"].get(c) or {}).get("original_unit") or "", L), "active": False} for c in s["crops"]] if s else []
+    return res
+
+
+def _out(res, sid, L, state, trace, **extra):
+    return {"actions": [], **res, "trace": trace, "lang": res.get("lang", L), "session_id": sid, "state": state, **extra}
+
+
+def _handle(sid: str, text: str, lang: str | None, db) -> dict:
+    st = STATE.setdefault(sid, {"sid": sid, "plan": None, "pending": None, "order_id": None, "override": {}, "farmer": None, "active": None, "orders": {},
+                                "await": None})
+    text = (text or "").strip()
+    pend_lang = (intake.pending(sid, db) or {}).get("lang")
+    L = lang or P.detect_lang(text, ((st["plan"] or {}).get("profile") or {}).get("lang") or pend_lang or (st["farmer"] or {}).get("lang") or "en")
+    if st["plan"] and st["farmer"] and text and st["plan"]["profile"].get("lang") != L:  # farmer switched language: whole plan follows
+        st["farmer"]["lang"] = L
+        _activate(st, st["active"], L)
+
+    if text and P.is_cancel(text):  # "cancel" / "never mind": drop whatever is half-done, keep finished work
+        st["pending"] = st["await"] = None
+        if st["plan"]:
+            return _out({"reply": rt(L, "dropped")}, sid, L, "plan", [{"tool": "cancel_task"}])
+        intake.forget(sid, db)
+        r = intake.step(sid, "", L, db=db)  # a fresh intake: greeting, nothing remembered from the half-done one
+        return _out({"reply": rt(L, "dropped") + " " + r["reply"], "lang": r["lang"]}, sid, L, "collecting", [{"tool": "cancel_task"}],
+                    awaiting=r.get("awaiting"))
+
+    if st["pending"]:  # a yes/no for an action with consequences
+        yn = P.yes_no(text)
+        if yn is None and text and not P.is_cancel(text) and not P.hedged(text):  # unclear: ask the local LLM with the exact question as context
+            yn = llm.yes_no(rt("en", "confirm", what=_confirm_text(st["pending"]["tool"], st["pending"]["args"], "en")), text)
+        pend = st["pending"]
+        if yn is not None or P.is_cancel(text) or not text:
+            st["pending"] = None  # answered (or dropped); an unclear reply keeps the question open and it is asked again below
+        else:
+            st["reask"] = True
+        if yn is True:
+            return _out(_execute_confirmed(pend["tool"], pend["args"], st, L, db), sid, L, "plan", [{"tool": pend["tool"], "confirmed": True}])
+        if yn is False:
+            return _out({"reply": rt(L, "cancelled")}, sid, L, "plan", [])
+
+    if not text and st["plan"] and st["farmer"]:  # page reload: resume the plan, drop any half-done question
+        st["pending"] = st["await"] = None
+        if st["plan"]["profile"].get("lang") != L:
+            _activate(st, st["active"], L)
+        return _out({"reply": intake.welcome_back(st["farmer"], L), "actions": [{"type": "plan", "plan": st["plan"]}]}, sid, L, "plan", [{"tool": "resume"}], done=True)
+
+    if not st["plan"] and text and not ((intake.pending(sid, db) or {}).get("crops")):  # server restarted mid-conversation: rebuild from the DB
+        farmer = farmers.load(db, sid)
+        if farmer:
+            intake.forget(sid, db)  # an empty intake started by the restart must not shadow the farmer's saved crops
+            st["farmer"] = farmer
+            for o in ops.farmer_overview(db, sid)["orders"]:
+                if o["status"] not in ("sale_confirmed", "cancelled") and o["payload"]["profile"]["crop"] in farmer["lots"]:
+                    st["orders"][o["payload"]["profile"]["crop"]] = o["id"]
+            first = next((c for c in farmer["lots"] if c in st["orders"]), next(iter(farmer["lots"])))
+            _activate(st, first, lang or farmer.get("lang") or L)
+
+    if not st["plan"]:
+        tool, args = route(text) if text else ("unknown", {})
+        if tool in ("start_over", "set_language", "help", "schemes", "dashboard"):
+            return _out(run_tool(tool, args, st, L, db), sid, L, "collecting", [{"tool": tool}])
+        pend = intake.pending(sid, db)
+        if pend and tool in QUESTION_TOOLS and "qty" not in P.extract(text) and P.yes_no(text) is None:  # a question mid-intake: never add it as a crop
+            return _out({"reply": rt(L, "finish_first") + " " + intake.prompt(pend, L), "lang": L}, sid, L, "collecting", [{"tool": tool}],
+                        awaiting=pend.get("awaiting"))
+        if not text and not intake.pending(sid, db):  # returning farmer: remembered crops, no questions
+            farmer = farmers.load(db, sid)
+            if farmer:
+                L = lang or farmer.get("lang") or L
+                st["farmer"] = farmer
+                plan = _activate(st, next(iter(farmer["lots"])), L)
+                return _out({"reply": intake.welcome_back(farmer, L), "actions": [{"type": "plan", "plan": plan}]}, sid, L, "plan", [{"tool": "remembered"}], done=True)
+        r = intake.step(sid, text, lang, db=db)
+        actions = []
+        if r["done"]:
+            st["farmer"] = r["farmer"]
+            actions.append({"type": "plan", "plan": _activate(st, next(iter(r["farmer"]["lots"])), r["lang"])})
+        return _out({"reply": r["reply"], "actions": actions, "lang": r["lang"]}, sid, r["lang"], "plan" if r["done"] else "collecting", [{"tool": "intake"}],
+                    done=r["done"], awaiting=r.get("awaiting"), **({"chips": r["chips"]} if r.get("chips") else {}))
+
+    trace, pre = [], []
+    f = P.extract(text, "qty" if st.get("await") else None)
+    lots = (st["farmer"] or {}).get("lots", {})
+    aw = st.get("await")
+    if aw:  # finishing "add a crop": the crop and/or its amount
+        crop = f.get("crop") or aw["crop"]
+        if "bare_qty" in f and crop:
+            unit = intake.last_unit(lots)
+            if not unit:
+                return _out({"reply": rt(L, "need_unit", n=f"{f['bare_qty']:g}")}, sid, L, "plan", [{"tool": "add_crop"}])
+            f["qty"] = P.qty(f["bare_qty"], unit)
+        if crop and "qty" in f:
+            st["await"] = None
+            return _out(_set_lot({"crop": crop, "qty": f["qty"]}, st, L, db), sid, L, "plan", [{"tool": "set_lot", "args": {"crop": crop}}])
+        if f.get("crop") and f["crop"] not in lots:
+            st["await"] = {"crop": f["crop"]}
+            return _out({"reply": intake._t("qty", L, crop=intake.crop_label(f["crop"], L))}, sid, L, "plan", [{"tool": "add_crop"}])
+        st["await"] = None  # something else: answer that instead
+    first = route(text)[0]
+    if "crop" in f and f["crop"] != st["active"] and f["crop"] in lots and "qty" not in f:  # "show my tomato" switches lots
+        pre.append({"type": "plan", "plan": _activate(st, f["crop"], L)})
+        trace.append({"tool": "switch_crop", "args": {"crop": f["crop"]}})
+        if first in ("unknown", "price_of", "compare"):
+            return _out({"reply": f"{intake.crop_label(f['crop'], L)}. {_best_msg(st['plan'], L)}", "actions": pre}, sid, L, "plan", trace)
+    elif ("crop" in f and "qty" not in f and f["crop"] not in lots and first in ("unknown", "add_crop")
+          and (len(text.split()) <= 3 or not llm.enabled())):  # "potato", "add tomato": ask how much (longer sentences go to the brain)
+        st["await"] = {"crop": f["crop"]}
+        return _out({"reply": intake._t("qty", L, crop=intake.crop_label(f["crop"], L))}, sid, L, "plan", [{"tool": "add_crop"}])
+
+    tool, args = route(text)
+    if tool == "set_lot" and args["crop"] in lots and abs(args["qty"]["qty_kg"] - lots[args["crop"]]["qty_kg"]) < 1:
+        # "where is cold storage for these 50 quintal onions?": the lot is only context; answer the actual request
+        rest = re.sub(r"\d+(?:\.\d+)?\s*\S+", " ", text)
+        tool, args = route(rest)
+        if tool == "set_lot":
+            tool, args = "unknown", {}
+    from app.agents import brain  # lazy: brain imports this module
+    if brain.wants_brain(text, tool):  # the local LLM plans the tools; Python validates and runs them
+        res = brain.run(text, st, L, db, pre, trace, force="explain" if tool == "explain" else None)
+        if res:
+            state = res.pop("state")
+            return _out(res, sid, res.get("lang", L), state, trace)
+    if tool == "order_event" and args.get("event") not in FARMER_EVENTS:
+        tool, args = "unknown", {}
+    trace.append({"tool": tool, "args": {k: v for k, v in args.items() if k != "text"}})
+    if tool == "order_event" and args.get("event") != "request_storage" and not st.get("order_id"):  # nothing to book against
+        return _out({"reply": rt(L, "no_order")}, sid, L, "plan", trace)
+    if tool in CONFIRM_TOOLS:
+        st["pending"] = {"tool": tool, "args": args}
+        return _out({"reply": rt(L, "confirm", what=_confirm_text(tool, args, L)), "actions": pre}, sid, L, "confirming_action", trace,
+                    chips=[{"en": "Yes", "hi": "हाँ", "mr": "होय"}[L], {"en": "No", "hi": "नहीं", "mr": "नाही"}[L]])
+    out = run_tool(tool, args, st, L, db)
+    return _out({**out, "actions": pre + out.get("actions", [])}, sid, L, "plan", trace)

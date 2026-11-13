@@ -1,0 +1,9 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body { min-height: 100%; }
+body { @apply bg-paper text-ink font-body text-[18px] antialiased; }
+:focus-visible { outline: 3px solid #F2B01E; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

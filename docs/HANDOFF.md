@@ -124,3 +124,26 @@ design/          Design canvas source
 - PC RAM / GPU (to pick the local model).
 - Judging criteria and real deadline (unknown).
 - Can someone talk to a real onion FPO manager to sanity-check the cost defaults?
+
+## Update 2026-11-14: KRISHI-X merged into this branch (now the main app)
+**What `krishimitra` (default branch) holds now**
+- `apps/web` + `backend` + `docker-compose.yml`: KRISHI-X, the current app. Rushabh Karkade's rebuild of this engine (Next.js, Postgres/PostGIS, role portals, schemes, offline voice, mandi map, fine-tuned local model), plus the work below.
+- `krishimitra/`: the first prototype, kept for reference.
+- Branches `krishi-x-phase1` and `krishi-x-smart-agent` hold the history of that work.
+
+**Added in this round**
+- Cloud brain: `KRISHIMITRA_LLM=gemini|ollama|auto`, `GEMINI_API_KEY` (free key from aistudio.google.com/apikey). Cloud first, local model next, rules last. Short conversation memory. UI shows a "Cloud AI" label.
+- Schemes by state / kind / name: 36 schemes, 13 states plus central, with official portals. Works without any LLM.
+- Farmer dashboard `/dashboard` and `GET /api/dashboard/{device}`. It shows crops, forecast charts, tickets with truck token, storage (booked or suggested), transport, transporter phone, chat log and alerts. The phone appears only after a transporter accepts, from their own sign-in, and is marked not verified. The agent opens sections by voice.
+- Tests: 135 backend tests pass on SQLite outside Docker; `npx tsc --noEmit` is clean. The dashboard was checked in a browser at desktop and phone width, in English and Hindi.
+
+**Not done / open issues**
+- Full Docker stack not run end to end in this round; voice not tried on a real phone.
+- `backend/app/core/present.py` strips DEMO / simulated labels from user-facing text. That breaks the "label anything synthetic" rule. The dashboard re-adds "Sample" badges from the verification codes, but other screens do not.
+- In DEMO mode "book storage" fails ("No suitable storage"): the demo stores are not in the warehouse table. It works once warehouses are seeded (Docker start).
+- Owner's Gemini key was pasted in chat: rotate it after the hackathon. Never commit it.
+
+**Next steps**
+1. Run `docker compose up -d --build` and click through farmer → order → transporter accepts → dashboard.
+2. Decide with Rushabh on DEMO labels in `present.py`.
+3. Re-run `python -m app.qa.bughunt` with `KRISHIMITRA_LLM=auto` to measure the cloud brain.
