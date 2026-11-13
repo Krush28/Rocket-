@@ -36,7 +36,7 @@ backend/
   app/conversation/       profile_agent.py (extract slots, yes/no, language detect, units, NAMES)
                           intake.py (multi-crop intake state machine, en/hi/mr phrases)
   app/agents/             agents.py (the 12 agents) · orchestrator.py (runs them, localizes)
-                          action_agent.py (voice tools: compare, forecast, price_of, add/remove/edit lots,
+                          brain.py (local-LLM tool planner + grounded answers; validates every call) · action_agent.py (voice tools: compare, forecast, price_of, add/remove/edit lots,
                           set_location, assumptions, orders; replies dict R in en/hi/mr; STATE = in-memory cache)
   app/services/           crops.py (every crop: hi/mr names, aliases, shelf life, seasonality) · costs.py (ALL money maths) · spoilage.py · confidence.py · logistics.py (OR-Tools)
                           geocoding.py (gazetteer first, Nominatim cached, fuzzy last) · gazetteer.py (GeoNames load/find/dev_name/romanize)

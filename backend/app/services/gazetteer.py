@@ -177,7 +177,8 @@ def _best(db, keys, hints):
 
 
 def _hit(p: Place, name: str) -> dict:
-    return {"name": name.strip(" .,!?"), "lat": p.lat, "lon": p.lon, "status": "approximate", "district": p.admin2, "state": p.admin1, "source": "geonames"}
+    return {"name": name.strip(" .,!?"), "lat": p.lat, "lon": p.lon, "status": "approximate", "district": p.admin2, "state": p.admin1, "source": "geonames",
+            "population": p.population}
 
 
 @lru_cache(maxsize=1)

@@ -113,8 +113,17 @@ def _geocode(db, place: str) -> dict | None:
         return geocoding.geocode(s, place)
 
 
+NUMW = {w: n for n, ws in {
+    1: "one ek एक", 2: "two do दो दोन", 3: "three teen tin तीन", 4: "four char chaar चार", 5: "five paanch panch पांच पाँच पाच",
+    6: "six chhe che छह सहा", 7: "seven saat सात", 8: "eight aath आठ", 9: "nine nau नौ नऊ", 10: "ten das दस दहा", 15: "fifteen pandrah पंद्रह पंधरा",
+    20: "twenty bees बीस वीस", 25: "pachees पच्चीस पंचवीस", 30: "thirty tees तीस", 40: "forty chalees चालीस चाळीस", 50: "fifty pachas pachaas पचास पन्नास",
+    100: "hundred sau सौ शंभर"}.items() for w in ws.split()}
+NUMW_RX = re.compile(r"(?<![\wऀ-ॿ])(" + "|".join(sorted(map(re.escape, NUMW), key=len, reverse=True)) +
+                     r")\s+(kilograms?|kgs?|kilos?|quintals?|qtls?|tonnes?|tons?|किलो|क्विंटल|टन)", re.I)
+
+
 def extract(text: str, awaiting: str | None = None, db=None) -> dict:
-    t = text.translate(DEV).replace(",", "")
+    t = NUMW_RX.sub(lambda m: f"{NUMW[m.group(1).lower()]} {m.group(2)}", text.translate(DEV).replace(",", ""))  # "do ton" -> "2 ton"
     low = t.lower()
     out = {}
     crop = _crop(t, low)
@@ -143,9 +152,9 @@ def extract(text: str, awaiting: str | None = None, db=None) -> dict:
         if yn is not None:
             out[awaiting] = yn
     else:
-        if re.search(r"\bnot ready\b|\bnot yet\b", low):
+        if re.search(r"\bnot ready\b|\bnot yet\b|(taiyar|tayyar|tayar|तैयार|तयार)\s*(nahi|nahin|नहीं|नाही)", low):
             out["ready"] = False
-        elif re.search(r"\bready\b|तयार", low):
+        elif re.search(r"\bready\b|\btaiyar\b|\btayyar\b|\btayar\b|तयार|तैयार", low):
             out["ready"] = True
         if re.search(r"can store|storage available|have storage|can keep", low):
             out["can_store"] = True

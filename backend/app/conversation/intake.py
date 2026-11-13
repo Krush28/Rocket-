@@ -7,7 +7,7 @@ import time
 from app.conversation import profile_agent as P
 from app.repositories import farmers, sessions as SS
 
-SEP = re.compile(r"\s*[,;&]\s*|\s+(?:and|और|आणि|तथा|व)\s+", re.I)  # whole words only: \b is unreliable around Devanagari marks
+SEP = re.compile(r"\s*[,;&]\s*|\s+(?:and|aur|ani|plus|और|आणि|तथा|व)\s+", re.I)  # whole words only: \b is unreliable around Devanagari marks
 S: dict = {}  # hot cache of intake state; the DB copy is the source of truth
 STALE_S = 30 * 60  # an unfinished intake untouched this long is dropped: the farmer starts fresh instead of resuming a half-done task
 
@@ -98,6 +98,8 @@ def _apply(s, text, aw, db):
         if "location" in f:
             s["location"] = f["location"]
             found = True
+    if text and (not found or len(text.split()) >= 6) and aw not in ("ready", "can_store"):
+        found = _apply_llm(s, text, aw, db) or found  # free speech: "do ton baingan hai Satara ke paas, abhi taiyar"
     if aw in ("ready", "can_store"):
         yn = P.yes_no(text)
         if yn is not None:
@@ -109,6 +111,41 @@ def _apply(s, text, aw, db):
             if k in f:
                 s[k] = f[k]
                 found = True
+    return found
+
+
+def _apply_llm(s, text, aw, db) -> bool:
+    """Local LLM extraction (only when enabled, sentences of 4+ words): crops, amounts and place the rules missed.
+    Guards against invention: a crop is kept only if one of its names is in the text, an amount only if that number is in the text,
+    a place only if it is in the text. Ready / storage come from rules only. Never overwrites rule results."""
+    from app.services import llm
+    from app.repositories import market_data as MD
+    if len(text.split()) < 4:
+        return False
+    d = llm.extract_intake(text, aw)
+    if not d:
+        return False
+    norm = P.NUMW_RX.sub(lambda m: f"{P.NUMW[m.group(1).lower()]} {m.group(2)}", text.translate(P.DEV)).lower()
+    nums = {float(x) for x in re.findall(r"\d+(?:\.\d+)?", norm)}
+    cat = MD.crop_catalogue()
+    found = False
+    for c in d.get("crops") or []:
+        name = str(c.get("crop", ""))
+        key = P._crop(name.translate(P.DEV), name.lower())
+        if not key or not any(a.lower() in norm for a in cat.get(key, []) + [key] if len(a) >= 3):
+            continue
+        if key not in s["crops"]:
+            s["crops"].append(key)
+        found = True
+        q = c.get("qty")
+        if key not in s["lots"] and isinstance(q, (int, float)) and float(q) in nums and 0 < q <= 100000:
+            unit = c.get("unit") if c.get("unit") and c["unit"][:3] in norm.replace("क्विंटल", "quintal").replace("टन", "ton").replace("किलो", "kg") else None
+            s["lots"][key] = P.qty(float(q), unit or last_unit(s["lots"]) or "quintal")
+    place = (d.get("place") or "").strip()
+    if place and not s["location"] and place.lower() in text.lower():
+        hit = P._geocode(db, place)
+        if hit:
+            s["location"], found = hit, True
     return found
 
 
@@ -178,6 +215,16 @@ def _step(s, text, lang, db, sid) -> dict:
         body = _t("read", L, lots=lots_text(s["lots"], L, s["crops"]), loc=s["location"]["name"], ready=yn(s["ready"], "ready"), store=yn(s["can_store"], "store"))
         return _reply(s, body + " " + P.CONFIRM_TAIL[L])
     return _reply(s, _question(s, aw, L))
+
+
+def prompt(s, L) -> str:
+    """The question the farmer is currently answering (or the read-back), to repeat after an interruption."""
+    aw = s.get("awaiting")
+    if aw == "confirm":
+        yn = (lambda b, k: _t(k + ("_y" if b else "_n"), L))
+        return _t("read", L, lots=lots_text(s["lots"], L, s["crops"]), loc=s["location"]["name"], ready=yn(s["ready"], "ready"),
+                  store=yn(s["can_store"], "store")) + " " + P.CONFIRM_TAIL[L]
+    return _question(s, aw, L) if s.get("started") else _t("greet", L)
 
 
 def _question(s, aw, L):

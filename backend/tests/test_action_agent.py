@@ -95,14 +95,14 @@ def test_rules_first_llm_not_called_when_rules_understand(db, monkeypatch):
     assert "Best option" in say(db, "f1", "where should I sell")["reply"]
 
 
-def test_llm_only_trusted_for_argless_tools(db, monkeypatch):
+def test_llm_plan_is_validated_and_executed_by_python(db, monkeypatch):
     _onboard(db, "f2")
     say(db, "f2", "yes")
     monkeypatch.setattr(llm, "enabled", lambda: True)
-    monkeypatch.setattr(llm, "pick_tool", lambda *a, **k: {"tool": "order_event"})  # needs args -> must be ignored
+    monkeypatch.setattr(llm, "plan_tools", lambda *a, **k: [{"tool": "order_event", "args": {}}])  # not a brain tool -> ignored
     assert "did not understand" in say(db, "f2", "blah blah")["reply"]
-    monkeypatch.setattr(llm, "pick_tool", lambda *a, **k: {"tool": "spoilage"})
-    assert "Spoilage" in say(db, "f2", "will my stuff go bad")["reply"] or "spoilage" in say(db, "f2", "kuch bhi")["reply"].lower()
+    monkeypatch.setattr(llm, "plan_tools", lambda *a, **k: [{"tool": "sell_or_hold", "args": {}}])
+    assert "SELL NOW" in say(db, "f2", "kuch bhi batao")["reply"] or "HOLD" in say(db, "f2", "kuch bhi")["reply"]
 
 
 def test_start_over_forgets_farmer(db):
