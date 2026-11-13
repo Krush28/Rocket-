@@ -29,12 +29,16 @@ def _rk(st, a, b):
 def mandi_discovery(st):
     farm, out = _farm(st), []
     for name, (lat, lon, state, _) in D.MANDIS.items():
+        if not D.has_data(st["profile"]["crop"], name):
+            continue  # live mode: no data for this mandi -> excluded, never filled with demo values
         km = _rk(st, farm, (lat, lon))
         out.append({"name": name, "state": state, "lat": lat, "lon": lon, "distance_km": round(km, 1), "distance_label": "ESTIMATE (straight-line x road factor)",
                     "schedule": "Mon-Sat (DEMO, unverified)", "trading_status": "unknown (not verified)"})
     out = sorted([m for m in out if m["distance_km"] <= 450], key=lambda m: m["distance_km"])[:7]
+    if not out:
+        raise RuntimeError("no price data for this crop at any known mandi (run a data refresh)")
     st["mandis"] = {m["name"]: m for m in out}
-    return {"data": out, "meta": meta(DEMO_SRC + "; coordinates approximate", "demo")}
+    return {"data": out, "meta": meta(D.source_label(st["profile"]["crop"], out[0]["name"]) + "; coordinates approximate and unverified", "live" if D.live_mode_on() else "demo")}
 
 
 # 4 ---------------------------------------------------------------- Price Intelligence
@@ -45,12 +49,12 @@ def price_intelligence(st):
         age = (date.today() - df["date"].iloc[-1].date()).days
         last3 = df["modal"].iloc[-3:]
         rec = {"mandi": name, "latest_date": str(df["date"].iloc[-1].date()), "age_days": age, "modal": float(last3.median()),
-               "min": float(df["min"].iloc[-1]), "max": float(df["max"].iloc[-1]), "arrivals_t": float(df["arrivals_t"].iloc[-1]),
+               "min": float(df["min"].iloc[-1]), "max": float(df["max"].iloc[-1]), "arrivals_t": None if np.isnan(df["arrivals_t"].iloc[-1]) else float(df["arrivals_t"].iloc[-1]),
                "avg7": round(float(df["modal"].iloc[-7:].mean())), "avg30": round(float(df["modal"].iloc[-30:].mean())),
-               "trend_30d_pct": round((df["modal"].iloc[-1] / df["modal"].iloc[-30] - 1) * 100, 1),
+               "trend_30d_pct": round((df["modal"].iloc[-1] / df["modal"].iloc[-30] - 1) * 100, 1) if len(df) >= 30 else None,
                "history": [[str(d.date()), float(v)] for d, v in zip(df["date"].iloc[-90:], df["modal"].iloc[-90:])],
                "stale": age > STALE_DAYS, "unit": "Rs/quintal", "price_basis": "median of last 3 observed modal prices",
-               "meta": meta(DEMO_SRC, "demo", updated=D.last_updated(crop, name))}
+               "meta": meta(D.source_label(crop, name), "live" if D.live_mode_on() else "demo", updated=D.last_updated(crop, name))}
         out[name] = rec
     st["prices"] = out
     # retail = consumer-market context ONLY, never a farmer price
@@ -64,6 +68,9 @@ def market_activity(st):
     out = {}
     for name in st["mandis"]:
         a = D.series(st["profile"]["crop"], name)["arrivals_t"]
+        if a.isna().all():
+            out[name] = {"arrivals_7d_t": None, "arrivals_30d_t": None, "change_pct": None, "signal": "arrivals not available from this source"}
+            continue
         r7, r30 = float(a.iloc[-7:].mean()), float(a.iloc[-30:].mean())
         ch = (r7 / r30 - 1) * 100
         out[name] = {"arrivals_7d_t": round(r7, 1), "arrivals_30d_t": round(r30, 1), "change_pct": round(ch),
@@ -73,6 +80,8 @@ def market_activity(st):
 
 # 3 ---------------------------------------------------------------- Buyer Discovery
 def buyer_discovery(st):
+    if D.live_mode_on():  # never mix invented offers with real prices
+        return {"data": [], "meta": meta("none", "unverified", note="No real buyer offers are connected. Demo buyers are hidden in LIVE mode.")}
     crop, qtl, farm, out = st["profile"]["crop"], _qtl(st), _farm(st), []
     base = np.mean([p["avg7"] for p in st["prices"].values()])
     for b in D.BUYERS:

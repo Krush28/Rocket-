@@ -79,6 +79,9 @@ _cache: dict = {}
 
 def series(crop: str, mandi: str) -> pd.DataFrame:
     """Daily demo wholesale prices (Rs/quintal) with ~4% missing days, ending today."""
+    from . import adapters
+    if adapters.live_mode():
+        return adapters.live_df(crop, mandi)
     key = (crop, mandi)
     if key in _cache:
         return _cache[key]
@@ -101,3 +104,16 @@ def series(crop: str, mandi: str) -> pd.DataFrame:
 
 def last_updated(crop, mandi):
     return datetime.combine(series(crop, mandi)["date"].iloc[-1].date(), datetime.min.time(), tzinfo=timezone.utc)
+
+
+def has_data(crop, mandi) -> bool:
+    return len(series(crop, mandi)) > 0
+
+
+def live_mode_on() -> bool:
+    from . import adapters
+    return adapters.live_mode()
+
+
+def source_label(crop, mandi) -> str:
+    return "LIVE: data.gov.in Agmarknet (daily snapshots)" if live_mode_on() else f"{DEMO} (synthetic seeded series)"

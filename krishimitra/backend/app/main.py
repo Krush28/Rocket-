@@ -1,4 +1,5 @@
 """KRISHIMITRA API (KRISHI-X engine). Run: uvicorn app.main:app --reload  (from krishimitra/backend)"""
+import os
 import threading
 import uuid
 from pathlib import Path
@@ -8,7 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import demo_data as D, forecast as F, llm, orchestrator, orders, profile as P
+from . import adapters, demo_data as D, forecast as F, llm, orchestrator, orders, profile as P
 
 app = FastAPI(title="KrishiMitra - KRISHI-X engine", version="0.1.0")
 FRONT = Path(__file__).resolve().parents[2] / "frontend"
@@ -54,8 +55,19 @@ def warm():
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "data_mode": D.DEMO, "llm": "ollama" if llm.enabled() else "off (rules + templates)",
-            "live_adapters": [], "note": "No live market adapter configured. All market data is DEMO DATA."}
+    live = adapters.live_mode()
+    return {"ok": True, "data_mode": "LIVE" if live else D.DEMO, "llm": "ollama" if llm.enabled() else "off (rules + templates)",
+            "live_adapters": ["data.gov.in"] if live else [], "key_configured": bool(os.getenv("DATA_GOV_API_KEY")),
+            "note": "Live mandi prices loaded." if live else "No live rows yet. Set DATA_GOV_API_KEY and POST /api/admin/refresh. Until then all market data is DEMO DATA."}
+
+
+@app.post("/api/admin/refresh")
+def refresh():
+    """Pull today's prices from data.gov.in into the local snapshot store (needs DATA_GOV_API_KEY)."""
+    if not os.getenv("DATA_GOV_API_KEY"):
+        raise HTTPException(400, "DATA_GOV_API_KEY is not set")
+    F.forecast.cache_clear()
+    return adapters.refresh()
 
 
 @app.get("/api/meta")

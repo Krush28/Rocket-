@@ -127,3 +127,49 @@ def test_orders_flow_and_guards(tmp_path, monkeypatch):
         orders.event(o["id"], "confirm_sale", {"actual_price": 0, "actual_qty_kg": 10})
     o = orders.event(o["id"], "confirm_sale", {"actual_price": 2000, "actual_qty_kg": 10000, "actual_costs": 5000})
     assert o["payload"]["final"]["net_earnings"] == 195000
+
+
+def test_live_adapter_parse_and_live_mode(tmp_path, monkeypatch):
+    from app import adapters
+    monkeypatch.setattr(adapters, "DB", tmp_path / "live.db")
+    assert not adapters.live_mode()
+    good = {"state": "Maharashtra", "district": "Nashik", "market": "Lasalgaon", "commodity": "Onion", "variety": "Other", "grade": "FAQ",
+            "arrival_date": "12/11/2026", "min_price": "1500", "max_price": "2100", "modal_price": "1900"}
+    assert adapters.parse_record({**good, "modal_price": "NA"}) is None
+    assert adapters.parse_record({**good, "arrival_date": "bad"}) is None
+    assert adapters.parse_record({**good, "modal_price": "0"}) is None
+    adapters.upsert([adapters.parse_record(good), adapters.parse_record({**good, "variety": "Red", "modal_price": "2100"})])
+    assert adapters.live_mode()
+    df = adapters.live_df("onion", "Lasalgaon APMC")
+    assert len(df) == 1 and df["modal"].iloc[0] == 2000  # median across varieties
+    assert adapters.live_df("onion", "Pune APMC").empty
+    # live mode never fills other mandis with demo values; short history -> explicit insufficient_data
+    forecast.forecast.cache_clear()
+    assert forecast.forecast("onion", "Lasalgaon APMC")["status"] == "insufficient_data"
+    prof = {"crop": "onion", "qty_kg": 5000, "original_qty": 50, "original_unit": "quintal", "location": {"name": "Niphad", "lat": 20.08, "lon": 74.11},
+            "ready": True, "can_store": False, "lang": "en"}
+    p = orchestrator.run(prof)
+    assert p["data_mode"] == "LIVE" and [m["name"] for m in p["mandis"]] == ["Lasalgaon APMC"]
+    assert p["recommendation"]["decision"]["action"] == "SELL NOW"  # no reliable forecast -> holding unsupported
+    forecast.forecast.cache_clear()
+
+
+def test_import_csv_backfill(tmp_path, monkeypatch):
+    from app import adapters
+    monkeypatch.setattr(adapters, "DB", tmp_path / "live.db")
+    f = tmp_path / "x.csv"
+    f.write_text("Market,State,Commodity,Arrival_Date,Min Price,Max Price,Modal Price\nPune,Maharashtra,Onion,10/11/2026,1500,2000,1800\nPune,Maharashtra,Onion,11/11/2026,1500,2000,0\n")
+    assert adapters.import_csv(str(f)) == 1  # zero-price row dropped
+    (tmp_path / "bad.csv").write_text("a,b\n1,2\n")
+    with pytest.raises(ValueError):
+        adapters.import_csv(str(tmp_path / "bad.csv"))
+
+
+def test_import_csv_agmarknet_style_headers(tmp_path, monkeypatch):
+    from app import adapters
+    monkeypatch.setattr(adapters, "DB", tmp_path / "live.db")
+    f = tmp_path / "a.csv"
+    f.write_text("State Name,District Name,Market Name,Variety,Group,Commodity,Grade,Min Price (Rs./Quintal),Max Price (Rs./Quintal),Modal Price (Rs./Quintal),Price Date\n"
+                 "Maharashtra,Nashik,Lasalgaon,Red,Vegetables,Onion,FAQ,1500,2100,1900,13 Nov 2026\n")
+    assert adapters.import_csv(str(f)) == 1
+    assert adapters.live_df("onion", "Lasalgaon APMC")["modal"].iloc[0] == 1900

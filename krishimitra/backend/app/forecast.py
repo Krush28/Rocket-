@@ -114,7 +114,7 @@ def _evaluate(bt: pd.DataFrame) -> dict:
 @lru_cache(maxsize=256)
 def forecast(crop: str, mandi: str) -> dict:
     df = demo_data.series(crop, mandi)
-    base_meta = meta(f"{demo_data.DEMO} (synthetic seeded series)", "demo", updated=demo_data.last_updated(crop, mandi))
+    base_meta = meta(demo_data.source_label(crop, mandi), "live" if demo_data.live_mode_on() else "demo", updated=demo_data.last_updated(crop, mandi) if len(df) else None)
     if len(df) < MIN_HISTORY:
         return {"status": "insufficient_data", "crop": crop, "mandi": mandi, "meta": {**base_meta, "error": f"only {len(df)} observations"}}
     s = daily(df)

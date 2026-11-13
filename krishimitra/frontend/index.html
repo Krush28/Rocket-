@@ -97,7 +97,7 @@ svg text{fill:var(--muted);font-size:11px}
     <div><span id="appname">KrishiMitra</span><small id="tagline">Know what you will really take home</small></div>
   </div>
   <div class="spacer"></div>
-  <span class="demo" title="No live market data connected">DEMO DATA</span>
+  <span class="demo" id="modePill" title="Data mode">DEMO DATA</span>
   <button class="pill on" data-lang="en">EN</button><button class="pill" data-lang="hi">हिं</button><button class="pill" data-lang="mr">मरा</button>
   <button class="pill" id="speakBtn" aria-pressed="true">🔊 Voice on</button>
 </header>
@@ -262,9 +262,9 @@ function renderPlan(p){
   <div class="card"><h2>Price forecast</h2>
     <label class="f" for="fm">Mandi</label><select id="fm">${Object.keys(p.forecasts||{}).map(m=>`<option ${m===S.mandi?"selected":""}>${esc(m)}</option>`).join("")}</select>
     <div id="fchart"></div><div class="scroll" id="ftable"></div></div>
-  <div class="card"><h2>Nearby mandis <span class="tag demo">DEMO DATA</span></h2><div class="scroll"><table>
+  <div class="card"><h2>Nearby mandis ${p.data_mode==="LIVE"?'<span class="tag est">LIVE · data.gov.in</span>':'<span class="tag demo">DEMO DATA</span>'}</h2><div class="scroll"><table>
     <tr><th class="l">Mandi</th><th>Distance</th><th>Modal</th><th>Min–Max</th><th>Arrivals (t)</th><th class="l">Market signal</th><th>Updated</th></tr>
-    ${p.mandis.map(m=>{const x=p.prices[m.name],ac=p.activity[m.name];return `<tr><td class="l">${esc(m.name)}<br><span class="muted">${esc(m.schedule)}</span></td><td>${m.distance_km} km</td><td><b>${inr(x.modal)}</b>/qtl</td><td>${inr(x.min)}–${inr(x.max)}</td><td>${x.arrivals_t}</td><td class="l">${esc(ac.signal)}</td><td>${x.age_days===0?"today":x.age_days+" d ago"}${x.stale?' <span class="tag warn">STALE</span>':""}</td></tr>`}).join("")}
+    ${p.mandis.map(m=>{const x=p.prices[m.name],ac=p.activity[m.name];return `<tr><td class="l">${esc(m.name)}<br><span class="muted">${esc(m.schedule)}</span></td><td>${m.distance_km} km</td><td><b>${inr(x.modal)}</b>/qtl</td><td>${inr(x.min)}–${inr(x.max)}</td><td>${x.arrivals_t??"n/a"}</td><td class="l">${esc(ac.signal)}</td><td>${x.age_days===0?"today":x.age_days+" d ago"}${x.stale?' <span class="tag warn">STALE</span>':""}</td></tr>`}).join("")}
   </table></div>
   <h3>Retail context (not what you receive)</h3>  <div class="cols" id="retail"></div></div>
   <div class="card"><h2>Cold storage nearby</h2><div class="cols">${p.storage.length?p.storage.map(w=>`<div class="mini"><h4>${esc(w.name)}</h4><span class="tag demo">DEMO</span><span class="tag warn">AVAILABILITY UNCONFIRMED</span>
@@ -312,7 +312,7 @@ function drawForecast(p){
   $("#ftable").innerHTML=!fc||fc.status!=="ok"?`<p class="muted">Insufficient data for a forecast.</p>`:`<table><tr><th class="l">Horizon</th><th>Predicted</th><th>80% range</th><th class="l">Model</th><th>Error (MAE)</th><th>Baseline MAE</th><th>Range hit-rate</th><th class="l">Status</th></tr>
   ${fc.horizons.map(h=>h.status==="insufficient_data"?`<tr><td class="l">${h.horizon_days}d</td><td colspan="7" class="l">insufficient data</td></tr>`:`<tr><td class="l">+${h.horizon_days}d<br><span class="muted">${esc(h.target_date)}</span></td><td><b>${inr(h.predicted)}</b></td><td>${inr(h.lo)}–${inr(h.hi)}</td><td class="l">${esc(h.model)} ${esc(h.model_version)}</td><td>${inr(h.eval.mae)}</td><td>${inr(h.baseline_mae)}</td><td>${Math.round(h.eval.coverage_80*100)}%</td>
   <td class="l">${h.status==="ok"?`<span class="tag est">RELIABLE · ${esc(h.confidence)}</span>`:`<span class="tag warn">NO RELIABLE FORECAST</span>`}</td></tr>`).join("")}</table>
-  <p class="muted">Trained on ${esc(fc.train_period[0])} to ${esc(fc.train_period[1])}. A horizon is shown only if it beats naive baselines by 5% in time-ordered backtests and its range is well calibrated. This is a DEMO series, so these accuracy figures say nothing about real mandis.</p>`;
+  <p class="muted">Trained on ${esc(fc.train_period[0])} to ${esc(fc.train_period[1])}. A horizon is shown only if it beats naive baselines by 5% in time-ordered backtests and its range is well calibrated. ${p.data_mode==="LIVE"?"":"This is a DEMO series, so these accuracy figures say nothing about real mandis."}</p>`;
 }
 
 // ---------- actions
@@ -344,7 +344,12 @@ function renderOrder(){
 }
 async function doEv(ev,data){try{S.order=await api(`/api/orders/${S.order.id}/event`,{event:ev,data});renderOrder()}catch(e){alert(e.message)}}
 
-applyLang(); send("");
+async function loadHealth(){
+  try{const h=await (await fetch("/api/health")).json(), live=h.data_mode==="LIVE";
+    $("#modePill").textContent=live?"LIVE DATA":"DEMO DATA"; $("#modePill").style.background=live?"var(--leaf)":"";
+    $("#banner").innerHTML=live?"<b>LIVE mandi prices</b> from data.gov.in (Agmarknet). Buyers, warehouses, transporters and shared-load partners are still DEMO. Costs are editable estimates; forecasts appear only once enough history exists.":"<b>DEMO DATA.</b> "+esc(h.note)+" Costs are estimates you can edit. Nothing is a real quote, offer or guaranteed price."}catch(e){}
+}
+applyLang(); loadHealth(); send("");
 </script>
 </body>
 </html>

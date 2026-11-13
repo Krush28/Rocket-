@@ -1,7 +1,7 @@
 """KRISHI-X Orchestrator: explicit typed workflow over the agents. A failing agent degrades the plan, never crashes it."""
 import time
 
-from . import agents as A, costs
+from . import agents as A, costs, demo_data as D
 from .meta import meta
 
 PIPELINE = [  # (agent name, function, state key)
@@ -47,4 +47,6 @@ def run(profile: dict, assumption_override: dict | None = None) -> dict:
             "mandis": st.get("mandis_list"), "prices": (st.get("price_intel") or {}).get("mandis"), "retail": (st.get("price_intel") or {}).get("retail_context"), "activity": st.get("activity"),
             "forecasts": st.get("forecast_out"), "sell_vs_hold": st.get("sellhold"), "storage": st.get("storage"),
             "transport": st.get("transport"), "shared_load": st.get("shared_out"), "buyers": st.get("buyers"),
-            "labels": "DEMO DATA: prices, arrivals, buyers, warehouses, transporters are synthetic. Costs are ESTIMATES unless marked otherwise."}
+            "data_mode": "LIVE" if D.live_mode_on() else "DEMO",
+            "labels": ("LIVE prices from data.gov.in (Agmarknet). Buyers, warehouses, transporters and the shared-load pool are still DEMO. " if D.live_mode_on()
+                       else "DEMO DATA: prices, arrivals, buyers, warehouses, transporters are synthetic. ") + "Costs are ESTIMATES unless marked otherwise."}
