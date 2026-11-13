@@ -33,7 +33,7 @@ export const chat = (session_id: string, text: string, lang?: string) => post<Ch
 
 export type Order = import("./ops").SaleOrder;
 export type AgentAction = { type: "plan"; plan: Plan } | { type: "tab"; value: string } | { type: "order"; order: Order } | { type: "lang"; value: string } | { type: "reset" }
-  | { type: "done" } | { type: "nav"; value: string; state?: string; cat?: string; q?: string } | { type: "storage"; booking: unknown };
+  | { type: "done" } | { type: "nav"; value: string; state?: string; cat?: string; q?: string; section?: string } | { type: "storage"; booking: unknown };
 export type Crop = { crop: string; label: string; qty: number | null; unit: string; active: boolean };
 export type AgentReply = { reply: string; lang: string; state: string; actions: AgentAction[]; crops: Crop[]; chips?: string[]; done?: boolean; awaiting?: string | null; ai?: string };
 export const agent = (session_id: string, text: string, lang?: string) => post<AgentReply>("/api/agent", { session_id, text, lang });
