@@ -238,8 +238,20 @@ def _step(s, text, lang, db, sid) -> dict:
             farmers.save(db, sid, data)
             return {"reply": P.START[L], "lang": L, "awaiting": None, "done": True, "farmer": data}
         if not found:
-            s["awaiting"] = None
-            return _reply(s, P.FIX[L])
+            crop = P.extract(text).get("crop")
+            low = text.lower()
+            if crop in s["crops"] and re.search(r"\b(remove|delete|drop|hatao|hata do|nikalo)\b|हटाओ|हटा दो|निकालो|काढा|काढून|नको", low):
+                s["crops"].remove(crop)  # "गहू काढा" at the read-back: drop that crop, read the rest back
+                s["lots"].pop(crop, None)
+            elif crop in s["crops"]:
+                s["lots"].pop(crop, None)  # "टोमॅटो बदला" / "change tomato": ask that crop's new amount
+            elif re.search(r"quantity|amount|qty|weight|kitna|kitni|matra|praman|मात्रा|प्रमाण|वजन|किती|कितना", low):
+                ex = f"{crop_label(s['crops'][0], L)} 100 {unit_label('kg', L)}" if s["crops"] else ""
+                return _reply(s, {"en": f"Which crop and how much? For example \"{ex}\".", "hi": f"कौन सी फसल और कितनी? जैसे \"{ex}\"।",
+                                  "mr": f"कोणते पीक आणि किती? उदा. \"{ex}\"."}.get(L, ex))
+            else:
+                s["awaiting"] = None
+                return _reply(s, P.FIX[L])
     elif not _apply(s, text, aw, db):
         if aw == "location":
             s["misses"] = s.get("misses", 0) + 1

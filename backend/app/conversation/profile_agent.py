@@ -94,6 +94,8 @@ HARD_NO = ["not now", "not today", "not yet", "later", "wait", "ruko", "mat", "d
            "can not", "do not", "will not", "wo not", "nahi kar sakta", "nahi kar sakte", "नहीं कर सकता", "नहीं कर सकते", "शक्य नाही", "taiyar nahi", "nahi taiyar", "तैयार नहीं", "तयार नाही", "अभी नहीं", "बाद में", "नंतर", "थांबा", "रुको", "मत", "रद्द"]
 
 
+CHANGE = ["change", "modify", "edit", "update", "wrong", "galat", "badlo", "badal", "badla", "badlna", "बदल", "बदलो", "बदला", "बदलना", "बदलायचे",
+          "गलत", "चुकीचे", "चूक", "चुकीचं"]
 HEDGE = ["but", "first", "before", "pehle", "pahle", "lekin", "magar", "par pehle", "tell me", "batao", "bataiye", "how much", "kitna", "kitne", "what",
          "पहले", "लेकिन", "मगर", "बताओ", "बताइए", "कितना", "आधी", "पण आधी", "सांगा", "किती"]
 
@@ -139,6 +141,8 @@ def yes_no(text: str):
     for p in POS_IDIOM:
         t = t.replace(f" {p} ", " yes ")
     has = lambda ws: any(f" {w} " in t for w in ws)  # noqa: E731
+    if has(CHANGE):  # "quantity change karo", "galat hai", "बदला": a correction, never a yes
+        return False
     pos, neg = has(YES_PH), has(NO_PH)
     if pos and not neg and ("?" in text or has(HEDGE)):
         return None  # "yes, but first tell me the price": a condition or question, not a plain yes
@@ -206,6 +210,11 @@ NUMW = {w: n for n, ws in {
     6: "six chhe che छह सहा", 7: "seven saat सात", 8: "eight aath आठ", 9: "nine nau नौ नऊ", 10: "ten das दस दहा", 15: "fifteen pandrah पंद्रह पंधरा",
     20: "twenty bees बीस वीस", 25: "pachees पच्चीस पंचवीस", 30: "thirty tees तीस", 40: "forty chalees चालीस चाळीस", 50: "fifty pachas pachaas पचास पन्नास",
     100: "hundred sau सौ शंभर"}.items() for w in ws.split()}
+NUMW.update({  # hundreds / thousands / halves said as words ("दोनशे किलो", "दो सौ किलो", "dedh ton", "हज़ार किलो")
+    "दोनशे": 200, "तीनशे": 300, "चारशे": 400, "पाचशे": 500, "सहाशे": 600, "सातशे": 700, "आठशे": 800, "नऊशे": 900, "दीडशे": 150, "अडीचशे": 250,
+    "हजार": 1000, "हज़ार": 1000, "hazar": 1000, "hajar": 1000, "thousand": 1000, "दीड": 1.5, "अडीच": 2.5, "डेढ़": 1.5, "डेढ": 1.5, "ढाई": 2.5,
+    "dedh": 1.5, "dhai": 2.5, "do sau": 200, "teen sau": 300, "char sau": 400, "paanch sau": 500, "panch sau": 500, "दो सौ": 200, "तीन सौ": 300,
+    "चार सौ": 400, "पांच सौ": 500, "पाँच सौ": 500, "two hundred": 200, "three hundred": 300, "five hundred": 500})
 NUMW_RX = re.compile(r"(?<![\wऀ-ॿ])(" + "|".join(sorted(map(re.escape, NUMW), key=len, reverse=True)) +
                      r")\s+(kilograms?|kgs?|kilos?|quintals?|qtls?|tonnes?|tons?|किलो|क्विंटल|टन)", re.I)
 

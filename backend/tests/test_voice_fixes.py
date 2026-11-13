@@ -254,3 +254,18 @@ def test_farmer_can_choose_another_option(db):
     k = len([x for x in A.STATE["co1"]["plan"]["options"] if x.get("destination")])
     if k < 9:
         assert "only" in say(db, "co1", "option 9")["reply"]
+
+
+def test_readback_amount_changes_removal_and_number_words(db):
+    def readback(sid):
+        for u in ["", "टोमॅटो, कांदा आणि गहू", "60 किलो", "60 किलो", "50 किलो", "निफाड", "हो", "नाही"]:
+            say(db, sid, u, "mr")
+    readback("q1")
+    assert "किती" in say(db, "q1", "प्रमाण बदला")["reply"]
+    assert "150" in say(db, "q1", "टोमॅटो दीडशे किलो")["reply"]
+    readback("q2")
+    r = say(db, "q2", "गहू काढा")
+    assert r["awaiting"] == "confirm" and "गहू" not in r["reply"]
+    readback("q3")
+    assert say(db, "q3", "quantity change karo")["state"] == "collecting"  # a change request is never a yes
+    assert P.yes_no("galat hai, badlo") is False
