@@ -146,7 +146,8 @@ def watch_dirs() -> list[Path]:
     if env:
         return [Path(x) for x in env.split(";") if x.strip()]
     dl = Path.home() / "Downloads"
-    return list(dict.fromkeys([dl, dl / "mandiproject", Path(__file__).resolve().parents[3]]))
+    root = Path(__file__).resolve().parents[3]
+    return list(dict.fromkeys([dl, dl / "mandiproject", root, root / "data" / "raw"]))
 
 
 def scan_and_import(dirs=None, pattern: str = "9ef84268*.csv") -> list[dict]:

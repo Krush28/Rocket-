@@ -1,0 +1,17 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-11-13T12:00:00Z" },
+  "title": "KrishiMitra Redesign",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1360, "h": 1260, "title": "Desktop - result", "expand": "fill" },
+    "Phone-Assistant.dc.html": { "x": 1440, "y": 0, "w": 390, "h": 844, "title": "Phone - assistant", "is_interactive": false },
+    "Phone-Result.dc.html": { "x": 1910, "y": 0, "w": 390, "h": 1240, "title": "Phone - result" }
+  },
+  "order": ["Main.dc.html", "Phone-Assistant.dc.html", "Phone-Result.dc.html"],
+  "notes": {
+    "t1": { "x": 0, "y": -280, "text": "KrishiMitra: the settlement-slip direction", "kind": "title1", "maxW": 2300 }
+  },
+  "designSystems": []
+}
