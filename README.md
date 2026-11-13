@@ -39,6 +39,16 @@ cd apps/web && npm run build
 
 > On this Windows machine the host Python venv cannot load pandas (Windows Application Control blocks its DLLs), so the backend runs and is tested in Docker.
 
+## Hackathon demo script (end to end)
+1. `docker compose up -d --build` → http://localhost:3000 (farmer) · Ollama with `qwen3:4b` running on the host makes the agent understand free speech.
+2. Farmer (EN/HI/MR, voice or text): *"I have 2 ton onion near Niphad, ready now"* → answer storage → *yes* → results: best mandi by net in hand, sell-or-hold verdict, forecast, storage and transport.
+3. Ask anything: *"why is this mandi better than Lasalgaon?"*, *"price of potato at Pune"*, *"mumbai ki dukano me pyaz kitne ka hai"*, *"sarkari yojana dikhao"* (opens the schemes screen), *"add 20 quintal tomato"*.
+4. *"Sell it"* → *yes*: sale order + booking token **TR-XXXXXX** posted to transporters.
+5. Second tab: http://localhost:3000/login → Transporter → accept → picked up → delivered (the farmer's order card updates live + notification bell).
+6. Farmer: *"I sold it at 4100"* → *yes* → **Sale complete** card → *Start a new task with the AI*.
+7. Hold path: *"book storage"* → *yes* → /login → Warehouse operator (state Maharashtra) → confirm → farmer notified.
+8. FPO head (/fpo): members' produce by crop and full-truck pooling; Admin (/admin): platform counts and the live price-import job.
+
 ## Voice agent (ported from Rocket)
 
 - `POST /api/agent` is the whole farmer experience. **Multi-crop intake:** "I grow onion and tomato" asks the quantity for each, then the village, readiness and storage, reads it back, and runs nothing before "yes". **Actions:** "where should I sell", "show the forecast", "should I hold", "how sure are you", "book transport", "set hamali to 15", "create the order" (asks yes/no first), "track my order", "switch to Hindi", "start over".
