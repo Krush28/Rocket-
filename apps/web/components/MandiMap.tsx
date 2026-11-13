@@ -51,7 +51,7 @@ const tt = (k: keyof typeof T, l: Lang) => T[k][l] || T[k].en;
 const inr = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
 const short = (k: string) => k.split(", ")[0];
 
-type Pt = { key: string; label: string; lat: number; lon: number; net: number; price: number; km: number; rank: number };
+type Pt = { key: string; label: string; lat: number; lon: number; net: number; price: number; km: number; rank: number; dup?: boolean };
 type Route = { km: number; min: number; line: [number, number][] };
 
 function pin(html: string, size: number) {
@@ -76,7 +76,7 @@ export default function MandiMap({ plan, lang, names, onSay }: { plan: Plan; lan
       .map(({ o, g, i }) => ({ key: o.destination, label: names[o.destination] || o.destination, lat: g!.lat, lon: g!.lon, net: o.net, price: o.price, km: o.distance_km, rank: i + 1 }))
       .map((p, i, all) => {  // two mandis in the same town (e.g. APMC + sub-yard): fan them out so no pin hides another
         const n = all.slice(0, i).filter((q) => Math.abs(q.lat - p.lat) < 0.012 && Math.abs(q.lon - p.lon) < 0.012).length;
-        return n ? { ...p, lat: p.lat + 0.018 * Math.sin(n * 2.1), lon: p.lon + 0.022 * Math.cos(n * 2.1) } : p;
+        return n ? { ...p, lat: p.lat + 0.03 * Math.sin(n * 2.1), lon: p.lon - 0.035 * Math.abs(Math.cos(n * 2.1)) - 0.02, dup: true } : p;
       });
   }, [plan, names]);
   const stores = useMemo(() => ((plan.storage || []) as unknown as { name: string; lat: number; lon: number; distance_km: number; rate_qtl_day: number }[])
@@ -119,7 +119,7 @@ export default function MandiMap({ plan, lang, names, onSay }: { plan: Plan; lan
           zIndexOffset: isBest ? 900 : 500 - p.rank,
         }).addTo(m);
         mk.bindTooltip(`<div class="kx-tag ${isBest ? "kx-tag-best" : ""}">${inr(p.net)}<small>${Math.round(p.km)} km</small></div>`,
-          { permanent: true, direction: "right", offset: [isBest ? 22 : 16, 0], className: "kx-tip" });
+          { permanent: true, direction: p.dup ? "left" : "right", offset: [p.dup ? -16 : isBest ? 22 : 16, 0], className: "kx-tip" });
         const diff = best && !isBest ? `<div class="kx-pop-diff">−${inr(best.net - p.net)} ${tt("less", lang)}</div>` : "";
         mk.bindPopup(`<div class="kx-pop"><div class="kx-pop-rank">#${p.rank}${isBest ? " · " + tt("best", lang) : ""}</div><div class="kx-pop-name">${short(p.label)}</div>
           <div class="kx-pop-sub">${p.label.split(", ").slice(1).join(", ")}</div><div class="kx-pop-net">${inr(p.net)} <span>${tt("keep", lang)}</span></div>
@@ -170,7 +170,7 @@ export default function MandiMap({ plan, lang, names, onSay }: { plan: Plan; lan
   if (!farm?.lat || pts.length === 0) return null;
   const sel = pts.find((p) => p.key === active);
   return (
-    <section id="sec-map" className="overflow-hidden rounded-[22px] border border-rule bg-cream">
+    <section id="sec-map" className="relative isolate z-0 overflow-hidden rounded-[22px] border border-rule bg-cream">
       <style>{CSS}</style>
       <div className="flex flex-wrap items-end justify-between gap-2 px-5 pt-5">
         <div>
