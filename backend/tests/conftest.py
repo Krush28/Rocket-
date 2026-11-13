@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import app.models  # noqa: F401
 from app.db import database
 from app.ml import forecast
+from app.repositories import market_data as MD
 
 
 @pytest.fixture(autouse=True)
@@ -13,7 +14,9 @@ def db(tmp_path, monkeypatch):
     database.Base.metadata.create_all(eng)
     monkeypatch.setattr(database, "SessionLocal", sessionmaker(bind=eng, autoflush=False, expire_on_commit=False))
     forecast.forecast.cache_clear()
+    MD.clear()
     with database.SessionLocal() as s:
         yield s
     forecast.forecast.cache_clear()
+    MD.clear()
     eng.dispose()

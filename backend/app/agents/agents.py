@@ -4,7 +4,7 @@ from datetime import date, timedelta
 
 import numpy as np
 
-from app.services import costs
+from app.services import confidence, costs, spoilage
 from app.services import demo_data as D
 from app.ml import forecast as F
 from app.services import logistics
@@ -57,7 +57,8 @@ def price_intelligence(st):
                "avg7": round(float(df["modal"].iloc[-7:].mean())), "avg30": round(float(df["modal"].iloc[-30:].mean())),
                "trend_30d_pct": round((df["modal"].iloc[-1] / df["modal"].iloc[-30] - 1) * 100, 1) if len(df) >= 30 else None,
                "history": [[str(d.date()), float(v)] for d, v in zip(df["date"].iloc[-90:], df["modal"].iloc[-90:])],
-               "stale": age > STALE_DAYS, "unit": "Rs/quintal", "price_basis": "median of last 3 observed modal prices",
+               "stale": age > STALE_DAYS, "suspect": MD.price_outlier(crop, float(last3.median())), "unit": "Rs/quintal",
+               "price_basis": "median of last 3 observed modal prices",
                "meta": meta(MD.source_label(), MD.verification(), updated=MD.last_updated(crop, name))}
         out[name] = rec
     st["prices"] = out
@@ -65,7 +66,8 @@ def price_intelligence(st):
         return {"data": {"mandis": out, "retail_context": []},
                 "meta": meta(MD.source_label(), "official", note="Retail prices: no verified source connected yet.")}
     # retail = consumer-market context ONLY, never a farmer price
-    base = float(np.mean([p["avg7"] for p in out.values()]))
+    good = [p for p in out.values() if not p["suspect"]] or list(out.values())
+    base = float(np.mean([p["avg7"] for p in good]))
     retail = [{"city": c, "retail_price": round(base * (1 + mk)), "unit": "Rs/quintal-equivalent",
                "spread_vs_wholesale_pct": round(mk * 100), "note": "Consumer price context. NOT what a farmer receives."} for c, mk in D.RETAIL_CITIES.items()]
     return {"data": {"mandis": out, "retail_context": retail}, "meta": meta(DEMO_SRC, "demo")}
@@ -129,7 +131,7 @@ def cold_storage(st):
 def _net_now_rows(st):
     rows = []
     for name, p in st["prices"].items():
-        if p["stale"]:
+        if p["stale"] or p.get("suspect"):
             continue
         km = st["mandis"][name]["distance_km"]
         rows.append((name, costs.sell_option(p["modal"], _qtl(st), km, st["assumptions"], label=name)))
@@ -218,6 +220,22 @@ def sell_vs_hold(st):
                     incremental=best["net"] - sell["net"], confidence=h["confidence"])
         holds.append(best)
     decision = costs.decide(sell, holds)
+    factors = []  # the "why" list shown under the verdict: each line is a checkable fact, not a model opinion
+    fc_skips = [s["days"] for s in skipped if "forecast" in s["why"] or "insufficient" in s["why"]]
+    shelf = [s["days"] for s in skipped if "shelf life" in s["why"]]
+    if fc_skips:
+        factors.append(f"No reliable forecast for the {', '.join(map(str, fc_skips))} day window(s)")
+    if shelf:
+        factors.append(f"{crop} shelf life rules out the {', '.join(map(str, shelf))} day window(s)")
+    if holds:
+        bh = max(holds, key=lambda h: h["net"] - sell["net"])
+        factors.append(f"Best hold ({bh['days']} d) changes net by Rs {bh['net'] - sell['net']:+,} with {costs._pct(bh['p_decline'])} chance of a lower price")
+    sp = _spoil(st, m["distance_km"])
+    if sp:
+        factors.append(f"Spoilage risk on the trip to {dest}: {sp['level']} ({sp['probability']:.0%}, about {sp['transit_hours']} h)")
+    pa = st["prices"][dest]["age_days"]
+    factors.append("Price data is from today" if pa == 0 else f"Price data is {pa} days old")
+    decision = {**decision, "factors": factors}
     return {"data": {"destination": dest, "sell_now": sell, "holds": holds, "skipped": skipped, "decision": decision,
                      "formulas": {"sell_now": "revenue - transport - handling - other selling costs",
                                   "hold": "future revenue (qty reduced by weight loss/spoilage, not double counted) - storage - handling - transport - financing"}},
@@ -231,7 +249,7 @@ def net_realization(st):
     for name, o in _net_now_rows(st):
         p = st["prices"][name]
         opts.append(_opt("mandi_now", f"Sell at {name} today", name, o, st["mandis"][name]["distance_km"], "today / next market day", None, p["age_days"],
-                         ["Modal price is not a guaranteed price for your lot", "Transport is an ESTIMATE"]))
+                         ["Modal price is not a guaranteed price for your lot", "Transport is an ESTIMATE"], spoil=_spoil(st, st["mandis"][name]["distance_km"])))
     for b in st["buyers"]:
         if b["kind"] != "offer" or not b["meets_min_qty"]:
             continue
@@ -240,7 +258,7 @@ def net_realization(st):
         if b["pickup"] == "buyer collects":
             o["transport"]["label"] = "BUYER COLLECTS"
         opts.append(_opt("direct_buyer", f"Direct sale to {b['name']}", b["name"], o, b["distance_km"], "1-2 days", None, 0,
-                         ["DEMO OFFER: not a real buyer", f"Offer valid until {b['valid_until']}", "Quality grading may change the price"]))
+                         ["DEMO OFFER: not a real buyer", f"Offer valid until {b['valid_until']}", "Quality grading may change the price"], spoil=_spoil(st, b["distance_km"])))
     for h in sh.get("holds", []):
         low = h["net_downside"]
         o = {**h, "gross_revenue": h["gross_revenue"]}
@@ -274,16 +292,25 @@ def net_realization(st):
             "meta": meta("costs.py (deterministic)", "estimate")}
 
 
-def _opt(kind, label, dest, o, km, when, conf, age, risks, downside=None, tr=None):
+def _spoil(st, km):
+    hd = st["profile"].get("harvest_date")
+    age = max(0, (date.today() - date.fromisoformat(hd)).days) if hd else 0
+    return spoilage.assess(st["profile"]["crop"], km, st["assumptions"].get("ambient_temp_c", 28.0), age)
+
+
+def _opt(kind, label, dest, o, km, when, conf, age, risks, downside=None, tr=None, spoil=None):
     ded = o["deductions"]
     tot = sum(ded.values())
     net = o["net"]
     pen = costs.RISK_LAMBDA * max(0, net - downside) if downside is not None else 0
+    if spoil and spoil["probability"] >= 0.2:
+        pen += 0.25 * spoil["probability"] * net  # ranking penalty only; weight loss is already one rupee deduction (never double counted)
+        risks = [f"Spoilage risk {spoil['level']} ({spoil['probability']:.0%}) on this trip", *risks]
     return {"type": kind, "label": label, "destination": dest, "price": o["price"], "saleable_qty": o["saleable_qty"], "gross_revenue": o["gross_revenue"],
             "deductions": ded, "total_deductions": tot, "net": net, "net_downside": downside, "score": round(net - pen), "distance_km": km,
             "transport_cost": tr if tr is not None else ded.get("transport"), "expected_selling_time": when, "forecast_confidence": conf or "n/a (current price)",
             "data_freshness_days": age, "expected_loss_qty": o["expected_loss_qty"], "risks": risks, "verification": "LIVE PRICE / ESTIMATED COSTS" if (MD.live() and kind != "direct_buyer") else "DEMO DATA / ESTIMATE",
-            "hold_days": o.get("days")}
+            "hold_days": o.get("days"), "spoilage": spoil}
 
 
 # 12 --------------------------------------------------------------- Recommendation
@@ -296,7 +323,8 @@ def recommendation(st):
             reason = f"All nearby prices are older than {STALE_DAYS} days (latest {latest}). Import today's prices before deciding."
         else:
             reason = "No feasible selling option with fresh prices was found."
-        return {"data": {"status": "insufficient_information", "reason": reason}, "meta": meta("recommendation", "estimate", error=reason)}
+        ex = [{"mandi": n, "reason": "stale price" if p["stale"] else p["suspect"]} for n, p in prices.items() if p["stale"] or p.get("suspect")]
+        return {"data": {"status": "insufficient_information", "reason": reason, "excluded": ex}, "meta": meta("recommendation", "estimate", error=reason)}
     best, sh = opts[0], st["sellhold"]["decision"]
     near = st["net"]["reference_nearest_mandi_now"]
     top_mandi_now = next((o for o in opts if o["type"] == "mandi_now"), None)
@@ -319,5 +347,6 @@ def recommendation(st):
         f"Sell vs hold: {sh['action']}. {sh['reason']} " + " ".join(notes))
     return {"data": {"best": best, "decision": sh, "answers": answers, "estimated_gain_vs_nearest_mandi_today": (best["net"] - near) if near is not None else None,
                      "gain_note": "Model-estimated versus selling at the nearest mandi today. Not a measured result.",
-                     "explanation": text, "explanation_by": "local LLM" if llm.enabled() else "template", "reconsider_on": sh["reconsider_on"]},
+                     "explanation": text, "explanation_by": "local LLM" if llm.enabled() else "template", "reconsider_on": sh["reconsider_on"],
+                     "confidence": confidence.assess(st)},
             "meta": meta("recommendation agent", "estimate", confidence=best["forecast_confidence"])}

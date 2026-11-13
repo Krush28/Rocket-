@@ -1,10 +1,11 @@
 """One place agents read mandis and prices from. LIVE when mandi_prices has any row (real data only, never padded with demo
 values); DEMO otherwise (Rocket's labelled synthetic series). Mandi key = "<market>, <district>, <state>" in LIVE mode."""
 import re
+from functools import lru_cache
 from datetime import datetime, timezone
 
 import pandas as pd
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.db import database
 from app.models import Commodity, Mandi, MandiPrice
@@ -15,10 +16,18 @@ LIVE_SOURCE = "data.gov.in Agmarknet daily price (official)"
 COLS = ["date", "modal", "min", "max", "arrivals_t"]
 
 
+def clear() -> None:
+    """Reads are cached for speed (a plan re-reads the same series many times); call after any price import or geocode."""
+    for f in (live, mandis_with_prices, series, crop_median, crop_catalogue):
+        f.cache_clear()
+
+
+@lru_cache(maxsize=4096)
 def live() -> bool:
     return adapters.live_mode()
 
 
+@lru_cache(maxsize=4096)
 def mandis_with_prices(crop: str) -> list[dict]:
     """Geocoded mandis that have at least one price row for this crop."""
     if not live():
@@ -32,6 +41,7 @@ def mandis_with_prices(crop: str) -> list[dict]:
             for m in rows]
 
 
+@lru_cache(maxsize=4096)
 def series(crop: str, key: str) -> pd.DataFrame:
     """Daily modal/min/max (Rs/quintal); median across varieties and grades per day. Empty frame if unknown."""
     if not live():
@@ -57,6 +67,32 @@ def last_updated(crop: str, key: str) -> datetime | None:
     return datetime.combine(df["date"].iloc[-1].date(), datetime.min.time(), tzinfo=timezone.utc) if len(df) else None
 
 
+@lru_cache(maxsize=4096)
+def crop_median(crop: str) -> float | None:
+    """Median modal price for the crop across ALL mandis on the latest loaded date (needs >= 5 rows): the data-error yardstick."""
+    with database.SessionLocal() as s:
+        d = s.scalar(select(func.max(MandiPrice.price_date)).join(Commodity, Commodity.id == MandiPrice.commodity_id).where(Commodity.key == crop))
+        if d is None:
+            return None
+        v = sorted(s.scalars(select(MandiPrice.modal_price).join(Commodity, Commodity.id == MandiPrice.commodity_id)
+                             .where(Commodity.key == crop, MandiPrice.price_date == d)))
+    return v[len(v) // 2] if len(v) >= 5 else None
+
+
+def price_outlier(crop: str, modal: float) -> str | None:
+    """LIVE mode guard: a price far from today's national median is excluded with a visible reason, never silently ranked."""
+    if not live():
+        return None
+    med = crop_median(crop)
+    if not med:
+        return None
+    if modal < 0.35 * med:
+        return f"price is only {modal / med:.0%} of today's national median (Rs {med:,.0f}); likely a data error"
+    if modal > 2.5 * med:
+        return f"price is {modal / med:.1f}x today's national median (Rs {med:,.0f}); likely a data error"
+    return None
+
+
 def verification() -> str:
     return "official" if live() else "demo"
 
@@ -70,6 +106,7 @@ def crop_params(crop: str) -> dict | None:
     return D.CROPS.get(crop)
 
 
+@lru_cache(maxsize=4096)
 def crop_catalogue() -> dict[str, list[str]]:
     """crop key -> spoken/written aliases. Rocket's multilingual aliases plus every commodity seen in the price feed."""
     cat = {k: list(c["aliases"]) for k, c in D.CROPS.items()}

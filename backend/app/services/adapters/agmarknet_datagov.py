@@ -106,6 +106,8 @@ def upsert(rows: list[dict], observed_at: datetime | None = None) -> int:
             s.execute(stmt.on_conflict_do_update(index_elements=["mandi_id", "commodity_id", "variety", "grade", "price_date"],
                                                  set_={c: stmt.excluded[c] for c in ("min_price", "max_price", "modal_price", "observed_at")}))
         s.commit()
+    from app.repositories import market_data  # lazy: market_data imports this module
+    market_data.clear()  # new prices: drop cached reads
     return len(vals)
 
 

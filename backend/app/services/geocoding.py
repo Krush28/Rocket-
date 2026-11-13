@@ -99,4 +99,6 @@ def geocode_mandis(db: Session, limit: int | None = None, *, client: httpx.Clien
             m.geo_status = "not_found"
         out[m.geo_status] += 1
         db.commit()
+    from app.repositories import market_data
+    market_data.clear()  # new coordinates change which mandis can be ranked
     return out
