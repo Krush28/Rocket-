@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func, select, text
 
-from app.api.routes import admin, agent, chat, market, orders, voice
+from app.api.routes import admin, agent, chat, market, orders, voice, ops
 from app.core import ratelimit
 from app.core.config import settings
 from app.db import database
@@ -15,7 +15,7 @@ app = FastAPI(title="KRISHI-X API", version="0.2.0",
 app.middleware("http")(ratelimit.middleware)  # registered first = inner layer, so CORS headers also reach 429 responses
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=False,
                    allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-Admin-Token"])
-for r in (agent.router, chat.router, market.router, orders.router, admin.router, voice.router):
+for r in (agent.router, chat.router, market.router, orders.router, admin.router, voice.router, ops.router):
     app.include_router(r, prefix="/api")
 
 
@@ -28,6 +28,13 @@ def _warm():
     llm.warm()
     from app.services.adapters import mandi_api  # live prices + history from the keyless Mandi API, refreshed every 6 h (resumable)
     mandi_api.start_background()
+    try:  # storage network for every district that has a mandi (idempotent)
+        from app.db.database import SessionLocal
+        from app.services import ops
+        with SessionLocal() as db:
+            ops.seed_warehouses(db)
+    except Exception as e:
+        print("warehouse seed skipped:", e, flush=True)
 
 
 @app.get("/health")

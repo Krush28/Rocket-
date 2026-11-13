@@ -66,7 +66,7 @@ def test_actions_compare_order_with_confirmation_and_track(db):
     say(db, "a1", "create the order")
     r = say(db, "a1", "yes")
     assert "created" in r["reply"] and r["actions"][0]["type"] == "order"
-    assert "created" in say(db, "a1", "track my order")["reply"]
+    assert "transport requested" in say(db, "a1", "track my order")["reply"]  # the yes also posts the truck request
 
 
 def test_cost_change_validated(db):

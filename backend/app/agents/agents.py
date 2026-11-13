@@ -115,6 +115,13 @@ def buyer_discovery(st):
 # 7 ---------------------------------------------------------------- Cold Storage
 def cold_storage(st):
     crop, farm, qtl, out = st["profile"]["crop"], _farm(st), _qtl(st), []
+    if MD.live():  # warehouses table (registered operators + seeded network), matched by crop category
+        from app.db import database
+        from app.services import ops
+        with database.SessionLocal() as db:
+            rows = ops.warehouses_near(db, farm[0], farm[1], crop, max_km=200, qtl=qtl)
+        if rows:
+            return {"data": rows, "meta": meta("warehouse registry", "unverified", note="Availability is confirmed by the operator after booking.")}
     for w in D.WAREHOUSES:
         if crop not in w["crops"]:
             continue

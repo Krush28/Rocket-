@@ -9,7 +9,7 @@ from datetime import date
 from app.agents import orchestrator
 from app.conversation import intake, profile_agent as P
 from app.repositories import farmers, market_data as MD
-from app.services import gazetteer, llm, orders
+from app.services import gazetteer, llm, ops
 from app.services.geo import haversine_km
 
 STATE: dict = {}
@@ -23,14 +23,14 @@ R = {
              "change a cost (\"set commission to 3\"), add a crop, and create and track an order. Say \"start over\" for a new farmer.",
         fc_none="No reliable forecast yet for {dest}: only {n} day(s) of stored prices, about 120 are needed. I will not guess.",
         fc_ok="Forecast for {dest}: {txt}. Not a guarantee.", fc_h="in {d} days about ₹{p} (₹{lo} to ₹{hi})",
-        store="Nearest cold storage (demo, availability not confirmed): {name}, about ₹{cost} for 7 days. ", no_store="No suitable storage nearby. ",
+        store="Nearest storage: {name}, about ₹{cost} for 7 days (estimate; the operator confirms space). ", no_store="No suitable storage nearby. ",
         truck="Transport to {dest}: about ₹{cost} by {veh} (estimate).", conf="Confidence is {label}. {why}", no_conf="No confidence available.",
         spoil="Spoilage risk on the best trip: {level} ({p}, about {h} hours).", no_spoil="No spoilage estimate for this crop.",
         price="{mandi}: modal ₹{m} per quintal (₹{lo} to ₹{hi}), {age}", today="today", days_old="{n} days old",
         no_order="There is no order yet. Say \"create the order\" to make one.", order="Order {id} is {status}.",
         made="Done. Order {id} created for {label}, expected net ₹{net}. This is an expectation, not a final sale.",
-        transport_sent="Transport request sent. It is an estimate, not a confirmed quote.",
-        storage_sent="Storage enquiry sent. Availability is not confirmed until the operator confirms.", event_done="Done. Order is now {status}.",
+        transport_sent="Truck request {tr} sent to transporters (fare about ₹{fare}, estimate). I will tell you when one accepts.",
+        storage_sent="Storage request {id} sent to {name} for {days} days, about ₹{cost} (estimate). The operator will confirm.", event_done="Done. Order is now {status}.",
         could_not="I could not do that now: {e}.", cant_change="I cannot change that setting.",
         updated="Updated and recalculated. {msg}", payer_note=" The buyer pays commission by default, so your net does not change. Say \"seller pays\" to include it.",
         where="Which village or town is the produce in?", not_yet="You have not told me about {crop} yet. Say, for example, \"I have 50 quintal {crop}\".",
@@ -38,7 +38,7 @@ R = {
         new_lot="New lot: {lot} near {loc}. {msg}", add_which="Which crop do you want to add, and how much? For example \"20 quintal potato\".",
         need_unit="{n} what: kg, quintal or tonne?", removed="Removed {crop}. {msg}", last_lot="{crop} is your only crop. Say \"start over\" to begin again.",
         qty_set="Changed to {lot}. {msg}", loc_set="Farm place changed to {loc}. {msg}", price_none="I have no {crop} price for that place in today's data.",
-        other_crop="{crop} prices: ", no_weather="I do not have weather data. I can help with mandi prices, sell or hold, transport, storage, orders and government schemes.", thanks="You are welcome. Ask me anything about selling your crop.", finish_first="Let us first finish your details.", retail="{crop} in {city} shops: about Rs {lo} to Rs {hi} per kg (estimate from mandi prices, DEMO; shop prices are not what a farmer gets).",
+        other_crop="{crop} prices: ", no_weather="I do not have weather data. I can help with mandi prices, sell or hold, transport, storage, orders and government schemes.", thanks="You are welcome. Ask me anything about selling your crop.", finish_first="Let us first finish your details.", retail="{crop} in {city} shops: about Rs {lo} to Rs {hi} per kg (estimate from mandi prices; shop prices are not what a farmer gets).",
         no_retail="I have no recent {crop} mandi prices near {city} to estimate shop prices.", schemes="Opening government schemes for {state}.",
         w_create="create the sale order for the best option", w_request_transport="request transport", w_request_storage="send the storage enquiry",
         w_pickup="mark it picked up", w_deliver="mark it delivered", w_confirm_sale="confirm the final sale", w_cancel="cancel the order",
@@ -52,14 +52,14 @@ R = {
              "(\"कमीशन 3 करो\"), नई फसल जोड़ना, और ऑर्डर बनाना व देखना। नए किसान के लिए \"नए सिरे से\" बोलिए।",
         fc_none="{dest} के लिए अभी भरोसेमंद अनुमान नहीं: सिर्फ़ {n} दिन के भाव हैं, लगभग 120 चाहिए। मैं अंदाज़ा नहीं लगाऊँगा।",
         fc_ok="{dest} का अनुमान: {txt}। पक्का नहीं।", fc_h="{d} दिन में लगभग ₹{p} (₹{lo} से ₹{hi})",
-        store="सबसे पास का कोल्ड स्टोरेज (डेमो, उपलब्धता पक्की नहीं): {name}, 7 दिन का लगभग ₹{cost}। ", no_store="पास में उपयुक्त भंडारण नहीं। ",
+        store="सबसे पास का भंडारण: {name}, 7 दिन का लगभग ₹{cost} (अनुमान; जगह की पुष्टि संचालक करेगा)। ", no_store="पास में उपयुक्त भंडारण नहीं। ",
         truck="{dest} तक ढुलाई: {veh} से लगभग ₹{cost} (अनुमान)।", conf="भरोसा {label} है। {why}", no_conf="भरोसे का अनुमान उपलब्ध नहीं।",
         spoil="सबसे अच्छे रास्ते पर खराब होने का जोखिम: {level} ({p}, लगभग {h} घंटे)।", no_spoil="इस फसल के खराब होने का अनुमान नहीं।",
         price="{mandi}: मॉडल भाव ₹{m} प्रति क्विंटल (₹{lo} से ₹{hi}), {age}", today="आज का", days_old="{n} दिन पुराना",
         no_order="अभी कोई ऑर्डर नहीं है। बनाने के लिए \"ऑर्डर बनाओ\" बोलिए।", order="ऑर्डर {id} की स्थिति: {status}।",
         made="हो गया। {label} के लिए ऑर्डर {id} बना, अपेक्षित कमाई ₹{net}। यह अनुमान है, अंतिम बिक्री नहीं।",
-        transport_sent="ढुलाई का अनुरोध भेज दिया। यह अनुमान है, पक्का कोटेशन नहीं।",
-        storage_sent="भंडारण की पूछताछ भेज दी। संचालक की पुष्टि तक उपलब्धता पक्की नहीं।", event_done="हो गया। ऑर्डर की स्थिति अब: {status}।",
+        transport_sent="ट्रक अनुरोध {tr} ट्रांसपोर्टरों को भेज दिया (किराया लगभग ₹{fare}, अनुमान)। कोई स्वीकार करेगा तो मैं बताऊँगा।",
+        storage_sent="भंडारण अनुरोध {id} {name} को {days} दिन के लिए भेजा, लगभग ₹{cost} (अनुमान)। संचालक पुष्टि करेगा।", event_done="हो गया। ऑर्डर की स्थिति अब: {status}।",
         could_not="अभी यह नहीं हो सका: {e}।", cant_change="यह सेटिंग नहीं बदल सकता।",
         updated="बदल दिया और फिर से हिसाब किया। {msg}", payer_note=" कमीशन आम तौर पर खरीदार देता है, इसलिए आपकी कमाई नहीं बदली। जोड़ने के लिए \"कमीशन मैं दूँगा\" बोलिए।",
         where="माल किस गाँव या शहर में है?", not_yet="आपने अभी {crop} के बारे में नहीं बताया। जैसे बोलिए: \"मेरे पास 50 क्विंटल {crop} है\"।",
@@ -67,7 +67,7 @@ R = {
         new_lot="नया माल: {loc} के पास {lot}। {msg}", add_which="कौन सी फसल जोड़नी है और कितनी? जैसे \"20 क्विंटल आलू\"।",
         need_unit="{n} क्या: किलो, क्विंटल या टन?", removed="{crop} हटा दिया। {msg}", last_lot="{crop} आपकी अकेली फसल है। नए सिरे से शुरू करने के लिए \"नए सिरे से\" बोलिए।",
         qty_set="बदल दिया: {lot}। {msg}", loc_set="खेत की जगह बदलकर {loc} कर दी। {msg}", price_none="आज के डेटा में उस जगह का {crop} भाव नहीं है।",
-        other_crop="{crop} के भाव: ", no_weather="मेरे पास मौसम की जानकारी नहीं है। मैं मंडी भाव, बेचें या रोकें, ढुलाई, भंडारण, ऑर्डर और सरकारी योजनाओं में मदद कर सकता हूँ।", thanks="आपका स्वागत है। फसल बेचने के बारे में कुछ भी पूछिए।", finish_first="पहले आपकी जानकारी पूरी कर लेते हैं।", retail="{city} की दुकानों में {crop}: लगभग ₹{lo} से ₹{hi} प्रति किलो (मंडी भाव से अनुमान, डेमो; दुकान का भाव किसान का भाव नहीं होता)।",
+        other_crop="{crop} के भाव: ", no_weather="मेरे पास मौसम की जानकारी नहीं है। मैं मंडी भाव, बेचें या रोकें, ढुलाई, भंडारण, ऑर्डर और सरकारी योजनाओं में मदद कर सकता हूँ।", thanks="आपका स्वागत है। फसल बेचने के बारे में कुछ भी पूछिए।", finish_first="पहले आपकी जानकारी पूरी कर लेते हैं।", retail="{city} की दुकानों में {crop}: लगभग ₹{lo} से ₹{hi} प्रति किलो (मंडी भाव से अनुमान; दुकान का भाव किसान का भाव नहीं होता)।",
         no_retail="{city} के पास {crop} के हाल के मंडी भाव नहीं हैं, इसलिए दुकान भाव का अनुमान नहीं लगा सकता।", schemes="{state} की सरकारी योजनाएँ खोल रहा हूँ।",
         w_create="सबसे अच्छे विकल्प के लिए बिक्री ऑर्डर बना दूँ", w_request_transport="ढुलाई का अनुरोध भेज दूँ", w_request_storage="भंडारण की पूछताछ भेज दूँ",
         w_pickup="माल उठ गया दर्ज कर दूँ", w_deliver="माल पहुँच गया दर्ज कर दूँ", w_confirm_sale="अंतिम बिक्री पक्की कर दूँ", w_cancel="ऑर्डर रद्द कर दूँ",
@@ -81,14 +81,14 @@ R = {
              "(\"कमिशन 3 करा\"), नवीन पीक जोडणे, आणि ऑर्डर तयार करणे व पाहणे. नवीन शेतकऱ्यासाठी \"पुन्हा सुरू\" म्हणा.",
         fc_none="{dest} साठी अजून विश्वासार्ह अंदाज नाही: फक्त {n} दिवसांचे भाव आहेत, सुमारे 120 लागतात. मी अंदाजाने सांगणार नाही.",
         fc_ok="{dest} चा अंदाज: {txt}. खात्री नाही.", fc_h="{d} दिवसांत सुमारे ₹{p} (₹{lo} ते ₹{hi})",
-        store="जवळचे शीतगृह (डेमो, उपलब्धता निश्चित नाही): {name}, 7 दिवसांसाठी सुमारे ₹{cost}. ", no_store="जवळ योग्य साठवण नाही. ",
+        store="जवळची साठवण: {name}, 7 दिवसांसाठी सुमारे ₹{cost} (अंदाज; जागेची खात्री चालक करेल). ", no_store="जवळ योग्य साठवण नाही. ",
         truck="{dest} पर्यंत वाहतूक: {veh} ने सुमारे ₹{cost} (अंदाज).", conf="खात्री {label} आहे. {why}", no_conf="खात्रीचा अंदाज उपलब्ध नाही.",
         spoil="सर्वोत्तम प्रवासात माल खराब होण्याचा धोका: {level} ({p}, सुमारे {h} तास).", no_spoil="या पिकाचा खराब होण्याचा अंदाज नाही.",
         price="{mandi}: मॉडल भाव ₹{m} प्रति क्विंटल (₹{lo} ते ₹{hi}), {age}", today="आजचा", days_old="{n} दिवस जुना",
         no_order="अजून ऑर्डर नाही. तयार करण्यासाठी \"ऑर्डर तयार करा\" म्हणा.", order="ऑर्डर {id} ची स्थिती: {status}.",
         made="झाले. {label} साठी ऑर्डर {id} तयार, अपेक्षित कमाई ₹{net}. हा अंदाज आहे, अंतिम विक्री नाही.",
-        transport_sent="वाहतुकीची विनंती पाठवली. हा अंदाज आहे, खात्रीचे दरपत्रक नाही.",
-        storage_sent="साठवणुकीची चौकशी पाठवली. चालकाच्या खात्रीपर्यंत उपलब्धता निश्चित नाही.", event_done="झाले. ऑर्डरची स्थिती आता: {status}.",
+        transport_sent="ट्रक विनंती {tr} वाहतूकदारांना पाठवली (भाडे सुमारे ₹{fare}, अंदाज). कोणी स्वीकारल्यावर मी सांगेन.",
+        storage_sent="साठवण विनंती {id} {name} कडे {days} दिवसांसाठी पाठवली, सुमारे ₹{cost} (अंदाज). चालक खात्री करेल.", event_done="झाले. ऑर्डरची स्थिती आता: {status}.",
         could_not="आत्ता हे करता आले नाही: {e}.", cant_change="ही सेटिंग बदलता येत नाही.",
         updated="बदलले आणि पुन्हा हिशोब केला. {msg}", payer_note=" कमिशन सहसा खरेदीदार देतो, त्यामुळे तुमची कमाई बदलली नाही. जोडण्यासाठी \"कमिशन मी देतो\" म्हणा.",
         where="माल कोणत्या गावात किंवा शहरात आहे?", not_yet="तुम्ही अजून {crop} बद्दल सांगितले नाही. उदा. म्हणा: \"माझ्याकडे 50 क्विंटल {crop} आहे\".",
@@ -96,7 +96,7 @@ R = {
         new_lot="नवीन माल: {loc} जवळ {lot}. {msg}", add_which="कोणते पीक जोडायचे आणि किती? उदा. \"20 क्विंटल बटाटा\".",
         need_unit="{n} काय: किलो, क्विंटल की टन?", removed="{crop} काढले. {msg}", last_lot="{crop} हे तुमचे एकमेव पीक आहे. पुन्हा सुरू करण्यासाठी \"पुन्हा सुरू\" म्हणा.",
         qty_set="बदलले: {lot}. {msg}", loc_set="शेताचे ठिकाण {loc} केले. {msg}", price_none="आजच्या माहितीत त्या ठिकाणचा {crop} भाव नाही.",
-        other_crop="{crop} भाव: ", no_weather="माझ्याकडे हवामानाची माहिती नाही. मी मंडी भाव, विकायचे की थांबायचे, वाहतूक, साठवण, ऑर्डर आणि सरकारी योजनांमध्ये मदत करू शकतो.", thanks="आपले स्वागत आहे. पीक विकण्याबद्दल काहीही विचारा.", finish_first="आधी तुमची माहिती पूर्ण करूया.", retail="{city} मधील दुकानांत {crop}: सुमारे ₹{lo} ते ₹{hi} प्रति किलो (मंडी भावावरून अंदाज, डेमो; दुकानाचा भाव शेतकऱ्याचा भाव नसतो).",
+        other_crop="{crop} भाव: ", no_weather="माझ्याकडे हवामानाची माहिती नाही. मी मंडी भाव, विकायचे की थांबायचे, वाहतूक, साठवण, ऑर्डर आणि सरकारी योजनांमध्ये मदत करू शकतो.", thanks="आपले स्वागत आहे. पीक विकण्याबद्दल काहीही विचारा.", finish_first="आधी तुमची माहिती पूर्ण करूया.", retail="{city} मधील दुकानांत {crop}: सुमारे ₹{lo} ते ₹{hi} प्रति किलो (मंडी भावावरून अंदाज; दुकानाचा भाव शेतकऱ्याचा भाव नसतो).",
         no_retail="{city} जवळ {crop} चे अलीकडील मंडी भाव नाहीत, त्यामुळे दुकान भावाचा अंदाज देता येत नाही.", schemes="{state} च्या सरकारी योजना उघडत आहे.",
         w_create="सर्वोत्तम पर्यायासाठी विक्री ऑर्डर तयार करू", w_request_transport="वाहतुकीची विनंती पाठवू", w_request_storage="साठवणुकीची चौकशी पाठवू",
         w_pickup="माल उचलला अशी नोंद करू", w_deliver="माल पोहोचला अशी नोंद करू", w_confirm_sale="अंतिम विक्री निश्चित करू", w_cancel="ऑर्डर रद्द करू",
@@ -331,7 +331,7 @@ def run_tool(tool: str, args: dict, st: dict, lang: str, db) -> dict:
     if tool == "read_aloud":
         return {"reply": _best_msg(plan, lang), "actions": []}
     if tool == "track_order":
-        o = orders.get(st["order_id"]) if st.get("order_id") else None
+        o = ops.get_order(db, st["order_id"]) if st.get("order_id") else None
         if not o:
             return {"reply": rt(lang, "no_order"), "actions": []}
         return {"reply": rt(lang, "order", id=o["id"], status=_status(o["status"], lang)), "actions": [{"type": "order", "order": o}, _tab("order")]}
@@ -413,7 +413,7 @@ def _city_in(text: str) -> str:
 
 
 def _retail(crop: str, city: str, st: dict, lang: str) -> dict:
-    """Shop-price CONTEXT only: median recent mandi modal near the city x a typical retail markup band. Labelled DEMO, never a farmer price."""
+    """Shop-price CONTEXT only: median recent mandi modal near the city x a typical retail markup band. Labelled an estimate, never a farmer price."""
     from app.services import crops as CR
     from app.db import database
     loc = None
@@ -434,7 +434,7 @@ def _retail(crop: str, city: str, st: dict, lang: str) -> dict:
     med = sorted(vals)[len(vals) // 2] / 100  # Rs per kg
     lo, hi = RETAIL_MARKUP.get(CR.params(crop)["category"], (1.6, 2.4))
     return {"reply": rt(lang, "retail", crop=intake.crop_label(crop, lang), city=name, lo=_inr(med * lo), hi=_inr(med * hi)), "actions": [],
-            "retail": {"crop": crop, "city": name, "mandi_median_per_kg": round(med, 1), "range_per_kg": [round(med * lo), round(med * hi)], "label": "DEMO estimate"}}
+            "retail": {"crop": crop, "city": name, "mandi_median_per_kg": round(med, 1), "range_per_kg": [round(med * lo), round(med * hi)], "label": "estimate"}}
 
 
 def _mandi_name(key: str, lang: str) -> str:
@@ -476,15 +476,51 @@ def _confirm_text(tool, args, lang):
     return rt(lang, "w_create" if tool == "create_order" else "w_" + args.get("event", "cancel"))
 
 
-def _execute_confirmed(tool, args, st, lang):
+def _quote(plan: dict, dest: str) -> dict | None:
+    """Cheapest vehicle estimate to the destination, from the plan's transport agent."""
+    for t in plan.get("transport") or []:
+        if t.get("destination") == dest and t.get("options"):
+            o = min(t["options"], key=lambda v: v["total"])
+            return {"vehicle": o.get("vehicle"), "total": o.get("total"), "distance_km": t.get("distance_km")}
+    best = next((o for o in plan.get("options") or [] if o.get("destination") == dest), None)  # beyond the 4 nearest: same cost model
+    km = (best or {}).get("distance_km")
+    if km:
+        from app.services import costs
+        t = costs.transport(plan["profile"]["qty_kg"] / 100, km)
+        return {"vehicle": t["vehicle"], "total": round(t["total"]), "distance_km": km}
+    return None
+
+
+def _book_storage(st, lang, db):
     plan = st["plan"]
-    if tool == "create_order":
+    stores = plan.get("storage") or []
+    if not stores:
+        return {"reply": rt(lang, "no_store"), "actions": []}
+    holds = (plan.get("sell_vs_hold") or {}).get("holds") or []
+    days = int(holds[0]["days"]) if holds else 7
+    try:
+        b = ops.book_storage(db, st["sid"], stores[0]["id"], plan["profile"]["crop"], plan["profile"]["qty_kg"], days)
+    except KeyError:
+        return {"reply": rt(lang, "no_store"), "actions": []}
+    return {"reply": rt(lang, "storage_sent", id=b["id"], name=b["warehouse"]["name"], days=b["days"], cost=_inr(b["est_cost"])),
+            "actions": [{"type": "storage", "booking": b}, _tab("logistics")]}
+
+
+def _execute_confirmed(tool, args, st, lang, db):
+    plan = st["plan"]
+    if tool == "create_order":  # the sale order AND the truck request (booking token) in one yes
         best = (plan.get("recommendation") or {}).get("best")
-        if not best:
+        if not best or not best.get("destination"):
             return {"reply": _best_msg(plan, lang), "actions": []}
-        o = orders.create(best, plan["profile"])
+        o = ops.create_order(db, st["sid"], best, plan["profile"], _quote(plan, best["destination"]))
+        o = ops.order_event(db, o["id"], "request_transport")
         st["order_id"] = st["orders"][st["active"]] = o["id"]
-        return {"reply": rt(lang, "made", id=o["id"], label=best["label"], net=_inr(best["net"])), "actions": [{"type": "order", "order": o}, _tab("order")]}
+        tr = o["transport"] or {}
+        return {"reply": rt(lang, "made", id=o["id"], label=best["label"], net=_inr(best["net"])) + " "
+                + rt(lang, "transport_sent", tr=tr.get("id", ""), fare=_inr(tr.get("est_fare") or 0)),
+                "actions": [{"type": "order", "order": o}, _tab("order")]}
+    if args.get("event") == "request_storage":
+        return _book_storage(st, lang, db)
     if not st.get("order_id"):
         return {"reply": rt(lang, "no_order"), "actions": []}
     ev = args["event"]
@@ -493,11 +529,14 @@ def _execute_confirmed(tool, args, st, lang):
         data = {"actual_price": args["actual_price"], "actual_qty_kg": plan["profile"]["qty_kg"],
                 "actual_costs": ((plan.get("recommendation") or {}).get("best") or {}).get("total_deductions", 0)}
     try:
-        o = orders.event(st["order_id"], ev, data)
+        o = ops.order_event(db, st["order_id"], ev, data)
     except (ValueError, KeyError) as e:
         return {"reply": rt(lang, "could_not", e=e), "actions": []}
-    key = {"request_transport": "transport_sent", "request_storage": "storage_sent"}.get(ev)
-    return {"reply": rt(lang, key) if key else rt(lang, "event_done", status=_status(o["status"], lang)), "actions": [{"type": "order", "order": o}, _tab("order")]}
+    if ev == "request_transport":
+        tr = o["transport"] or {}
+        return {"reply": rt(lang, "transport_sent", tr=tr.get("id", ""), fare=_inr(tr.get("est_fare") or 0)), "actions": [{"type": "order", "order": o}, _tab("order")]}
+    acts = [{"type": "order", "order": o}, _tab("order")] + ([{"type": "done"}] if o["status"] == "sale_confirmed" else [])
+    return {"reply": rt(lang, "event_done", status=_status(o["status"], lang)), "actions": acts}
 
 
 # ---------------------------------------------------------------- lots (memory)
@@ -552,7 +591,7 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
         yn = P.yes_no(text)
         pend, st["pending"] = st["pending"], None
         if yn is True:
-            return _out(_execute_confirmed(pend["tool"], pend["args"], st, L), sid, L, "plan", [{"tool": pend["tool"], "confirmed": True}])
+            return _out(_execute_confirmed(pend["tool"], pend["args"], st, L, db), sid, L, "plan", [{"tool": pend["tool"], "confirmed": True}])
         if yn is False:
             return _out({"reply": rt(L, "cancelled")}, sid, L, "plan", [])
 
@@ -624,7 +663,7 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
     if tool == "order_event" and args.get("event") not in FARMER_EVENTS:
         tool, args = "unknown", {}
     trace.append({"tool": tool, "args": {k: v for k, v in args.items() if k != "text"}})
-    if tool == "order_event" and not st.get("order_id"):  # nothing to book against: say so before asking yes/no
+    if tool == "order_event" and args.get("event") != "request_storage" and not st.get("order_id"):  # nothing to book against
         return _out({"reply": rt(L, "no_order")}, sid, L, "plan", trace)
     if tool in CONFIRM_TOOLS:
         st["pending"] = {"tool": tool, "args": args}

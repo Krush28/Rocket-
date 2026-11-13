@@ -164,6 +164,9 @@ def run(states=None, crops=None, history=True) -> dict:
             with database.SessionLocal() as s:
                 SS.save(s, JOB_KEY, {"day": today, "done": sorted(done), "updated": datetime.now(timezone.utc).isoformat()}, confirmed=False)
         out["geocoded"] += geocode_new_mandis()
+        from app.services import ops  # new districts get a storage network too
+        with database.SessionLocal() as s:
+            ops.seed_warehouses(s)
     return out
 
 

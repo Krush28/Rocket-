@@ -29,6 +29,8 @@ class User(Timestamps, Base):
     phone: Mapped[str | None] = mapped_column(String(20), unique=True)
     display_name: Mapped[str | None] = mapped_column(String(120))
     preferred_language: Mapped[str] = mapped_column(String(8), default="en")
+    token: Mapped[str | None] = mapped_column(String(64), unique=True)  # demo login token (phone + role, no password; labelled demo)
+    state: Mapped[str | None] = mapped_column(String(80))
 
 
 class FarmerProfile(Timestamps, Base):

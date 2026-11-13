@@ -63,3 +63,32 @@ def test_free_speech_intake_fills_several_slots(db, monkeypatch):
     say(db, "b4", "")
     r = say(db, "b4", "do ton baingan hai Niphad ke paas abhi taiyar hai")
     assert {c["crop"]: c["qty"] for c in r["crops"]} == {"brinjal": 2} and r["awaiting"] == "can_store"
+
+
+def test_end_to_end_sell_and_hold_with_portals(db, monkeypatch):
+    """Farmer yes -> order + truck token -> transporter accepts/picks up/delivers -> farmer confirms sale; storage -> operator confirms."""
+    from app.services import ops
+    from app.models import Mandi, Warehouse
+    _plan(db, "e1", monkeypatch)
+    r = say(db, "e1", "sell it")
+    assert r["state"] == "confirming_action"
+    r = say(db, "e1", "yes")
+    o = r["actions"][0]["order"]
+    assert o["status"] == "transport_requested" and o["transport"]["id"].startswith("TR-")
+    tr = ops.login(db, "9000000001", "transporter", "Sharma", None)
+    u = ops.by_token(db, tr["token"])
+    assert any(j["id"] == o["transport"]["id"] for j in ops.jobs_for(db, u, "open"))
+    for a in ("accept", "pickup", "deliver"):
+        ops.job_action(db, o["transport"]["id"], u, a)
+    assert [n["title"] for n in ops.notifications(db, ["device:e1"])][:3] == ["Delivered", "Picked up", "Truck accepted"]
+    say(db, "e1", "I sold it at 4100")
+    r = say(db, "e1", "yes")
+    assert {"type": "done"} in r["actions"] and ops.get_order(db, o["id"])["payload"]["final"]["actual_price"] == 4100
+    db.add(Mandi(name="X", district="Nashik", state="Maharashtra", lat=20.0, lon=73.8))
+    db.commit()
+    assert ops.seed_warehouses(db) >= 2 and ops.seed_warehouses(db) == 0  # idempotent per district
+    w = db.query(Warehouse).filter(Warehouse.kind == "cold").first()
+    b = ops.book_storage(db, "e1", w.code, "tomato", 2000, 2)
+    assert b["status"] == "requested" and b["days"] == w.min_days
+    assert ops.booking_action(db, b["id"], "confirm", "op")["status"] == "confirmed"
+    assert ops.notifications(db, ["device:e1"])[0]["title"] == "Storage confirmed"

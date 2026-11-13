@@ -93,7 +93,7 @@ def _exec(tool: str, a: dict, text: str, st: dict, L: str, db) -> dict | None:
         return {"confirm": ("create_order", {})}
     if tool in ("book_transport", "book_storage"):
         ev = "request_transport" if tool == "book_transport" else "request_storage"
-        return {"confirm": ("order_event", {"event": ev})} if st.get("order_id") else {"reply": A.rt(L, "no_order"), "actions": []}
+        return {"confirm": ("order_event", {"event": ev})} if st.get("order_id") or ev == "request_storage" else {"reply": A.rt(L, "no_order"), "actions": []}
     if tool == "retail_price":
         return A.run_tool("retail", {"crop": _crop_key(a.get("crop"), text), "city": a.get("city") or ""}, st, L, db)
     if tool == "show_schemes":

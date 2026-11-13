@@ -29,7 +29,8 @@ backend/
                           i18n.py (EN→hi/mr template translation; place() = Devanagari names; plan["names"])
   app/db/database.py      engine, SessionLocal, Base
   app/models/             core.py (users, farmer profile/inventory, conversation sessions, geocode cache, audit)
-                          markets.py (data sources, commodities, mandis, mandi_prices, places, name_translations)
+                          markets.py (data sources, commodities, mandis, mandi_prices, places, name_translations, state_price_history, forecast_cache)
+                          ops.py (sale_orders, transport_jobs, warehouses, storage_bookings, notifications)
   migrations/versions/    0001 phase-1 schema (+PostGIS geog) · 0002 gazetteer (places, name_translations) · 0003 state_price_history · 0004 forecast_cache
   app/repositories/       market_data.py (LIVE DB vs DEMO, cached reads; clear() after imports)
                           farmers.py (device memory) · sessions.py (conversation state)
@@ -40,10 +41,10 @@ backend/
                           set_location, assumptions, orders; replies dict R in en/hi/mr; STATE = in-memory cache)
   app/services/           crops.py (every crop: hi/mr names, aliases, shelf life, seasonality) · costs.py (ALL money maths) · spoilage.py · confidence.py · logistics.py (OR-Tools)
                           geocoding.py (gazetteer first, Nominatim cached, fuzzy last) · gazetteer.py (GeoNames load/find/dev_name/romanize)
-                          adapters/agmarknet_datagov.py (CSV/API import) · adapters/mandi_api.py (keyless Mandi API, background job) · orders.py (demo order state machine, SQLite)
+                          adapters/agmarknet_datagov.py (CSV/API import) · adapters/mandi_api.py (keyless Mandi API, background job) · ops.py (orders, transport tokens, storage bookings, notifications, dashboards) · orders.py (legacy SQLite)
                           llm.py (Ollama, optional) · tts.py (Piper) · speech.py (faster-whisper) · demo_data.py (DEMO only) · geo.py
   app/ml/forecast.py      baselines, ETS, lag-Ridge + backtest gate
-  app/api/routes/         agent · chat (/api/chat, /api/plan) · market (meta, forecast, series) · orders · admin (import/refresh, X-Admin-Token) · voice
+  app/api/routes/         ops (login, portals, notifications) · agent · chat (/api/chat, /api/plan) · market (meta, forecast, series) · orders · admin (import/refresh, X-Admin-Token) · voice
   scripts/                geocode_mandis.py · load_gazetteer.py
   tests/                  pytest, temp SQLite per test (conftest.py). test_voice_fixes.py = QA regressions + gazetteer
 
