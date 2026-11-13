@@ -224,3 +224,20 @@ def test_intake_never_repeats_the_same_sentence_and_offers_buttons(db):
     say(db, "m9", "50 quintal")
     r = say(db, "m9", "Niphad")
     assert r["awaiting"] == "ready" and r.get("chips") == ["Yes, ready now", "Not yet"]
+
+
+@pytest.mark.parametrize("said,key", [("chawal", "rice"), ("dhaan", "paddy(common)"), ("papita", "papaya"), ("kapas", "cotton"), ("tamatr", "tomato"),
+                                      ("mosambi", "mousambi(sweet lime)"), ("shimla mirch", "capsicum")])
+def test_any_crop_name_local_names_and_typos(said, key):
+    from app.services import crops as CR
+    assert P.resolve_crop(said, use_llm=False) == key or CR.EXTRA.get(said) == key
+
+
+def test_order_uses_the_crop_the_farmer_names(db):
+    for t in ["", "onion and tomato", "20 quintal", "10 quintal", "Niphad", "yes", "no", "yes"]:
+        say(db, "oc1", t)
+    assert say(db, "oc1", "tomato bech do")["state"] == "confirming_action" and A.STATE["oc1"]["active"] == "tomato"
+    assert "How much potato" in say(db, "oc1", "sell my potato")["reply"]
+    r = say(db, "oc1", "15 quintal")
+    assert r["state"] == "confirming_action" and A.STATE["oc1"]["active"] == "potato"
+    assert "could not find that crop" in say(db, "oc1", "I have 2 quintal dragon fruit")["reply"]

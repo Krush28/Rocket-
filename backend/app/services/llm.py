@@ -229,3 +229,31 @@ def yes_no(question: str, answer: str) -> bool | None:
     except ValueError:
         return None
     return True if m == "yes" else False if m == "no" else None
+
+
+def map_crop(text: str, keys: list[str]) -> str | None:
+    """Map whatever crop the farmer named (any language, local name, typo) to one commodity key we have prices for, or None."""
+    if not enabled() or not keys:
+        return None
+    raw = _gen("A farmer named a crop. Pick the ONE commodity from the list that is the same crop (local / Hindi / Marathi names, spelling "
+               f"mistakes and plurals allowed), or none if it is not in the list. Farmer said: {json.dumps(text, ensure_ascii=False)}",
+               schema={"type": "object", "required": ["crop"], "properties": {"crop": {"type": "string", "enum": keys + ["none"]}}},
+               max_tokens=40, timeout=15)
+    try:
+        c = json.loads(raw or "{}").get("crop")
+    except ValueError:
+        return None
+    return c if c in keys else None
+
+
+def same_crop(said: str, key: str) -> bool:
+    """Independent yes/no check that what the farmer said really is this commodity."""
+    if not enabled():
+        return False
+    raw = _gen(f"Is the crop in {json.dumps(said, ensure_ascii=False)} the same agricultural commodity as {json.dumps(key)}? "
+               "Answer yes only if it is clearly the same crop (local names allowed).",
+               schema={"type": "object", "required": ["same"], "properties": {"same": {"type": "boolean"}}}, max_tokens=15, timeout=10)
+    try:
+        return json.loads(raw or "{}").get("same") is True
+    except ValueError:
+        return False
