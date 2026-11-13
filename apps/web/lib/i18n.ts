@@ -3,6 +3,8 @@ export type Lang = "en" | "hi" | "mr";
 const T = {
   title: { en: "What do you want to sell today?", hi: "आज आप क्या बेचना चाहते हैं?", mr: "आज तुम्हाला काय विकायचे आहे?" },
   sub: { en: "Say your crop, amount and village. I find where you keep the most after costs.", hi: "फसल, मात्रा और गाँव बताइए। मैं बताऊँगा कि खर्च के बाद सबसे ज़्यादा कहाँ बचेगा।", mr: "पीक, प्रमाण आणि गाव सांगा. खर्चानंतर सर्वाधिक कुठे राहील ते मी सांगतो." },
+  reset: { en: "Start over", hi: "नए सिरे से", mr: "पुन्हा सुरू" },
+  resetAsk: { en: "Clear your crops and unfinished steps and start over?", hi: "आपकी फसलें और अधूरे काम मिटाकर नए सिरे से शुरू करें?", mr: "तुमची पिके आणि अर्धवट कामे पुसून पुन्हा सुरू करायचे?" },
   tap: { en: "Tap and speak", hi: "दबाएँ और बोलें", mr: "दाबा आणि बोला" },
   listening: { en: "Listening… tap to stop", hi: "सुन रहा हूँ… रोकने के लिए दबाएँ", mr: "ऐकत आहे… थांबवण्यासाठी दाबा" },
   type: { en: "Or type here", hi: "या यहाँ लिखें", mr: "किंवा येथे लिहा" },

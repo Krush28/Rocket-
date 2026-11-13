@@ -16,7 +16,7 @@ STATE: dict = {}
 R = {
     "en": dict(
         need_plan="Tell me your crops, amount and village first, then I can do that.", confirm="Shall I {what}? Say yes or no.",
-        cancelled="Okay, I did not do it.", reset="Starting over.", lang="Switched to English.",
+        cancelled="Okay, I did not do it.", dropped="Okay, I dropped the unfinished step.", reset="Starting over.", lang="Switched to English.",
         unknown="I did not understand. Try: \"where should I sell\", \"show the forecast\", \"should I hold\", \"book transport\" or \"create the order\".",
         best="Best option: {label}. You keep about ₹{net}.", tab="Showing {x}.",
         help="I can tell you where to sell, compare mandis, explain sell now or hold, show the forecast, storage and transport, check a price, "
@@ -44,7 +44,7 @@ R = {
         t_compare="the mandi comparison", t_forecast="the forecast", t_logistics="storage and transport", t_order="the order"),
     "hi": dict(
         need_plan="पहले अपनी फसल, मात्रा और गाँव बताइए, फिर मैं यह कर दूँगा।", confirm="क्या मैं {what}? हाँ या नहीं बोलिए।",
-        cancelled="ठीक है, मैंने नहीं किया।", reset="नए सिरे से शुरू करते हैं।", lang="हिंदी में बदल दिया।",
+        cancelled="ठीक है, मैंने नहीं किया।", dropped="ठीक है, अधूरा काम छोड़ दिया।", reset="नए सिरे से शुरू करते हैं।", lang="हिंदी में बदल दिया।",
         unknown="मैं समझा नहीं। कहिए: \"कहाँ बेचूँ\", \"भाव अनुमान दिखाओ\", \"रोकूँ या बेचूँ\", \"ट्रक बुक करो\" या \"ऑर्डर बनाओ\"।",
         best="सबसे अच्छा विकल्प: {label}। आपके हाथ में लगभग ₹{net}।", tab="{x} दिखा रहा हूँ।",
         help="मैं बता सकता हूँ कहाँ बेचें, मंडियों की तुलना, अभी बेचें या रोकें, भाव अनुमान, भंडारण और ढुलाई, किसी मंडी का भाव, खर्च बदलना "
@@ -72,7 +72,7 @@ R = {
         t_compare="मंडियों की तुलना", t_forecast="भाव अनुमान", t_logistics="भंडारण और ढुलाई", t_order="ऑर्डर"),
     "mr": dict(
         need_plan="आधी तुमची पिके, प्रमाण आणि गाव सांगा, मग मी ते करतो.", confirm="मी {what} का? होय किंवा नाही म्हणा.",
-        cancelled="ठीक आहे, मी केले नाही.", reset="पुन्हा सुरू करतो.", lang="मराठीत बदलले.",
+        cancelled="ठीक आहे, मी केले नाही.", dropped="ठीक आहे, अर्धवट काम सोडले.", reset="पुन्हा सुरू करतो.", lang="मराठीत बदलले.",
         unknown="मला समजले नाही. म्हणा: \"कुठे विकू\", \"भाव अंदाज दाखवा\", \"थांबू का विकू\", \"ट्रक बुक करा\" किंवा \"ऑर्डर तयार करा\".",
         best="सर्वोत्तम पर्याय: {label}. तुमच्या हातात सुमारे ₹{net}.", tab="{x} दाखवतो.",
         help="मी सांगू शकतो कुठे विकायचे, मंडईंची तुलना, आता विकायचे की थांबायचे, भाव अंदाज, साठवण व वाहतूक, एखाद्या मंडईचा भाव, खर्च बदलणे "
@@ -461,6 +461,15 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
     pend_lang = (intake.pending(sid, db) or {}).get("lang")
     L = lang or P.detect_lang(text, ((st["plan"] or {}).get("profile") or {}).get("lang") or pend_lang or (st["farmer"] or {}).get("lang") or "en")
 
+    if text and P.is_cancel(text):  # "cancel" / "never mind": drop whatever is half-done, keep finished work
+        st["pending"] = st["await"] = None
+        if st["plan"]:
+            return _out({"reply": rt(L, "dropped")}, sid, L, "plan", [{"tool": "cancel_task"}])
+        intake.forget(sid, db)
+        r = intake.step(sid, "", L, db=db)  # a fresh intake: greeting, nothing remembered from the half-done one
+        return _out({"reply": rt(L, "dropped") + " " + r["reply"], "lang": r["lang"]}, sid, L, "collecting", [{"tool": "cancel_task"}],
+                    awaiting=r.get("awaiting"))
+
     if st["pending"]:  # a yes/no for an action with consequences
         yn = P.yes_no(text)
         pend, st["pending"] = st["pending"], None
@@ -469,7 +478,8 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
         if yn is False:
             return _out({"reply": rt(L, "cancelled")}, sid, L, "plan", [])
 
-    if not text and st["plan"] and st["farmer"]:  # page reload: resume, do not ask again
+    if not text and st["plan"] and st["farmer"]:  # page reload: resume the plan, drop any half-done question
+        st["pending"] = st["await"] = None
         if st["plan"]["profile"].get("lang") != L:
             _activate(st, st["active"], L)
         return _out({"reply": intake.welcome_back(st["farmer"], L), "actions": [{"type": "plan", "plan": st["plan"]}]}, sid, L, "plan", [{"tool": "resume"}], done=True)

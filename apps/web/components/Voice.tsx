@@ -2,6 +2,16 @@
 
 import { t, type Lang } from "@/lib/i18n";
 
+export function ResetButton({ lang, busy, onReset, dark }: { lang: Lang; busy: boolean; onReset: () => void; dark?: boolean }) {
+  return (
+    <button type="button" onClick={onReset} disabled={busy} title={t("reset", lang)} aria-label={t("reset", lang)}
+      className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-xl px-3 text-[15px] disabled:opacity-50 ${dark ? "bg-leaf text-cream hover:bg-moss" : "bg-[#ECEAE0] text-ink"}`}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5" /></svg>
+      <span className="hidden sm:inline">{t("reset", lang)}</span>
+    </button>
+  );
+}
+
 export function LangSwitch({ lang, onLang, dark }: { lang: Lang; onLang: (l: Lang) => void; dark?: boolean }) {
   return (
     <div role="group" aria-label={t("langWord", lang)} className={`inline-flex rounded-xl p-1 ${dark ? "bg-leaf" : "bg-[#ECEAE0]"}`}>

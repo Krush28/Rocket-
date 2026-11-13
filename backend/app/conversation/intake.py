@@ -2,12 +2,14 @@
 read-back -> yes. Nothing is stored and no market work starts before the yes. English / Hindi / Marathi, rules only (fast, offline).
 Any crop in the price feed is accepted; any Indian place is geocoded. State is saved per session (survives restarts)."""
 import re
+import time
 
 from app.conversation import profile_agent as P
 from app.repositories import farmers, sessions as SS
 
 SEP = re.compile(r"\s*[,;&]\s*|\s+(?:and|और|आणि|तथा|व)\s+", re.I)  # whole words only: \b is unreliable around Devanagari marks
 S: dict = {}  # hot cache of intake state; the DB copy is the source of truth
+STALE_S = 30 * 60  # an unfinished intake untouched this long is dropped: the farmer starts fresh instead of resuming a half-done task
 
 T = {
     "greet": {"en": "Namaste! I am KRISHI-X. Tell me which crops you want to sell. You can name several.",
@@ -121,10 +123,11 @@ def _reply(s, text, **extra):
 def step(sid: str, text: str, lang: str | None = None, *, db) -> dict:
     key = f"intake:{sid}"
     s = S.get(sid) or SS.load(db, key)
-    if not s or s.get("done"):
-        s = new(sid, lang or "en")
+    if not s or s.get("done") or time.time() - s.get("ts", 0) > STALE_S:
+        s = new(sid, lang or (s or {}).get("lang") or "en")
     S[sid] = s
     r = _step(s, text, lang, db, sid)
+    s["ts"] = time.time()
     if r["done"]:
         S.pop(sid, None)
         SS.save(db, key, {"done": True}, confirmed=True)
@@ -135,7 +138,7 @@ def step(sid: str, text: str, lang: str | None = None, *, db) -> dict:
 
 def pending(sid: str, db) -> dict | None:
     s = S.get(sid) or SS.load(db, f"intake:{sid}")
-    return None if not s or s.get("done") else s
+    return None if not s or s.get("done") or time.time() - s.get("ts", 0) > STALE_S else s
 
 
 def forget(sid: str, db) -> None:
@@ -152,7 +155,9 @@ def _step(s, text, lang, db, sid) -> dict:
         if not text:
             return _reply(s, _t("greet", L))
     aw = s["awaiting"]
-    if aw == "confirm":
+    if not text:  # page reload mid-intake: repeat the current question, no "sorry"
+        pass
+    elif aw == "confirm":
         found = _apply(s, text, None, db)
         yn = P.yes_no(text)
         if not found and yn is True:

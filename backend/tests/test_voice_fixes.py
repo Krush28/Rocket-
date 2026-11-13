@@ -138,3 +138,44 @@ def test_dev_name_translates_known_pieces_only(gaz):
     assert G.dev_name("Pune(Niphad), Pune, Maharashtra") == "पुणे(निफाड), पुणे, महाराष्ट्र"
     assert G.dev_name("APMC Unknownpur, Nashik, Maharashtra") == "APMC Unknownpur, Nashik, महाराष्ट्र"
     assert G.romanize("पिंपळगाव बसवंत") == "pimpalgav basvant"
+
+
+# ---- reset / cancel: never hold on to a half-done task
+def test_cancel_mid_intake_starts_fresh(db):
+    say(db, "c1", "")
+    say(db, "c1", "onion")
+    r = say(db, "c1", "never mind")
+    assert "dropped" in r["reply"] and r["awaiting"] == "crops" and r["crops"] == []
+
+
+def test_cancel_drops_pending_yes_no_and_half_added_crop(db):
+    _plan(db, "c2")
+    assert say(db, "c2", "create the order")["state"] == "confirming_action"
+    assert "dropped" in say(db, "c2", "cancel")["reply"]
+    assert "Order" not in say(db, "c2", "yes")["reply"]  # the old question is gone, "yes" creates nothing
+    say(db, "c2", "add tomato")
+    say(db, "c2", "छोड़ो")
+    assert A.STATE["c2"]["await"] is None and "tomato" not in _crops(say(db, "c2", "10 quintal"))
+
+
+def test_cancel_the_order_is_still_an_order_action():
+    assert not P.is_cancel("cancel the order") and A.route("cancel the order") == ("order_event", {"event": "cancel"})
+
+
+def test_reload_drops_half_done_question_and_stale_intake_expires(db, monkeypatch):
+    _plan(db, "c3")
+    say(db, "c3", "create the order")
+    say(db, "c3", "")  # page reload
+    assert A.STATE["c3"]["pending"] is None
+    say(db, "c4", "")
+    say(db, "c4", "onion")
+    intake.S["c4"]["ts"] -= intake.STALE_S + 1  # untouched for over 30 minutes
+    r = say(db, "c4", "")
+    assert r["awaiting"] == "crops" and r["crops"] == []
+
+
+def test_start_over_clears_everything(db):
+    _plan(db, "c5")
+    r = say(db, "c5", "start over")
+    assert r["actions"] == [{"type": "reset"}] and "c5" not in A.STATE
+    assert say(db, "c5", "")["awaiting"] == "crops"

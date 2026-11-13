@@ -49,7 +49,7 @@ backend/
 
 apps/web/                 Next.js + Tailwind + Recharts
   app/page.tsx            controller: device id, language, agent() calls, applies actions, hands-free mic loop
-  components/             Landing (voice-first start) · AgentBar (command bar) · Voice (mic, lang switch, send form)
+  components/             Landing (voice-first start) · AgentBar (command bar) · Voice (mic, lang switch, send form, ResetButton)
                           Results (settlement slip; mandi names via plan.names) · PriceChart
   lib/                    api.ts (types + fetchers) · i18n.ts (UI dictionary en/hi/mr, cropName, unitName) · speech.ts
 apps/mobile/              Flutter app placeholder (README only)

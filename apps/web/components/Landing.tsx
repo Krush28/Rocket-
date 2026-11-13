@@ -3,13 +3,13 @@
 import { useState } from "react";
 import type { Crop } from "@/lib/api";
 import { t, unitName, type Lang } from "@/lib/i18n";
-import { LangSwitch, MicButton, SendForm } from "./Voice";
+import { LangSwitch, MicButton, ResetButton, SendForm } from "./Voice";
 
 type Props = { lang: Lang; reply: string; chips: string[]; crops: Crop[]; awaiting: string | null; busy: boolean; listening: boolean; error: string;
-  onMic: () => void; onSend: (t: string) => void; onLang: (l: Lang) => void };
+  onMic: () => void; onSend: (t: string) => void; onLang: (l: Lang) => void; onReset: () => void };
 
 // First screen = the voice agent only (Rocket's voice-first landing in the settlement-slip design).
-export default function Landing({ lang, reply, chips, crops, awaiting, busy, listening, error, onMic, onSend, onLang }: Props) {
+export default function Landing({ lang, reply, chips, crops, awaiting, busy, listening, error, onMic, onSend, onLang, onReset }: Props) {
   const [typed, setTyped] = useState("");
   const chip = "rounded-full bg-leaf px-4 min-h-[48px] text-[16px] text-cream hover:bg-moss disabled:opacity-50";
   const confirm = awaiting === "confirm";
@@ -23,7 +23,10 @@ export default function Landing({ lang, reply, chips, crops, awaiting, busy, lis
             </div>
             <span className="font-display text-[22px] font-extrabold tracking-tight">{lang === "en" ? "KRISHI-X" : "कृषि-एक्स"}</span>
           </div>
-          <LangSwitch lang={lang} onLang={onLang} dark />
+          <div className="flex items-center gap-2">
+            {(crops.length > 0 || (awaiting && awaiting !== "crops")) && <ResetButton lang={lang} busy={busy} onReset={onReset} dark />}
+            <LangSwitch lang={lang} onLang={onLang} dark />
+          </div>
         </header>
 
         <h1 className="mt-8 font-display text-[32px] font-bold leading-tight tracking-tight sm:text-[36px]">{t("title", lang)}</h1>

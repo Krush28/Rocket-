@@ -5,7 +5,7 @@ import AgentBar from "@/components/AgentBar";
 import Landing from "@/components/Landing";
 import Results from "@/components/Results";
 import { agent, type AgentReply, type Crop, type Order, type Plan } from "@/lib/api";
-import { isLang, type Lang } from "@/lib/i18n";
+import { isLang, t, type Lang } from "@/lib/i18n";
 import { listen, speak, stopSpeaking } from "@/lib/speech";
 
 const DEVICE = "kxDevice", LANG = "kxLang";
@@ -74,6 +74,12 @@ export default function Home() {
     void send(SWITCH[l]);
   }
 
+  function resetAll() {  // clears crops, plan, orders in progress and any half-done step on the server, then greets fresh
+    if (!window.confirm(t("resetAsk", langRef.current))) return;
+    handsFree.current = false; stop.current?.(); stopSpeaking(); setListening(false); setOrder(null); setPlan(null); setCrops([]);
+    void send("start over");
+  }
+
   useEffect(() => {
     if (started.current) return; // StrictMode runs effects twice in dev
     started.current = true;
@@ -86,7 +92,7 @@ export default function Home() {
     void send("", id); // greeting, or "welcome back" with the remembered crops
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const voice = { lang, reply, chips, busy, listening, error, onMic: () => mic(), onSend: (t: string) => send(t), onLang: chooseLang };
+  const voice = { lang, reply, chips, busy, listening, error, onMic: () => mic(), onSend: (text: string) => send(text), onLang: chooseLang, onReset: resetAll };
   if (!plan) return <Landing {...voice} crops={crops} awaiting={awaiting} />;
   return (
     <>

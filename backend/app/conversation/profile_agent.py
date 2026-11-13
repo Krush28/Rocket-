@@ -51,6 +51,16 @@ START = {"en": "I will now compare nearby mandi prices, expected future prices, 
 GREET = {"en": "Namaste! I am KRISHI-X. I help you find where you will earn the most after costs. ",
          "hi": "नमस्ते! मैं कृषि-एक्स हूँ। मैं बताता हूँ कि सारे खर्च के बाद कहाँ सबसे ज़्यादा कमाई होगी। ",
          "mr": "नमस्कार! मी कृषि-एक्स. सर्व खर्चानंतर कुठे सर्वाधिक कमाई होईल ते मी सांगतो. "}
+CANCEL = ["cancel", "never mind", "nevermind", "forget it", "leave it", "stop that", "skip it", "रहने दो", "छोड़ो", "छोड़ दो", "रद्द करो", "रद्द कर दो",
+          "जाने दो", "राहू द्या", "सोडा", "सोडून द्या", "रद्द करा", "जाऊ द्या"]
+
+
+def is_cancel(text: str) -> bool:
+    """'cancel' / 'never mind' drops a half-done step; 'cancel the order' is an order action and is NOT this."""
+    low = text.lower()
+    return any(w in low for w in CANCEL) and not re.search(r"order|ऑर्डर", low)
+
+
 YN = {"en": ("yes", "no"), "hi": ("हाँ", "नहीं"), "mr": ("होय", "नाही")}
 
 SESSIONS: dict = {}

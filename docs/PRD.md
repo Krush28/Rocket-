@@ -1,7 +1,7 @@
 # KRISHI-X — Product Requirements Document (living)
 
 > **Living document.** Update this file (and [STRUCTURE.md](STRUCTURE.md)) in the same commit as every feature or fix.
-> Last updated: 2026-11-13 · branch `phase1-foundation` · tests: 86 passing.
+> Last updated: 2026-11-13 · branch `phase1-foundation` · tests: 91 passing.
 
 ## 1. Problem and goal
 Indian farmers sell where the *displayed* price is highest, not where they *keep* the most after transport, handling, commission, storage and spoilage. KRISHI-X is a **voice-first, multilingual (EN / हिं / मरा) assistant** that ranks every selling option by **expected net realization** and says honestly when it does not know. Scope: all of India.
@@ -30,6 +30,7 @@ Indian farmers sell where the *displayed* price is highest, not where they *keep
 | 12-agent plan (discovery, prices, forecast gate, sell/hold, net realization, logistics, spoilage, confidence, recommendation) | ✅ | `agents/agents.py`, `agents/orchestrator.py` |
 | Voice agent `/api/agent`: multi-crop intake, read-back, yes gate | ✅ | `conversation/intake.py`, `conversation/profile_agent.py` |
 | Post-plan editing by voice: add a crop (named, with amount, or "add more crops"), remove a crop, change amount, change farm place | ✅ (QA 2026-11-13) | `agents/action_agent.py` (`add_crop`, `remove_lot`, `set_qty`, `set_location`) |
+| **Reset / cancel:** "start over" button on both screens (confirm first) and by voice; "cancel / never mind / छोड़ो / राहू द्या" drops only a half-done step (pending yes/no, half-added crop, unfinished intake); reload drops pending questions; an intake untouched for 30 min starts fresh | ✅ | `action_agent._handle`, `intake.STALE_S`, `profile_agent.is_cancel`, `components/Voice.tsx` `ResetButton` |
 | Price questions: named mandi or town, other crop, Devanagari names | ✅ | `action_agent._price_of` |
 | Orders: create, transport, storage enquiry, track (yes/no gated) | ✅ demo state machine (SQLite) | `services/orders.py` |
 | Hindi/Marathi: UI, agent replies, plan sentences, mandi / district / state names | ✅ (names partial; see rule 9) | `core/i18n.py`, `apps/web/lib/i18n.ts`, `plan.names` |
@@ -89,6 +90,7 @@ You do **not** need the heavy assets to build most features:
 5. This PRD (§3/§4/§5/§7) and STRUCTURE.md are updated in the same commit.
 
 ## 7. Changelog
+- **2026-11-13 (b)** — Reset option: a visible "start over" button (en/hi/mr, with a confirm), voice "cancel" that drops unfinished steps without losing finished crops, unfinished intake expiring after 30 minutes, and reload clearing pending questions. 5 new tests.
 - **2026-11-13**
   - Voice QA pass (13 scenario scripts) found about 15 bugs; all fixed with regression tests (`tests/test_voice_fixes.py`). Fixes:
     - adding a crop after confirmation
