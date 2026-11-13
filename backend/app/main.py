@@ -24,6 +24,8 @@ def _warm():
     """Load offline voices in the background so the first spoken reply is fast (no-op if Piper is not installed)."""
     from app.services import tts
     tts.warm()
+    from app.services import llm
+    llm.warm()
 
 
 @app.get("/health")

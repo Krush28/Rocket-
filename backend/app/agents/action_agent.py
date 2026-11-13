@@ -407,8 +407,8 @@ def _handle(sid: str, text: str, lang: str | None, db) -> dict:
     tool, args = route(text)
     if tool == "unknown" and llm.enabled():  # slow path only when the fast rules do not understand
         picked = llm.pick_tool(text, TOOLS, {"crop": st["plan"]["profile"]["crop"]})
-        if picked and picked.get("tool") in ARGLESS:
-            tool, args = picked["tool"], {}
+        if picked and picked.get("tool") in ARGLESS | {"price_of"}:  # price_of only needs the farmer's own words
+            tool, args = picked["tool"], ({"text": text.lower()} if picked["tool"] == "price_of" else {})
             trace.append({"tool": "llm_pick", "args": {"tool": tool}})
     if tool == "order_event" and args.get("event") not in FARMER_EVENTS:
         tool, args = "unknown", {}

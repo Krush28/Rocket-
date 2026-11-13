@@ -16,7 +16,7 @@ def enabled() -> bool:
 def _gen(prompt: str, as_json=False, max_tokens: int = 60) -> str | None:
     try:
         r = httpx.post(os.getenv("OLLAMA_URL", "http://localhost:11434") + "/api/generate", timeout=TIMEOUT,
-                       json={"model": os.getenv("OLLAMA_MODEL", "qwen3:4b"), "prompt": prompt, "stream": False, "think": False, "keep_alive": "30m",
+                       json={"model": os.getenv("OLLAMA_MODEL", "qwen3:4b"), "prompt": prompt, "stream": False, "think": False, "keep_alive": "24h",
                              "options": {"temperature": 0, "num_predict": max_tokens}, **({"format": "json"} if as_json else {})})
         return r.json().get("response")
     except Exception:
@@ -41,6 +41,22 @@ def explain(facts: dict, lang: str) -> str | None:
         return None
     return _gen(f"Explain this selling recommendation to a farmer in {lang}, in 3 short sentences. Use ONLY these facts, do not invent numbers: "
                 f"{json.dumps(facts, default=str)}", max_tokens=160)
+
+
+def warm() -> None:
+    """Load the model onto the GPU in the background at startup: a cold load takes about a minute, a warm pick about 0.2 s."""
+    if not enabled():
+        return
+    import threading
+
+    def go():
+        try:
+            httpx.post(os.getenv("OLLAMA_URL", "http://localhost:11434") + "/api/generate", timeout=180,
+                       json={"model": os.getenv("OLLAMA_MODEL", "qwen3:4b"), "prompt": "ok", "stream": False, "think": False,
+                             "keep_alive": "24h", "options": {"num_predict": 1}})
+        except Exception:
+            pass
+    threading.Thread(target=go, daemon=True).start()
 
 
 def pick_tool(text: str, tools: list[str], ctx: dict) -> dict | None:
