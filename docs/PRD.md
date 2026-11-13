@@ -1,5 +1,6 @@
 # KRISHI-X — Product Requirements Document (living)
 
+> **Hackathon end-to-end build in progress: see [BUILD-PLAN.md](BUILD-PLAN.md) (checklist, resume point).**
 > **Living document.** Update this file (and [STRUCTURE.md](STRUCTURE.md)) in the same commit as every feature or fix.
 > Last updated: 2026-11-13 · branch `phase1-foundation` · tests: 91 passing.
 
@@ -90,6 +91,7 @@ You do **not** need the heavy assets to build most features:
 5. This PRD (§3/§4/§5/§7) and STRUCTURE.md are updated in the same commit.
 
 ## 7. Changelog
+- **2026-11-13 (c)** — Started the one-shot end-to-end build: plan in `docs/BUILD-PLAN.md`; Mandi API (keyless) probed.
 - **2026-11-13 (b)** — Reset option: a visible "start over" button (en/hi/mr, with a confirm), voice "cancel" that drops unfinished steps without losing finished crops, unfinished intake expiring after 30 minutes, and reload clearing pending questions. 5 new tests.
 - **2026-11-13**
   - Voice QA pass (13 scenario scripts) found about 15 bugs; all fixed with regression tests (`tests/test_voice_fixes.py`). Fixes:
