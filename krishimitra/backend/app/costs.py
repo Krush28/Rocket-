@@ -9,7 +9,7 @@ PLACEHOLDER = "[Unverified placeholder - edit me]"
 DEFAULTS = dict(
     commission_pct=4.0, commission_payer="buyer",  # seller | buyer
     hamali_per_qtl=15.0, transit_loss_pct=0.5, risk_allowance_pct=0.0,
-    road_factor=1.3, financing_annual_pct=12.0, cold_shrink_factor=0.4,
+    road_factor=1.3, financing_annual_pct=12.0, ambient_temp_c=28.0, cold_shrink_factor=0.4,
     sources={k: "unverified" for k in ("commission", "hamali", "transit_loss", "vehicles", "storage", "financing")},
 )
 RISK_LAMBDA = 0.25  # ranking penalty weight on (expected - downside) for forecast-dependent options

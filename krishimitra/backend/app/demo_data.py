@@ -117,3 +117,18 @@ def live_mode_on() -> bool:
 
 def source_label(crop, mandi) -> str:
     return "LIVE: data.gov.in Agmarknet (daily snapshots)" if live_mode_on() else f"{DEMO} (synthetic seeded series)"
+
+
+def price_outlier(crop, modal):
+    """Data-error guard (LIVE mode): a price far from today's national median for the crop is excluded with a reason, never silently ranked."""
+    from . import adapters
+    if not adapters.live_mode():
+        return None
+    med = adapters.crop_median(crop)
+    if not med:
+        return None
+    if modal < 0.35 * med:
+        return f"price is only {modal / med:.0%} of today's national median (Rs {med:,.0f}); likely a data error"
+    if modal > 2.5 * med:
+        return f"price is {modal / med:.1f}x today's national median (Rs {med:,.0f}); likely a data error"
+    return None

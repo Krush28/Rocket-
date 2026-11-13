@@ -180,6 +180,18 @@ def last_import() -> dict | None:
     return {"file": Path(r[0]).name, "rows": r[1], "at": r[2]} if r else None
 
 
+def crop_median(crop: str) -> float | None:
+    """Median modal price (Rs/qtl) for a crop across ALL markets on the latest loaded date: the yardstick for the data-error guard."""
+    if not DB.exists():
+        return None
+    with _con() as c:
+        d = c.execute("select max(date) from prices where commodity=?", (crop,)).fetchone()[0]
+        if not d:
+            return None
+        v = sorted(r[0] for r in c.execute("select modal_price from prices where commodity=? and date=?", (crop, d)))
+    return v[len(v) // 2] if len(v) >= 5 else None
+
+
 def live_df(crop: str, mandi: str) -> pd.DataFrame:
     """Daily series for one of our mandis from live rows (median across varieties/grades per day). Empty if none."""
     from .demo_data import MANDIS

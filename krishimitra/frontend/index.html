@@ -102,6 +102,7 @@ label.f{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0
 .win .now{background:var(--leaf);color:var(--green)}
 .win .up{background:var(--leaf);color:var(--green)}.win .dn{background:var(--redbg);color:var(--red)}
 .real{background:var(--sunbg);color:var(--sunink)}
+.why{margin:12px 0 0;padding-left:20px;display:grid;gap:4px;font-size:14px;color:var(--muted)}
 .real .cap{font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
 .real ul{margin:14px 0 0;padding-left:20px;display:grid;gap:8px}
 .tag{display:inline-block;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.04em;margin-right:4px;background:var(--bg);color:var(--muted)}
@@ -338,7 +339,8 @@ function showTab(name){
 function renderPlan(p){
   stopWorking();
   const u=UI[S.lang], r=p.recommendation;
-  if(!r){$("#right").innerHTML=`<div class="card">Not enough data to recommend: ${esc(p.trace.filter(x=>x.status!=="ok").map(x=>x.agent+": "+x.error).join("; "))}</div>`;$("#dash").innerHTML="";return}
+  if(!r||!r.best){const why=r?`<p>${esc(r.reason||"")}</p>${(r.excluded||[]).length?`<ul>${r.excluded.map(e=>`<li><b>${esc(e.mandi)}</b>: ${esc(e.reason)}</li>`).join("")}</ul>`:""}<p class="muted">Try another crop or village, or load a fresher price file.</p>`:`<p>Not enough data to recommend: ${esc(p.trace.filter(x=>x.status!=="ok").map(x=>x.agent+": "+x.error).join("; "))}</p>`;
+    $("#right").innerHTML=`<div class="card"><h2>No reliable price to compare</h2>${why}<button class="btn alt" id="again">Start over</button></div>`;$("#dash").innerHTML="";$("#again").onclick=startOver;return}
   const b=r.best, sh=p.sell_vs_hold, dec=r.decision, dest=sh.destination, pr=p.profile, a=p.assumptions;
   if(!S.mandi||!p.forecasts?.[S.mandi])S.mandi=dest;
   const cls=dec.action.startsWith("SELL")?"SELL":dec.action==="HOLD"?"HOLD":"INSUFFICIENT";
@@ -373,6 +375,7 @@ function renderPlan(p){
   <section class="two">
     <div class="card"><h2>${t("sellhold")}<span class="badge ${cls}">${esc(t(cls))}${dec.hold_days?" · "+dec.hold_days+" d":""}</span></h2>
       <p style="margin:12px 0 0">${esc(dec.reason)}</p>
+      ${dec.factors?`<ul class="why">${dec.factors.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>`:""}
       <div class="win"><div class="now"><b>${t("now")}</b><span>${t("best")}</span></div>${win}</div>
       <div class="muted" style="margin-top:12px">${t("extra")}. Locked windows open when a reliable forecast exists. Reconsider on ${esc(r.reconsider_on||"-")}.</div>
       <details><summary>How this is calculated</summary><p class="muted">Sell now: ${esc(sh.formulas.sell_now)}.<br>Hold: ${esc(sh.formulas.hold)}.<br>HOLD only if the extra net beats 2% of the sell-now net and the chance of the price ending below today's is 40% or less. All maths is plain code, not an AI guess.</p></details>
@@ -380,7 +383,8 @@ function renderPlan(p){
     <div class="card real"><div class="cap">${t("real")}</div><ul>
       <li>Mandi prices: ${live?"LIVE, data.gov.in"+(pdate?", "+esc(pdate):""):"DEMO DATA (synthetic)"}</li>
       <li>Costs: estimates, rates are editable</li>
-      <li>Warehouses, transporters, buyers: demo only</li></ul></div>
+      <li>Warehouses, transporters, buyers: demo only</li></ul>
+      ${r.confidence?`<div class="cap" style="margin-top:20px">How sure are we? ${esc(r.confidence.label.toUpperCase())}</div><ul>${[...r.confidence.contributors.map(x=>"+ "+x),...r.confidence.detractors.map(x=>"− "+x)].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}</div>
   </section>`;
   $("#mkOrder").onclick=()=>createOrder(b); $("#speakReco").onclick=()=>say(r.explanation);
 
@@ -398,10 +402,10 @@ function renderPlan(p){
           <div class="mbar"><i style="width:${Math.max(4,Math.round(o.net/(best.net||1)*100))}%"></i></div></div>
         <div class="on"><b>${inr(o.net)}</b><span class="muted ${i?"neg":""}">${i?`${inr(o.net-best.net)} ${t("vsbest")}`:t("est")}</span></div>
         <div class="od hidden">${dedBar(o.deductions)}<div class="muted">${u.gross} ${inr(o.gross_revenue)} · ${u.costs} ${inr(o.total_deductions)} · ${esc(o.verification)}</div>
-          <div><b>Risks:</b> ${o.risks.map(esc).join(" · ")}</div><div class="muted">Data age ${o.data_freshness_days} d · expected loss ${o.expected_loss_qty} kg${o.net_downside!=null?" · downside net "+inr(o.net_downside):""}</div></div></article>`).join("")}</div></div>
+          <div><b>Risks:</b> ${o.risks.map(esc).join(" · ")}</div><div class="muted">Data age ${o.data_freshness_days} d · expected loss ${o.expected_loss_qty} kg${o.spoilage?` · spoilage risk ${esc(o.spoilage.level)} (${Math.round(o.spoilage.probability*100)}%, about ${o.spoilage.transit_hours} h trip)`:""}${o.net_downside!=null?" · downside net "+inr(o.net_downside):""}</div></div></article>`).join("")}</div></div>
     <div class="card"><h2>${t("mandis")} ${p.data_mode==="LIVE"?'<span class="tag est">LIVE · data.gov.in</span>':'<span class="tag demo">DEMO DATA</span>'}</h2><div class="scroll"><table>
       <tr><th class="l">Mandi</th><th>Distance</th><th>Modal</th><th>Min–Max</th><th>Arrivals (t)</th><th class="l">Market signal</th><th>Updated</th></tr>
-      ${p.mandis.map(m=>{const x=p.prices[m.name],ac=p.activity[m.name];return `<tr><td class="l">${esc(m.name)}<br><span class="muted">${esc(m.schedule)}</span></td><td>${m.distance_km} km</td><td><b>${inr(x.modal)}</b>/qtl</td><td>${inr(x.min)}–${inr(x.max)}</td><td>${x.arrivals_t??"n/a"}</td><td class="l">${esc(ac.signal)}</td><td>${x.age_days===0?"today":x.age_days+" d ago"}${x.stale?' <span class="tag warn">STALE</span>':""}</td></tr>`}).join("")}
+      ${p.mandis.map(m=>{const x=p.prices[m.name],ac=p.activity[m.name];return `<tr><td class="l">${esc(m.name)}<br><span class="muted">${esc(m.schedule)}</span>${x.suspect?`<br><span class="muted" style="color:var(--red)">${esc(x.suspect)}</span>`:""}</td><td>${m.distance_km} km</td><td><b>${inr(x.modal)}</b>/qtl</td><td>${inr(x.min)}–${inr(x.max)}</td><td>${x.arrivals_t??"n/a"}</td><td class="l">${esc(ac.signal)}</td><td>${x.age_days===0?"today":x.age_days+" d ago"}${x.stale?' <span class="tag warn">STALE</span>':""}${x.suspect?' <span class="tag warn">EXCLUDED</span>':""}</td></tr>`}).join("")}
     </table></div>
     <h3>Retail context (not what you receive)</h3><div class="cols" id="retail"></div></div>
   </div>

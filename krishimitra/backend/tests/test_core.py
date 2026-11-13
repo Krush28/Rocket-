@@ -191,3 +191,49 @@ def test_csv_watcher_imports_once_then_again_on_new_file(tmp_path, monkeypatch):
     f.write_text("not,a,price,file\n1,2,3,4\n")
     os.utime(f, (f.stat().st_atime, f.stat().st_mtime + 20))
     assert "error" in adapters.scan_and_import([d])[0]  # bad file reported, not crashed
+
+
+def test_spoilage_tiers_and_cold_chain():
+    from app import spoilage
+    near = spoilage.assess("tomato", 20)
+    far = spoilage.assess("tomato", 900)
+    assert near["level"] in ("SAFE", "MODERATE") and far["level"] in ("HIGH", "CRITICAL")
+    assert spoilage.assess("tomato", 900, refrigerated=True)["probability"] < far["probability"]
+    assert spoilage.assess("tomato", 100, temp_c=38)["probability"] > spoilage.assess("tomato", 100, temp_c=15)["probability"]
+    assert spoilage.assess("onion", 900)["probability"] < far["probability"]  # onions keep longer
+    assert spoilage.assess("tomato", 10, age_days=30)["probability"] == 1.0  # past shelf life
+
+
+def test_price_outlier_guard_excludes_data_errors(tmp_path, monkeypatch):
+    from app import adapters
+    monkeypatch.setattr(adapters, "DB", tmp_path / "live.db")
+    base = {"state": "Maharashtra", "district": "x", "variety": "v", "grade": "g", "arrival_date": "13/11/2026", "commodity": "Tomato"}
+    rows = [adapters.parse_record({**base, "market": f"M{i}", "min_price": 2000, "max_price": 3000, "modal_price": 2500}) for i in range(6)]
+    adapters.upsert(rows)
+    assert adapters.crop_median("tomato") == 2500
+    assert D.price_outlier("tomato", 200)  # 8% of median -> flagged
+    assert D.price_outlier("tomato", 2600) is None
+    assert D.price_outlier("tomato", 9000)  # 3.6x -> flagged
+
+
+def test_confidence_low_with_one_day_history_and_explains_itself():
+    prof = {"crop": "onion", "qty_kg": 5000, "original_qty": 50, "original_unit": "quintal", "location": {"name": "Niphad", "lat": 20.08, "lon": 74.11},
+            "ready": True, "can_store": False, "lang": "en"}
+    p = orchestrator.run(prof)
+    c = p["recommendation"]["confidence"]
+    assert 0.05 <= c["score"] <= 0.95 and c["label"] in ("low", "medium", "high")
+    assert c["contributors"] or c["detractors"]
+    assert all(isinstance(x, str) for x in p["recommendation"]["decision"]["factors"])
+    assert any("Spoilage" in o["risks"][0] or o["spoilage"] for o in p["options"] if o["type"] == "mandi_now")
+
+
+def test_no_usable_price_gives_clear_message_not_a_crash(tmp_path, monkeypatch):
+    from app import adapters
+    monkeypatch.setattr(adapters, "DB", tmp_path / "live.db")
+    base = {"state": "Karnataka", "district": "x", "variety": "v", "grade": "g", "arrival_date": "13/11/2026", "commodity": "Tomato", "min_price": 100, "max_price": 300}
+    adapters.upsert([adapters.parse_record({**base, "market": f"M{i}", "modal_price": 2500}) for i in range(6)])
+    adapters.upsert([adapters.parse_record({**base, "market": "Belagavi APMC", "modal_price": 200})])  # data error
+    prof = {"crop": "tomato", "qty_kg": 1000, "original_qty": 1000, "original_unit": "kg", "location": {"name": "Ponda", "lat": 15.40, "lon": 74.02},
+            "ready": True, "can_store": False, "lang": "en"}
+    r = orchestrator.run(prof)["recommendation"]
+    assert r["status"] == "insufficient_information" and any("Belagavi" in e["mandi"] for e in r["excluded"])
