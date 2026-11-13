@@ -101,3 +101,72 @@ def test_restart_mid_conversation_restores_farmer_and_open_order(db, monkeypatch
     A.STATE.clear()  # backend restart: in-memory plans are gone
     r = say(db, "r1", "track my order")
     assert oid in r["reply"] and r["state"] == "plan"
+
+
+# ---------------------------------------------------------------- cloud brain, memory, scheme filters
+def test_schemes_by_state_kind_and_name():
+    from app.services import schemes as SC
+    assert SC.parse("show me bima yojana of punjab") == {"state": "Punjab", "category": "insurance"}
+    assert SC.parse("तेलंगाना की बीमा योजना दिखाओ") == {"state": "Telangana", "category": "insurance"}
+    assert SC.parse("solar pump subsidy")["q"] == "pm-kusum" and "state" not in SC.parse("solar pump subsidy")  # "pump" is not "MP"
+    ins = SC.for_state("Telangana", "en", "insurance")["schemes"]
+    assert {s["id"] for s in ins} == {"pmfby", "rwbcis", "tg-rythu-bima"} and all(s["category"] == "insurance" for s in ins)
+    assert [s["id"] for s in SC.for_state("Punjab", "en", None, "pm-kisan")["schemes"]] == ["pm-kisan"]
+    reply, flt = SC.say("Goa", "en", "storage")  # no state-specific scheme: central ones still answer, nothing invented
+    assert "Operation Greens" in reply and flt["category"] == "storage"
+    assert all(s[4].startswith("https://") and set(s[5]) == {"en", "hi", "mr"} for s in SC.S)
+
+
+def test_agent_opens_exactly_the_scheme_asked_for_without_any_llm(db):
+    from app.agents import action_agent as A
+    r = A.handle("sch1", "punjab ki bima yojana dikhao", None, db)
+    nav = r["actions"][-1]
+    assert (nav["type"], nav["state"], nav["cat"]) == ("nav", "Punjab", "insurance") and "Fasal Bima" in r["reply"] and r["ai"] == "rules"
+    r = A.handle("sch1", "PM kisan dikhao", None, db)
+    assert r["actions"][-1]["q"] == "pm-kisan" and "6,000" in r["reply"]
+
+
+def test_cloud_model_is_used_first_then_paused_after_a_failure(monkeypatch):
+    from app.services import llm
+    monkeypatch.setenv("KRISHIMITRA_LLM", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(llm, "_cloud_down_until", 0.0)
+    seen = {}
+
+    class Ok:
+        status_code = 200
+
+        def json(self):
+            return {"candidates": [{"content": {"parts": [{"text": '{"calls": [{"tool": "forecast", "args": {}}]}'}]}}]}
+
+    def post(url, headers=None, json=None, timeout=None):
+        seen.update(url=url, headers=headers)
+        return Ok()
+    monkeypatch.setattr(llm.httpx, "post", post)
+    assert llm.provider() == "cloud" and llm.plan_tools("bhav badhega kya", {}) == [{"tool": "forecast", "args": {}}]
+    assert "test-key" not in seen["url"] and seen["headers"]["x-goog-api-key"] == "test-key"  # the key never goes in the URL
+
+    def boom(*a, **k):
+        raise llm.httpx.ConnectError("down")
+    monkeypatch.setattr(llm.httpx, "post", boom)
+    assert llm.plan_tools("bhav badhega kya", {}) is None and llm.provider() == "rules"  # paused: the rules answer at once
+
+
+def test_recent_turns_reach_the_model_and_long_sentences_go_to_the_cloud_brain(db, monkeypatch):
+    from app.agents import action_agent as A, brain
+    from app.services import llm
+    for t in ["", "I have 50 quintal onion near Niphad", "yes", "no", "yes"]:
+        r = A.handle("mem1", t, None, db)
+    assert r["state"] == "plan"
+    monkeypatch.setattr(llm, "provider", lambda: "cloud")
+    monkeypatch.setattr(llm, "enabled", lambda: True)
+    got = {}
+
+    def plan(text, ctx):
+        got.update(ctx)
+        return [{"tool": "best_mandi", "args": {}}]
+    monkeypatch.setattr(llm, "plan_tools", plan)
+    assert brain.wants_brain("which mandi gives me the most money", "compare") and not brain.wants_brain("commission 3 percent please now", "set_assumption")
+    A.handle("mem1", "which mandi gives me the most money", None, db)
+    A.handle("mem1", "and what about the second one there", None, db)
+    assert "which mandi gives me the most money" in got["recent"]

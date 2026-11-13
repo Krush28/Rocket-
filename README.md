@@ -39,6 +39,13 @@ cd apps/web && npm run build
 
 > On this Windows machine the host Python venv cannot load pandas (Windows Application Control blocks its DLLs), so the backend runs and is tested in Docker.
 
+## AI brain (cloud, local or rules)
+Set in `.env`: `KRISHIMITRA_LLM=auto` and `GEMINI_API_KEY=<free key from aistudio.google.com/apikey>`.
+- **Cloud (Gemini, free tier):** reads any sentence in English, Hindi, Marathi or Hinglish, plans up to 3 tools, remembers the last few turns ("and how far is that one?"), answers free questions from the plan's facts. About 2 s a turn. The farmer's sentence goes to Google, so the app shows a **Cloud AI** label.
+- **Local (Ollama `qwen3:4b`):** used when there is no key, or when the cloud fails in `auto` mode. **Rules** are the last fallback and always work offline.
+- Python still runs every tool and does all money maths; a number the model writes that the tools did not produce is rejected; orders and bookings still wait for a yes.
+- **Schemes by voice:** "Punjab ki bima yojana dikhao", "PM kisan dikhao", "onion storage subsidy" open exactly that state, kind (insurance / income / MSP / storage / farm support) or scheme. 36 schemes, 13 states + central, each with its official portal. This part needs no LLM.
+
 ## Hackathon demo script (end to end)
 1. `docker compose up -d --build` → http://localhost:3000 (farmer) · Ollama with `qwen3:4b` running on the host makes the agent understand free speech.
 2. Farmer (EN/HI/MR, voice or text): *"I have 2 ton onion near Niphad, ready now"* → answer storage → *yes* → results: best mandi by net in hand, sell-or-hold verdict, forecast, storage and transport.

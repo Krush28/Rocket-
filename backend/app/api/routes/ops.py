@@ -181,7 +181,8 @@ def overview(u=Depends(user), db: Session = Depends(get_db)):
 
 
 @router.get("/schemes")
-def schemes(state: str | None = None, lang: str = "en"):
-    """Government schemes for a state (central + that state's), in en / hi / mr, each with its official portal."""
+def schemes(state: str | None = None, lang: str = "en", category: str | None = None, q: str | None = None):
+    """Government schemes for a state (central + that state's), in en / hi / mr, each with its official portal.
+    Optional filters: category (income|insurance|market|storage|farming) and q (a scheme id or name)."""
     from app.services import schemes as SC
-    return SC.for_state(state, lang)
+    return SC.for_state(state, lang, category or None, q or None)

@@ -7,11 +7,11 @@ import Link from "next/link";
 import { Bell } from "./Portal";
 import { LangSwitch, MicButton, ResetButton, SendForm } from "./Voice";
 
-type Props = { lang: Lang; reply: string; chips: string[]; crops: Crop[]; awaiting: string | null; busy: boolean; listening: boolean; error: string;
+type Props = { lang: Lang; reply: string; ai?: string; chips: string[]; crops: Crop[]; awaiting: string | null; busy: boolean; listening: boolean; error: string;
   onMic: () => void; onSend: (t: string) => void; onLang: (l: Lang) => void; onReset: () => void; sid?: string };
 
 // First screen = the voice agent only (Rocket's voice-first landing in the settlement-slip design).
-export default function Landing({ lang, reply, chips, crops, awaiting, busy, listening, error, onMic, onSend, onLang, onReset, sid }: Props) {
+export default function Landing({ lang, reply, ai, chips, crops, awaiting, busy, listening, error, onMic, onSend, onLang, onReset, sid }: Props) {
   const [typed, setTyped] = useState("");
   const chip = "rounded-full bg-leaf px-4 min-h-[48px] text-[16px] text-cream hover:bg-moss disabled:opacity-50";
   const confirm = awaiting === "confirm";
@@ -36,6 +36,7 @@ export default function Landing({ lang, reply, chips, crops, awaiting, busy, lis
         <p className="mt-2 text-[17px] text-sage">{t("sub", lang)}</p>
 
         <p aria-live="polite" className="mt-6 min-h-[3.5rem] rounded-3xl bg-leaf/60 p-4 text-[19px] leading-snug">{reply || "…"}</p>
+        {ai === "cloud" && <span title="Your words are sent to a cloud AI model (Google Gemini) to understand them." className="mt-2 inline-block rounded-full border border-current px-2 py-[2px] text-[11px] opacity-70">{{ en: "Cloud AI", hi: "क्लाउड AI", mr: "क्लाउड AI" }[lang]}</span>}
 
         {crops.length > 0 && (
           <ul className="mt-3 flex flex-wrap gap-2" aria-label={t("crops", lang)}>

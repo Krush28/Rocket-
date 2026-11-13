@@ -10,6 +10,7 @@ from app.agents import orchestrator
 from app.conversation import intake, profile_agent as P
 from app.repositories import farmers, market_data as MD
 from app.services import gazetteer, llm, ops
+from app.services import schemes as SC
 from app.services.geo import haversine_km
 
 STATE: dict = {}
@@ -140,6 +141,9 @@ def _status(s, lang):
 
 
 # ---------------------------------------------------------------- intent router (rules: fast, offline)
+SCHEME_RX = re.compile(r"scheme|yojana|yojna|subsid|bima|beema|insurance|pension|योजना|अनुदान|सब्सिडी|बीमा|विमा|पेंशन|पेन्शन")
+
+
 def route(text: str) -> tuple[str, dict]:
     low = text.translate(P.DEV).lower().replace(",", "")
     has = lambda *w: any(x in low for x in w)  # noqa: E731
@@ -150,6 +154,9 @@ def route(text: str) -> tuple[str, dict]:
             return "set_language", {"lang": code}
     if has("weather", "mausam", "barish", "baarish", "rain", "मौसम", "बारिश", "हवामान", "पाऊस"):
         return "weather", {}
+    sp = SC.parse(text)
+    if SCHEME_RX.search(low) or sp.get("q"):  # "punjab ki bima yojana", "PM kisan dikhao": exactly that state / kind / scheme
+        return "schemes", sp
     if re.match(r"\s*(why|kyun|kyon|kyu|क्यों|क्यूँ|कशामुळे)", low) or has("why is", "why not", "explain why", "kyun "):
         return "explain", {}
     if has("thank", "dhanyavad", "dhanyawad", "shukriya", "धन्यवाद", "शुक्रिया", "आभार"):
@@ -217,8 +224,6 @@ def route(text: str) -> tuple[str, dict]:
     if has("net", "how much will i", "how much money", "how much do i", "earn", "kitna milega", "कितना पैसा", "कितनी कमाई", "कितना मिलेगा", "किती पैसे",
            "किती मिळेल", "कमाई"):
         return "compare", {}
-    if has("scheme", "yojana", "yojna", "subsidy", "योजना", "अनुदान", "सब्सिडी"):
-        return "schemes", {}
     if has("shop", "retail", "dukan", "दुकान", "खुदरा", "किरकोळ") and has("price", "rate", "bhav", "भाव", "दाम", "किंमत", "kitne", "कितने", "किती"):
         return "retail", {"crop": found.get("crop"), "city": "", "text": text}
     if has("price", "rate", "bhav", "भाव", "दाम", "किंमत"):
@@ -273,8 +278,8 @@ def run_tool(tool: str, args: dict, st: dict, lang: str, db) -> dict:
         return _set_lot(args, st, lang, db)
     if tool == "schemes":
         state = args.get("state") or _farm_state(st)
-        return {"reply": rt(lang, "schemes", state=gazetteer.dev_name(state) if lang != "en" else state),
-                "actions": [{"type": "nav", "value": "schemes", "state": state}]}
+        reply, flt = SC.say(state, lang, args.get("category"), args.get("q"), gazetteer.dev_name(state) if lang != "en" else state)
+        return {"reply": reply, "actions": [{"type": "nav", "value": "schemes", "state": state, "cat": flt["category"] or "", "q": flt["q"] or ""}]}
     if tool == "retail":
         return _retail(args.get("crop") or plan["profile"]["crop"], args.get("city") or _city_in(args.get("text", "")), st, lang)
     if tool == "add_crop":
@@ -400,7 +405,8 @@ def _farm_state(st: dict) -> str:
     if loc.get("state"):
         return loc["state"]
     best = ((st.get("plan") or {}).get("recommendation") or {}).get("best") or {}
-    return (best.get("destination") or "Maharashtra").rsplit(", ", 1)[-1]
+    guess = (best.get("destination") or "").rsplit(", ", 1)[-1]
+    return guess if guess in SC.ALL_STATES else "Maharashtra"  # a mandi name is not a state
 
 
 def _city_in(text: str) -> str:
@@ -570,6 +576,11 @@ def handle(sid: str, text: str, lang: str | None, db) -> dict:
     from app.core import present
     res["reply"] = present.text(res.get("reply") or "")
     st, L = STATE.get(sid), res.get("lang", "en")
+    res["ai"] = llm.provider()  # cloud | local | rules: the UI says when a sentence was sent to a cloud model
+    if st and text and text.strip():  # short memory of the conversation, for "it", "that mandi", "wahan"
+        h = st.setdefault("history", [])
+        h.append({"u": text.strip()[:160], "a": res["reply"][:200]})
+        del h[:-6]
     if st and st.get("farmer") and st.get("plan"):
         res["crops"] = [{"crop": c, "label": intake.crop_label(c, L), "qty": q["original_qty"], "unit": intake.unit_label(q["original_unit"], L),
                          "active": c == st["active"]} for c, q in st["farmer"]["lots"].items()]

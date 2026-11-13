@@ -7,6 +7,7 @@ from app.agents import action_agent as A
 from app.conversation import intake, profile_agent as P
 from app.services import crops as CR
 from app.services import llm
+from app.services import schemes as SC
 
 MULTI = re.compile(r"\b(and|then|aur|phir|plus)\b|और|आणि|फिर|नंतर|तसेच", re.I)  # "also"/"bhi" mean "too", not a second request
 SHOP = re.compile(r"shop|retail|dukan|dukaan|consumer|दुकान|खुदरा|किरकोळ", re.I)
@@ -20,8 +21,21 @@ def wants_brain(text: str, rule_tool: str) -> bool:
         return False
     if rule_tool in ("unknown", "explain"):
         return True
+    if llm.provider() == "cloud" and rule_tool not in RULES_ONLY and len(text.split()) >= 4:
+        return True  # a strong cloud model reads the whole sentence; exact commands and anything with typed numbers stay on the rules
+    if llm.provider() == "cloud" and rule_tool == "order_event" and MULTI.search(text) and not re.search(r"\d", text):
+        return True  # "what will Lasalgaon pay and should I book a truck": two requests, not one booking command
     # a second request joined to a question ("price at Pune and should I hold?"); clear single actions stay on the fast rules
     return rule_tool in ("compare", "price_of", "explain_decision", "forecast", "logistics", "retail") and len(text.split()) >= 6 and bool(MULTI.search(text))
+
+
+RULES_ONLY = {"start_over", "set_language", "set_lot", "set_qty", "set_assumption", "order_event", "remove_lot", "help",
+              "list_crops", "thanks", "show_tab", "read_aloud"}
+
+
+def recent(st: dict) -> str:
+    """The last few turns, so the model can resolve 'it', 'that mandi', 'wahan'."""
+    return " / ".join(f"farmer: {h['u']} -> assistant: {h['a']}" for h in (st.get("history") or [])[-4:])
 
 
 def _crop_key(name: str | None, text: str) -> str | None:
@@ -99,12 +113,18 @@ def _exec(tool: str, a: dict, text: str, st: dict, L: str, db) -> dict | None:
         return {"confirm": ("order_event", {"event": ev})} if st.get("order_id") or ev == "request_storage" else {"reply": A.rt(L, "no_order"), "actions": []}
     if tool == "retail_price":
         return A.run_tool("retail", {"crop": _crop_key(a.get("crop"), text), "city": a.get("city") or ""}, st, L, db)
-    if tool == "show_schemes":
-        return A.run_tool("schemes", {"state": a.get("state")}, st, L, db)
+    if tool == "show_schemes":  # the farmer's own words win; the model's args only fill what the words did not say
+        said = SC.parse(text)
+        m_state = SC.parse(str(a.get("state") or "")).get("state")
+        m_q = SC.parse(str(a.get("scheme") or "")).get("q")
+        return A.run_tool("schemes", {"state": said.get("state") or m_state, "category": said.get("category") or a.get("category"),
+                                      "q": said.get("q") or m_q}, st, L, db)
     if tool == "switch_language" and a.get("lang") in ("en", "hi", "mr") and LANGWORD.search(text):  # only when a language is named
         return A.run_tool("set_language", {"lang": a["lang"]}, st, L, db)
     if tool in ("explain", "chat"):
-        ans = llm.grounded_answer(text, facts(st), L)
+        sp = SC.parse(text)
+        extra = (" | " + SC.facts_text(sp.get("state") or A._farm_state(st), sp.get("category"), sp.get("q"))) if sp or A.SCHEME_RX.search(text.lower()) else ""
+        ans = llm.grounded_answer(text, facts(st) + extra, L, recent(st))
         return {"reply": ans or A._best_msg(st["plan"], L), "actions": []}
     return None
 
@@ -113,7 +133,7 @@ def run(text: str, st: dict, L: str, db, pre: list, trace: list, force: str | No
     """-> {"reply", "actions", "state", ...} or None when the model gave nothing usable (caller falls back to rules)."""
     f = P.extract(text)
     ctx = {"current_crop": CR.name(st["active"], "en"), "my_crops": [CR.name(c, "en") for c in st["farmer"]["lots"]],
-           "farm": st["farmer"]["location"]["name"], "crop_words": f.get("crop"), "has_order": bool(st.get("order_id"))}
+           "farm": st["farmer"]["location"]["name"], "crop_words": f.get("crop"), "has_order": bool(st.get("order_id")), "recent": recent(st)}
     calls = [{"tool": force, "args": {}}] if force else llm.plan_tools(text, ctx)
     if not calls:
         return None

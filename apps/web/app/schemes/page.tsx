@@ -25,11 +25,12 @@ function Schemes() {
   const q = useSearchParams(), router = useRouter();
   const lang: Lang = isLang(q.get("lang") || "") ? (q.get("lang") as Lang) : "en";
   const [state, setState] = useState(q.get("state") || "Maharashtra");
-  const [cat, setCat] = useState("all");
+  const [cat, setCat] = useState(q.get("cat") || "all");
+  const [one, setOne] = useState(q.get("q") || "");  // a single scheme the farmer asked for by name
   const [rows, setRows] = useState<Scheme[]>([]);
   useEffect(() => {
-    fetch(`${API}/api/schemes?${new URLSearchParams({ state, lang })}`).then((r) => r.json()).then((d) => setRows(d.schemes || [])).catch(() => setRows([]));
-  }, [state, lang]);
+    fetch(`${API}/api/schemes?${new URLSearchParams({ state, lang, ...(one ? { q: one } : {}) })}`).then((r) => r.json()).then((d) => setRows(d.schemes || [])).catch(() => setRows([]));
+  }, [state, lang, one]);
   const cats = useMemo(() => Array.from(new Map(rows.map((r) => [r.category, r.category_label])).entries()), [rows]);
   const shown = rows.filter((r) => cat === "all" || r.category === cat);
   const L = (k: keyof typeof T) => T[k][lang];
@@ -42,11 +43,11 @@ function Schemes() {
           <p className="mt-1 text-[16px] text-sage">{L("sub")}</p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <label className="text-[15px]">{L("state")}{" "}
-              <select value={state} onChange={(e) => { setState(e.target.value); router.replace(`/schemes?state=${encodeURIComponent(e.target.value)}&lang=${lang}`); }}
+              <select value={state} onChange={(e) => { setState(e.target.value); setOne(""); router.replace(`/schemes?state=${encodeURIComponent(e.target.value)}&lang=${lang}`); }}
                 className="ml-1 rounded-xl bg-cream px-3 py-2 text-[16px] text-ink">{STATES.map((s) => <option key={s}>{s}</option>)}</select></label>
             <div className="flex flex-wrap gap-2">
               {[["all", L("all")] as [string, string], ...cats].map(([k, v]) => (
-                <button key={k} onClick={() => setCat(k)} className={`min-h-[40px] rounded-full px-4 text-[15px] ${cat === k ? "bg-mustard font-semibold text-ink" : "bg-leaf"}`}>{v}</button>
+                <button key={k} onClick={() => { setCat(k); setOne(""); }} className={`min-h-[40px] rounded-full px-4 text-[15px] ${cat === k ? "bg-mustard font-semibold text-ink" : "bg-leaf"}`}>{v}</button>
               ))}
             </div>
           </div>

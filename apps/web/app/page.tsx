@@ -24,6 +24,7 @@ export default function Home() {
   const [sid, setSid] = useState("");
   const [lang, setLang] = useState<Lang>("en");
   const [reply, setReply] = useState("");
+  const [ai, setAi] = useState("");  // "cloud" when a cloud model read the sentence: shown as a label
   const [plan, setPlan] = useState<Plan | null>(null);
   const [crops, setCrops] = useState<Crop[]>([]);
   const [chips, setChips] = useState<string[]>([]);
@@ -38,7 +39,7 @@ export default function Home() {
 
   function apply(r: AgentReply) {
     const l = isLang(r.lang) ? r.lang : langRef.current;
-    langRef.current = l; setLang(l); setReply(r.reply); setCrops(r.crops ?? []); setChips(r.chips ?? []); setAwaiting(r.awaiting ?? null);
+    langRef.current = l; setLang(l); setReply(r.reply); setAi(r.ai ?? ""); setCrops(r.crops ?? []); setChips(r.chips ?? []); setAwaiting(r.awaiting ?? null);
     let reset = false;
     for (const a of r.actions ?? []) {
       if (a.type === "plan") setPlan(a.plan);
@@ -46,7 +47,7 @@ export default function Home() {
       else if (a.type === "lang" && isLang(a.value)) { picked.current = true; store(LANG, a.value); langRef.current = a.value; setLang(a.value); }
       else if (a.type === "reset") { reset = true; setPlan(null); setOrder(null); setCrops([]); setDone(false); }
       else if (a.type === "done") setDone(true);
-      else if (a.type === "nav") router.push(`/${a.value}?${new URLSearchParams({ state: a.state || "", lang: l })}`);
+      else if (a.type === "nav") router.push(`/${a.value}?${new URLSearchParams({ state: a.state || "", lang: l, ...(a.cat ? { cat: a.cat } : {}), ...(a.q ? { q: a.q } : {}) })}`);
       else if (a.type === "tab") setTimeout(() => document.getElementById(`sec-${a.value}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
     }
     return { l, reset };
@@ -109,7 +110,7 @@ export default function Home() {
 
   const doneCard = done && order ? <DoneCard order={order} lang={lang} onClose={() => setDone(false)}
     onAgain={() => { setDone(false); setOrder(null); setPlan(null); setCrops([]); void send("start over"); }} /> : null;
-  const voice = { lang, reply, chips, busy, listening, error, onMic: () => mic(), onSend: (text: string) => send(text), onLang: chooseLang, onReset: resetAll };
+  const voice = { lang, reply, ai, chips, busy, listening, error, onMic: () => mic(), onSend: (text: string) => send(text), onLang: chooseLang, onReset: resetAll };
   if (!plan) return <Landing {...voice} crops={crops} awaiting={awaiting} sid={sid} />;
   return (
     <>
