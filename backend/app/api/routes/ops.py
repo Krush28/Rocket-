@@ -178,3 +178,10 @@ def overview(u=Depends(user), db: Session = Depends(get_db)):
     need(u, "admin")
     from app.services.adapters import mandi_api
     return {**ops.admin_overview(db), "price_job": mandi_api.status()}
+
+
+@router.get("/schemes")
+def schemes(state: str | None = None, lang: str = "en"):
+    """Government schemes for a state (central + that state's), in en / hi / mr, each with its official portal."""
+    from app.services import schemes as SC
+    return SC.for_state(state, lang)

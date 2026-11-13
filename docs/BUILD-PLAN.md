@@ -40,13 +40,13 @@ Base `https://mandi-api.onrender.com/v1` (keyless, 100 req / 15 min / IP). State
 - [x] LLM slot extraction for intake (crop/qty/unit/place/ready/storage from any sentence).
 ### P3 End-to-end operations
 - [x] Postgres tables: `orders` (move from SQLite), `transport_jobs` (token), `warehouses`, `storage_bookings`, `notifications`, `users` (role, phone, name, state).
-- [ ] Demo login (phone + role, no password; labelled demo) and portals: `/transporter`, `/warehouse`, `/fpo`, `/admin`; farmer app stays `/`.
+- [x] Demo login (phone + role, no password; labelled demo) and portals: `/transporter`, `/warehouse`, `/fpo`, `/admin`; farmer app stays `/`.
 - [x] Flow (backend + agent): order → transport job → accept/pickup/deliver → sale confirmed → done screen; hold → storage booking → confirm → sell from storage.
-- [ ] Notifications bell (poll) for every actor.
+- [x] Notifications bell (poll) for every actor.
 ### P4 Farmer extras
-- [ ] Schemes DB (central + 5 states, official links, "verify on official site", last reviewed) + `/schemes` screen + agent tool `show_schemes`.
-- [ ] Retail price tool (labelled retail context; demo markup over mandi modal unless a live source is added).
-- [ ] FPO head: member lots aggregate + pooled order.
+- [x] Schemes DB (central + 5 states, official links, "verify on official site", last reviewed) + `/schemes` screen + agent tool `show_schemes`.
+- [x] Retail price tool (labelled retail context; demo markup over mandi modal unless a live source is added).
+- [x] FPO head: member lots aggregate + pooled order.
 ### P5 Background + polish
 - [ ] Daily import job (in-process scheduler), README/PRD, push.
 
@@ -56,3 +56,12 @@ Base `https://mandi-api.onrender.com/v1` (keyless, 100 req / 15 min / IP). State
 - 2026-11-14: P1 data done. Mandi API importer (throttled, resumable, 6-hourly background job, `GET /api/admin/jobs`), state history paged by date window (real 2026-07-28..10-16), offline geocoding of new mandis via gazetteer. Hybrid 3-year history (`synthetic` column; prices shown as "today" always come from real rows). Forecast v2: + SARIMA + GBM (LightGBM if installed, else sklearn hist GBM) — full run ~10 s/mandi so it runs in a background worker and is stored in `forecast_cache`; plans use the fast ETS+ridge forecast until then. Tests: 94 pass (conftest disables threads/LLM/hybrid by default). Next: P2 smart agent.
 - 2026-11-14: P2 smart agent done. `agents/brain.py` + `services/llm.py`: qwen3:4b plans up to 3 tools via /api/generate + JSON schema (chat+tools endpoint ignores think:false and is 7-20 s; generate+schema is 0.5-1.5 s). Python validates args (retail only with shop words, language switch only if a language is named, LLM crop/amount/place only if present in the text) and keeps yes/no gates. `grounded_answer` (JSON schema) answers "why" questions from plan facts; any number not in the facts -> rejected -> deterministic fallback. Rules extended: number words (do ton, दोन टन, पन्नास), taiyar/तैयार, "bech do" -> order, thanks, weather (not supported), schemes + retail tools (retail = DEMO band over nearby mandi median, city from the sentence via gazetteer), intake questions answered with "let's finish your details first". Known gap: Hindi/Marathi grounded answers often rejected -> falls back to the deterministic verdict. Next: P3 end-to-end operations (orders in Postgres, transporter/warehouse portals, notifications).
 - 2026-11-14: P3 backend done. `models/ops.py` + migration 0005 (sale_orders, transport_jobs, warehouses, storage_bookings, notifications; users.token/state). `services/ops.py` runs both flows; `api/routes/ops.py`: POST /api/login (phone+role), /me, /farmer/{device}, /sale/{id}/confirm|cancel (X-Device), /transport/jobs (+/{id}/accept|pickup|deliver|release), /warehouses?lat&lon&crop, /storage/bookings (+/{id}/confirm|reject|release|cancel), /notifications(+/read), /fpo/summary, /admin/overview. Voice "sell it"+yes creates the order AND posts the TR- token; "book storage" books the nearest suitable warehouse. 1,192 warehouses seeded (cold/ventilated/godown per district, idempotent; also after each price import). E2E verified over HTTP + test. UI rule from user: never show the word DEMO in UI/agent text (truthful neutral wording only). Next: P3 frontend portals (/login, /transporter, /warehouse, /fpo, /admin), notification bell, journey timeline + done screen.
+- 2026-11-14: P3 frontend + P4 done. Pages: /login (role cards, phone login), /transporter (open loads by token, accept/pickup/deliver/release, route link), /warehouse (requests confirm/reject, capacity), /fpo (members' produce by crop, full-truck pooling, orders), /admin (counts, price-job progress), /schemes (central + state schemes, en/hi/mr, official links). Farmer app: Journey timeline on the order card (live poll every 5 s), DoneCard ("Sale complete" + "Start a new task with the AI"), notification Bell, nav action -> /schemes, partner sign-in link. `next build` passes.
+
+## HANDOFF — what is left (pick up here)
+1. Browser QA of the whole demo flow (farmer EN/HI/MR -> sell it -> transporter portal -> deliver -> "I sold at 4100" -> done card; hold -> book storage -> warehouse portal confirm). Fix UI bugs found.
+2. Remove remaining user-facing "DEMO"/"demo" words (user rule): grep `-i demo` in backend/app (agents.py labels/meta notes, demo_data names "Demo Fleet", costs PLACEHOLDER text, orchestrator "labels"), apps/web/lib/i18n.ts and components. Keep truthful wording (estimate / operator confirms). Internal field names may stay.
+3. Portal i18n (portals are English only).
+4. Hindi/Marathi grounded answers (llm.grounded_answer often rejected -> fallback); maybe ask the model for English facts then translate via templates.
+5. README + PRD refresh; push.
+How to run: `docker compose up -d --build` (db, backend :8000, web :3000); Ollama qwen3:4b on host (optional); gazetteer load: scripts/load_gazetteer.py (see PRD §6). Tests: `docker compose run --rm --no-deps backend python -m pytest tests -q` (100 pass).

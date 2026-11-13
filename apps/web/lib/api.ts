@@ -31,8 +31,9 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 
 export const chat = (session_id: string, text: string, lang?: string) => post<ChatReply>("/api/chat", { session_id, text, lang });
 
-export type Order = { id: string; status: string; next_events: string[] };
-export type AgentAction = { type: "plan"; plan: Plan } | { type: "tab"; value: string } | { type: "order"; order: Order } | { type: "lang"; value: string } | { type: "reset" };
+export type Order = import("./ops").SaleOrder;
+export type AgentAction = { type: "plan"; plan: Plan } | { type: "tab"; value: string } | { type: "order"; order: Order } | { type: "lang"; value: string } | { type: "reset" }
+  | { type: "done" } | { type: "nav"; value: string; state?: string } | { type: "storage"; booking: unknown };
 export type Crop = { crop: string; label: string; qty: number | null; unit: string; active: boolean };
 export type AgentReply = { reply: string; lang: string; state: string; actions: AgentAction[]; crops: Crop[]; chips?: string[]; done?: boolean; awaiting?: string | null };
 export const agent = (session_id: string, text: string, lang?: string) => post<AgentReply>("/api/agent", { session_id, text, lang });

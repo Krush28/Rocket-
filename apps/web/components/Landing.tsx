@@ -3,13 +3,15 @@
 import { useState } from "react";
 import type { Crop } from "@/lib/api";
 import { t, unitName, type Lang } from "@/lib/i18n";
+import Link from "next/link";
+import { Bell } from "./Portal";
 import { LangSwitch, MicButton, ResetButton, SendForm } from "./Voice";
 
 type Props = { lang: Lang; reply: string; chips: string[]; crops: Crop[]; awaiting: string | null; busy: boolean; listening: boolean; error: string;
-  onMic: () => void; onSend: (t: string) => void; onLang: (l: Lang) => void; onReset: () => void };
+  onMic: () => void; onSend: (t: string) => void; onLang: (l: Lang) => void; onReset: () => void; sid?: string };
 
 // First screen = the voice agent only (Rocket's voice-first landing in the settlement-slip design).
-export default function Landing({ lang, reply, chips, crops, awaiting, busy, listening, error, onMic, onSend, onLang, onReset }: Props) {
+export default function Landing({ lang, reply, chips, crops, awaiting, busy, listening, error, onMic, onSend, onLang, onReset, sid }: Props) {
   const [typed, setTyped] = useState("");
   const chip = "rounded-full bg-leaf px-4 min-h-[48px] text-[16px] text-cream hover:bg-moss disabled:opacity-50";
   const confirm = awaiting === "confirm";
@@ -24,6 +26,7 @@ export default function Landing({ lang, reply, chips, crops, awaiting, busy, lis
             <span className="font-display text-[22px] font-extrabold tracking-tight">{lang === "en" ? "KRISHI-X" : "कृषि-एक्स"}</span>
           </div>
           <div className="flex items-center gap-2">
+            {sid && <Bell device={sid} dark />}
             {(crops.length > 0 || (awaiting && awaiting !== "crops")) && <ResetButton lang={lang} busy={busy} onReset={onReset} dark />}
             <LangSwitch lang={lang} onLang={onLang} dark />
           </div>
@@ -58,6 +61,10 @@ export default function Landing({ lang, reply, chips, crops, awaiting, busy, lis
           </div>
         )}
         <SendForm lang={lang} busy={busy} value={typed} setValue={setTyped} onSend={onSend} />
+        <div className="mt-4 flex flex-wrap justify-center gap-4 text-[14px] text-sage">
+          <Link href={`/schemes?lang=${lang}`} className="underline">{{ en: "Government schemes", hi: "सरकारी योजनाएँ", mr: "सरकारी योजना" }[lang]}</Link>
+          <Link href="/login" className="underline">{{ en: "Partner sign-in (FPO, transporter, warehouse)", hi: "साझेदार लॉगिन (FPO, ट्रांसपोर्टर, गोदाम)", mr: "भागीदार लॉगिन (FPO, वाहतूकदार, गोदाम)" }[lang]}</Link>
+        </div>
       </div>
     </main>
   );

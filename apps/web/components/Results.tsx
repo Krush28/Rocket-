@@ -1,7 +1,8 @@
 "use client";
 
 import type { Crop, Option, Order, Plan } from "@/lib/api";
-import { cropName, isKey, rupees, statusName, t, unitName, type Key, type Lang } from "@/lib/i18n";
+import Journey from "./Journey";
+import { cropName, isKey, rupees, t, unitName, type Key, type Lang } from "@/lib/i18n";
 import PriceChart from "./PriceChart";
 
 const card = "rounded-[22px] bg-white p-5 scroll-mt-4";
@@ -73,8 +74,7 @@ export default function Results({ plan: p, lang, order, crops, onSay }: Props) {
         {order && (
           <section id="sec-order" className={card}>
             <h2 className={h2}>{t("orderTitle", lang)} · {order.id}</h2>
-            <p className="mt-2 text-[17px]">{t("status", lang)}: <b>{statusName(order.status, lang)}</b></p>
-            <p className="mt-1 text-[14px] text-muted">{t("orderMade", lang, { id: order.id })}</p>
+            <Journey order={order} lang={lang} />
           </section>
         )}
 

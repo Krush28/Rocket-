@@ -91,6 +91,7 @@ You do **not** need the heavy assets to build most features:
 5. This PRD (§3/§4/§5/§7) and STRUCTURE.md are updated in the same commit.
 
 ## 7. Changelog
+- **2026-11-14 (e)** — Portals: login by role, transporter (booking tokens), warehouse operator, FPO head, admin; government schemes screen (central + state, en/hi/mr); farmer order journey, sale-complete screen, notification bell. Handoff list in BUILD-PLAN.md.
 - **2026-11-14 (d)** — End-to-end operations backend: sale order + transport booking token to transporters, accept/pickup/deliver, sale confirmation; storage booking to warehouse operators; notifications for every side; FPO and admin dashboards API; storage network across 29 states. Tests: 100 pass.
 - **2026-11-14 (c)** — Smart agent: local LLM plans multi-step tool calls from free speech (EN/HI/MR/Hinglish), extracts several intake facts from one sentence, answers "why" questions from plan facts with a number check; new tools: retail price context (DEMO), government schemes navigation, thanks, weather (declined). Tests: 99 pass.
 - **2026-11-14 (b)** — Live prices from the keyless Mandi API (5 states, 25 crops, 6-hourly job); hybrid 3-year history labelled DEMO HISTORY so forecasts and hold/sell work; forecast v2 with SARIMA + gradient boosting computed in the background (`forecast_cache`). Migrations 0003 (state_price_history), 0004 (forecast_cache).

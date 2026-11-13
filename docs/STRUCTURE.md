@@ -39,7 +39,7 @@ backend/
   app/agents/             agents.py (the 12 agents) · orchestrator.py (runs them, localizes)
                           brain.py (local-LLM tool planner + grounded answers; validates every call) · action_agent.py (voice tools: compare, forecast, price_of, add/remove/edit lots,
                           set_location, assumptions, orders; replies dict R in en/hi/mr; STATE = in-memory cache)
-  app/services/           crops.py (every crop: hi/mr names, aliases, shelf life, seasonality) · costs.py (ALL money maths) · spoilage.py · confidence.py · logistics.py (OR-Tools)
+  app/services/           schemes.py (curated schemes en/hi/mr) · crops.py (every crop: hi/mr names, aliases, shelf life, seasonality) · costs.py (ALL money maths) · spoilage.py · confidence.py · logistics.py (OR-Tools)
                           geocoding.py (gazetteer first, Nominatim cached, fuzzy last) · gazetteer.py (GeoNames load/find/dev_name/romanize)
                           adapters/agmarknet_datagov.py (CSV/API import) · adapters/mandi_api.py (keyless Mandi API, background job) · ops.py (orders, transport tokens, storage bookings, notifications, dashboards) · orders.py (legacy SQLite)
                           llm.py (Ollama, optional) · tts.py (Piper) · speech.py (faster-whisper) · demo_data.py (DEMO only) · geo.py
@@ -49,10 +49,11 @@ backend/
   tests/                  pytest, temp SQLite per test (conftest.py). test_voice_fixes.py = QA regressions + gazetteer
 
 apps/web/                 Next.js + Tailwind + Recharts
+  app/login|transporter|warehouse|fpo|admin|schemes/page.tsx   role portals + schemes screen
   app/page.tsx            controller: device id, language, agent() calls, applies actions, hands-free mic loop
   components/             Landing (voice-first start) · AgentBar (command bar) · Voice (mic, lang switch, send form, ResetButton)
-                          Results (settlement slip; mandi names via plan.names) · PriceChart
-  lib/                    api.ts (types + fetchers) · i18n.ts (UI dictionary en/hi/mr, cropName, unitName) · speech.ts
+                          Results (settlement slip; mandi names via plan.names) · PriceChart · Journey (order timeline + DoneCard) · Portal (PortalShell, Bell, Stat, Pill)
+  lib/                    ops.ts (portal client, login token) · api.ts (types + fetchers) · i18n.ts (UI dictionary en/hi/mr, cropName, unitName) · speech.ts
 apps/mobile/              Flutter app placeholder (README only)
 ```
 

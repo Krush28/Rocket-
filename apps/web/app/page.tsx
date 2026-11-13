@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import AgentBar from "@/components/AgentBar";
 import Landing from "@/components/Landing";
 import Results from "@/components/Results";
+import { useRouter } from "next/navigation";
+import { DoneCard } from "@/components/Journey";
 import { agent, type AgentReply, type Crop, type Order, type Plan } from "@/lib/api";
+import { farmer } from "@/lib/ops";
 import { isLang, t, type Lang } from "@/lib/i18n";
 import { listen, speak, stopSpeaking } from "@/lib/speech";
 
@@ -26,6 +29,8 @@ export default function Home() {
   const [chips, setChips] = useState<string[]>([]);
   const [awaiting, setAwaiting] = useState<string | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
+  const [done, setDone] = useState(false);
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
   const [error, setError] = useState("");
@@ -39,7 +44,9 @@ export default function Home() {
       if (a.type === "plan") setPlan(a.plan);
       else if (a.type === "order") setOrder(a.order);
       else if (a.type === "lang" && isLang(a.value)) { picked.current = true; store(LANG, a.value); langRef.current = a.value; setLang(a.value); }
-      else if (a.type === "reset") { reset = true; setPlan(null); setOrder(null); setCrops([]); }
+      else if (a.type === "reset") { reset = true; setPlan(null); setOrder(null); setCrops([]); setDone(false); }
+      else if (a.type === "done") setDone(true);
+      else if (a.type === "nav") router.push(`/${a.value}?${new URLSearchParams({ state: a.state || "", lang: l })}`);
       else if (a.type === "tab") setTimeout(() => document.getElementById(`sec-${a.value}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
     }
     return { l, reset };
@@ -80,6 +87,14 @@ export default function Home() {
     void send("start over");
   }
 
+  useEffect(() => {  // live order journey: the transporter's accept / pickup / deliver show up here without asking
+    if (!sid || !order || ["sale_confirmed", "cancelled"].includes(order.status)) return;
+    const t = setInterval(() => {
+      farmer(sid).then((f) => { const o = f.orders.find((x) => x.id === order.id); if (o && o.status !== order.status) setOrder(o); }).catch(() => {});
+    }, 5000);
+    return () => clearInterval(t);
+  }, [sid, order]);
+
   useEffect(() => {
     if (started.current) return; // StrictMode runs effects twice in dev
     started.current = true;
@@ -92,12 +107,15 @@ export default function Home() {
     void send("", id); // greeting, or "welcome back" with the remembered crops
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const doneCard = done && order ? <DoneCard order={order} lang={lang} onClose={() => setDone(false)}
+    onAgain={() => { setDone(false); setOrder(null); setPlan(null); setCrops([]); void send("start over"); }} /> : null;
   const voice = { lang, reply, chips, busy, listening, error, onMic: () => mic(), onSend: (text: string) => send(text), onLang: chooseLang, onReset: resetAll };
-  if (!plan) return <Landing {...voice} crops={crops} awaiting={awaiting} />;
+  if (!plan) return <Landing {...voice} crops={crops} awaiting={awaiting} sid={sid} />;
   return (
     <>
       <Results plan={plan} lang={lang} order={order} crops={crops} onSay={(t) => send(t)} />
-      <AgentBar {...voice} />
+      <AgentBar {...voice} sid={sid} />
+      {doneCard}
     </>
   );
 }
