@@ -19,7 +19,7 @@ export type Plan = {
     excluded?: { mandi: string; reason: string }[]; confidence?: { score: number; label: string; contributors: string[]; detractors: string[] } } | null;
   trace: { agent: string; status: string; error?: string }[];
 };
-export type Profile = { crop: string; qty_kg: number; original_qty: number; original_unit: string; location: { name: string }; ready: boolean; can_store: boolean };
+export type Profile = { crop: string; qty_kg: number; original_qty: number; original_unit: string; location: { name: string; lat?: number; lon?: number }; ready: boolean; can_store: boolean };
 export type Slots = { crop?: string; qty?: { original_qty: number; original_unit: string; qty_kg: number }; location?: { name: string }; ready?: boolean; can_store?: boolean };
 export type ChatReply = { reply: string; lang: string; state: string; awaiting: string | null; slots: Slots; done: boolean; session_id: string; plan?: Plan; inventory_id?: number };
 

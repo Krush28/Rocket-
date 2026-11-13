@@ -21,7 +21,7 @@ export type DashOrder = SaleOrder & { contact: null | { name: string; phone: str
 export type Turn = { u: string; a: string; at?: string; lang?: string };
 export type Dash = {
   device: string; lang: Lang; ai: string; data_mode: "LIVE" | "DEMO" | null; labels: string | null;
-  farmer: null | { location: { name: string }; ready: boolean; can_store: boolean; crops: { crop: string; label: string; qty: number; unit: string }[] };
+  farmer: null | { location: { name: string; lat?: number; lon?: number }; ready: boolean; can_store: boolean; crops: { crop: string; label: string; qty: number; unit: string }[] };
   crops: CropCard[]; orders: DashOrder[]; storage: Booking[]; alerts: Note[]; chat: Turn[];
   totals: { expected_net: number; qty_kg: number; open_tickets: number; sold_net: number };
 };

@@ -195,3 +195,10 @@ def schemes(state: str | None = None, lang: str = "en", category: str | None = N
     Optional filters: category (income|insurance|market|storage|farming) and q (a scheme id or name)."""
     from app.services import schemes as SC
     return SC.for_state(state, lang, category or None, q or None)
+
+
+@router.get("/weather")
+def weather(lat: float, lon: float):
+    """7-day farm weather from Open-Meteo (free, no key) with selling advice; null if the weather service is unreachable."""
+    from app.services import weather as W
+    return W.forecast(lat, lon)
