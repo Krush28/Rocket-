@@ -9,7 +9,7 @@ import { agent, series, type AgentReply } from "@/lib/api";
 import { dashboard, isSample, type CropCard, type Dash, type DashOrder } from "@/lib/dash";
 import { cropName, isLang, statusName, unitName, type Lang } from "@/lib/i18n";
 import Weather from "@/components/Weather";
-import { isEchoOfRecent, listen, rememberReply, speak, stopSpeaking } from "@/lib/speech";
+import { farmerPart, isEchoOfRecent, listen, rememberReply, speak, stopSpeaking } from "@/lib/speech";
 
 // ---------------------------------------------------------------- words (farmer language, short)
 const W = {
@@ -402,6 +402,8 @@ function DashboardPage() {
     try {
       const said = (await listen(langRef.current, (s) => { stop.current = s; })).trim();
       setListening(false);
+      const mine = said ? farmerPart(said) : null;
+      if (mine) { echoes.current = 0; await send(mine); return; } // our echoed question + the farmer's answer: send only the answer
       if (said && isEchoOfRecent(said)) {  // our own voice: never act on it; two in a row -> stop and wait for a tap
         echoes.current += 1;
         if (echoes.current >= 2) { handsFree.current = false; echoes.current = 0; return; }

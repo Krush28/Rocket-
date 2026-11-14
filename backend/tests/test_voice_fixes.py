@@ -269,3 +269,12 @@ def test_readback_amount_changes_removal_and_number_words(db):
     readback("q3")
     assert say(db, "q3", "quantity change karo")["state"] == "collecting"  # a change request is never a yes
     assert P.yes_no("galat hai, badlo") is False
+
+
+@pytest.mark.parametrize("heard,val", [
+    ("क्या आप ज़्यादा भाव मिलने पर माल कुछ दिन रख सकते हैं? हाँ", True),
+    ("क्या आपका माल अभी बिक्री के लिए तैयार है? हाँ तैयार है", True),
+    ("रख सकते हैं? (हाँ या नहीं) नहीं", False), ("हाँ तैयार है", True), ("जी हाँ", True),
+    ("हाँ, पर पहले बताओ कितना मिलेगा?", None)])
+def test_our_echoed_question_plus_farmer_answer(heard, val):
+    assert P.yes_no(heard) is val

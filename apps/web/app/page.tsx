@@ -9,7 +9,7 @@ import { DoneCard } from "@/components/Journey";
 import { agent, type AgentReply, type Crop, type Order, type Plan } from "@/lib/api";
 import { farmer } from "@/lib/ops";
 import { isLang, t, type Lang } from "@/lib/i18n";
-import { isEchoOfRecent, listen, rememberReply, speak, stopSpeaking } from "@/lib/speech";
+import { farmerPart, isEchoOfRecent, listen, rememberReply, speak, stopSpeaking } from "@/lib/speech";
 
 const DEVICE = "kxDevice", LANG = "kxLang";
 const SWITCH: Record<Lang, string> = { en: "switch to english", hi: "हिंदी में बोलो", mr: "मराठी मध्ये बोला" };
@@ -77,6 +77,8 @@ export default function Home() {
     try {
       const said = (await listen(langRef.current, (s) => { stop.current = s; })).trim();
       setListening(false);
+      const mine = said ? farmerPart(said) : null;
+      if (mine) { echoes.current = 0; await send(mine); return; } // our echoed question + the farmer's answer: send only the answer
       if (said && isEchoOfRecent(said)) {  // the mic heard our own voice: never act on it
         echoes.current += 1;
         if (echoes.current >= 2) { handsFree.current = false; echoes.current = 0; return; } // stop instead of looping; farmer taps the mic
