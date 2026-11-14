@@ -86,6 +86,7 @@ Have `diagrams.html` open in a tab: farmer journey (UML), architecture, agent wo
 - **“What about poor internet?”** Village lookup is offline (5.6 lakh places), the LLM and voice run locally, and browser speech is the fallback.
 - **“How is transport cost calculated?”** Road distance × the transporter rate card, labelled ESTIMATE until a transporter gives a verified quote.
 - **“How do you reach farmers?”** Through FPOs: one FPO head onboards hundreds of members; FPO subscriptions fund it.
+- **“How do you make money / scale?”** Free for farmers; buyers pay ~0.75% on matched sales, transporters ~₹150 per load, FPOs a subscription, processors and lenders for the price API. Pilot in Nashik with 3–5 FPOs → Maharashtra → 5 states. One demo load earns us ≈₹1,700 while the farmer keeps ₹18,905 more. Details: `BUSINESS-MODEL.md`.
 - **“What's next?”** Real transporter quotes, phone-OTP login, WhatsApp alerts, a 3-year price history backfill, and an Android app on the same API.
 - **Show the architecture:** open `diagrams.html#arch` (or `#agents` for the agent workflow).
 
