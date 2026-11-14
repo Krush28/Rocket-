@@ -55,6 +55,10 @@ apps/web/                 Next.js + Tailwind + Recharts
                           Results (settlement slip; mandi names via plan.names) · PriceChart · MandiMap (OSM + OSRM map of farm, mandis, routes, storage) · Journey (order timeline + DoneCard) · Portal (PortalShell, Bell, Stat, Pill)
   lib/                    ops.ts (portal client, login token) · api.ts (types + fetchers) · i18n.ts (UI dictionary en/hi/mr, cropName, unitName) · speech.ts
 apps/mobile/              Flutter app placeholder (README only)
+
+presentation/             pitch kit (offline): index.html deck (pastel-dream theme, N notes, T timer) · PITCH-SCRIPT.md (5-min script + sources)
+                          diagrams.html + diagrams.js (journey UML, architecture, agent workflow, order state) · assets/shots (app screenshots)
+                          assets/photos (Wikimedia Commons, credited) · vendor/ (mermaid, fonts)
 ```
 
 ## Conventions

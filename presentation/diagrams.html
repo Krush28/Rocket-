@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KRISHI-X Diagrams</title>
+<style>
+@font-face{font-family:"Plus Jakarta Sans";src:url(vendor/pjs-500.woff2) format("woff2");font-weight:500}
+@font-face{font-family:"Plus Jakarta Sans";src:url(vendor/pjs-700.woff2) format("woff2");font-weight:700}
+@font-face{font-family:"Plus Jakarta Sans";src:url(vendor/pjs-800.woff2) format("woff2");font-weight:800}
+:root{--shell:#c8d9e6;--surface:#faf9f7;--text:#1f2429;--text-2:#3a4046;--mute:#707880;--rule:#d8d4cb;--accent:#5a7c6a;
+  --card-shadow:0 1px 0 var(--rule),0 24px 56px rgba(40,60,80,.10)}
+*{box-sizing:border-box;margin:0}
+body{background:var(--shell);color:var(--text);font:500 17px/1.55 "Plus Jakarta Sans",Inter,system-ui,sans-serif;padding:48px 16px}
+main{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:36px}
+header{padding:8px 8px 0}
+.eyebrow{font-size:14px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(36px,6vw,64px);font-weight:800;letter-spacing:-.04em;line-height:1;margin-top:10px}
+header p{color:var(--text-2);margin-top:12px;max-width:820px}
+nav{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+nav a{padding:9px 18px;border-radius:999px;background:#fff;color:var(--text);text-decoration:none;font-weight:700;box-shadow:var(--card-shadow)}
+section{background:var(--surface);border-radius:28px;box-shadow:var(--card-shadow);padding:32px clamp(16px,3vw,40px);overflow-x:auto}
+h2{font-size:clamp(24px,3vw,34px);font-weight:800;letter-spacing:-.025em}
+section > p{color:var(--mute);margin:6px 0 18px}
+.dia{display:flex;justify-content:center;min-width:900px}
+.dia svg{max-width:100%;height:auto}
+footer{color:var(--text-2);font-size:14px;text-align:center}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">KRISHI-X · PS 23</div>
+    <h1>How KRISHI-X works</h1>
+    <p>The farmer journey, the system architecture, the agent workflow and the order lifecycle. They are drawn from the running code (see <code>docs/ARCHITECTURE.md</code>).</p>
+    <nav><a href="#journey">Farmer journey</a><a href="#arch">Architecture</a><a href="#agents">Agent workflow</a><a href="#order">Order lifecycle</a><a href="index.html">← Pitch deck</a></nav>
+  </header>
+  <section id="journey"><h2>1 · Farmer journey (UML sequence)</h2><p>From one spoken sentence to a delivered, confirmed sale. Every action with consequences waits for the farmer's “yes”.</p><div class="dia" data-mmd="journey"></div></section>
+  <section id="arch"><h2>2 · System architecture</h2><p>Free and open data in, local AI, deterministic maths, one API for the farmer app and every partner portal.</p><div class="dia" data-mmd="arch"></div></section>
+  <section id="agents"><h2>3 · Agent workflow (one voice turn)</h2><p>Rules first, the local LLM only for unclear phrasing (and only to pick a tool), with all rupees computed by the 12-agent orchestrator.</p><div class="dia" data-mmd="agents"></div></section>
+  <section id="order"><h2>4 · Order lifecycle (UML state)</h2><p>The sale order and its transport booking token; transporters accept, pick up and deliver, and the farmer confirms the sale.</p><div class="dia" data-mmd="order"></div></section>
+  <footer>Theme: pastel-dream (garden-skills) · diagrams render offline from vendor/mermaid.min.js</footer>
+</main>
+<script src="vendor/mermaid.min.js"></script>
+<script src="diagrams.js"></script>
+<script>renderDiagrams(document.querySelectorAll("[data-mmd]"));</script>
+</body>
+</html>
