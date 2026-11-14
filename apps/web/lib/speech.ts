@@ -113,6 +113,13 @@ export function isEchoOfRecent(heard: string): boolean {
   });
 }
 
+/** The mic caught the end of our question and then the farmer ("...रख सकते हैं? हाँ"): keep only the farmer's part, if any. */
+export function farmerPart(heard: string): string | null {
+  const parts = heard.replace(/\((yes or no|हाँ या नहीं|होय किंवा नाही)\)/gi, " ").split(/[?？]/);
+  const tail = (parts.pop() || "").trim();
+  return parts.length && tail && !isEchoOfRecent(tail) ? tail : null;
+}
+
 export function isEcho(heard: string, lastReply: string): boolean {
   const words = (x: string) => x.toLowerCase().replace(/[^\p{L}\p{M}\p{N}\s]/gu, " ").split(/\s+/).filter((w) => w.length > 1);
   const h = words(heard), r = new Set(words(lastReply));

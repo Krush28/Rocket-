@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KRISHI-X Pitch</title>
+<style>
+/* ── pastel-dream tokens (garden-skills · web-video-presentation/themes/pastel-dream) ── */
+@font-face{font-family:"Plus Jakarta Sans";src:url(vendor/pjs-400.woff2) format("woff2");font-weight:400}
+@font-face{font-family:"Plus Jakarta Sans";src:url(vendor/pjs-500.woff2) format("woff2");font-weight:500}
+@font-face{font-family:"Plus Jakarta Sans";src:url(vendor/pjs-600.woff2) format("woff2");font-weight:600}
+@font-face{font-family:"Plus Jakarta Sans";src:url(vendor/pjs-700.woff2) format("woff2");font-weight:700}
+@font-face{font-family:"Plus Jakarta Sans";src:url(vendor/pjs-800.woff2) format("woff2");font-weight:800}
+@font-face{font-family:"Noto Sans Devanagari";src:url(vendor/deva-600.woff2) format("woff2");font-weight:400 800}
+:root{
+  --shell:#c8d9e6;--surface:#faf9f7;--surface-2:#fff;--surface-3:#f0ecde;
+  --text:#1f2429;--text-2:#3a4046;--text-mute:#707880;--text-faint:#a8b0b8;--rule:#d8d4cb;
+  --accent:#5a7c6a;--accent-soft:rgba(90,124,106,.10);--accent-glow:rgba(90,124,106,.30);
+  --blush:#f0b4d4;--mint:#a8d4c4;--lav:#c7b8ea;--butter:#ffe6a7;--forest:#12402f;--mustard:#f0b020;
+  --font:"Plus Jakarta Sans","Noto Sans Devanagari",Inter,system-ui,sans-serif;
+  --r-card:28px;--ease:cubic-bezier(.34,1.36,.64,1);--dur:520ms;--slow:820ms;
+  --card-shadow:0 1px 0 var(--rule),0 24px 56px rgba(40,60,80,.10);
+  --shadow-stage:0 60px 160px rgba(50,70,90,.25),0 0 0 1px rgba(0,0,0,.03);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--shell);color:var(--text);font-family:var(--font);overflow:hidden;
+  font-feature-settings:"ss01","cv02","tnum";-webkit-font-smoothing:antialiased}
+#viewport{position:fixed;inset:0;display:grid;place-items:center}
+#stage{width:1920px;height:1080px;flex:none;position:relative;transform-origin:center;border-radius:18px;overflow:hidden;
+  background:var(--surface);box-shadow:var(--shadow-stage)}
+/* signature: pastel pill ribbon along the right edge */
+.ribbon{position:absolute;right:40px;top:180px;width:44px;display:flex;flex-direction:column;gap:20px;z-index:50;pointer-events:none;transition:opacity .5s}
+.ribbon i{display:block;width:44px;border-radius:22px;opacity:.6}
+#stage.dark .ribbon{opacity:.45}
+.slide{position:absolute;inset:0;padding:96px 150px 96px 110px;opacity:0;visibility:hidden;transition:opacity var(--dur) ease,visibility 0s linear var(--dur)}
+.slide.on{opacity:1;visibility:visible;transition:opacity var(--dur) ease}
+/* entrance: soft springy */
+.slide .r{opacity:0;transform:translateY(34px) scale(.985);transition:opacity var(--slow) ease,transform var(--slow) var(--ease)}
+.slide.on .r{opacity:1;transform:none}
+.d1{transition-delay:120ms!important}.d2{transition-delay:260ms!important}.d3{transition-delay:420ms!important}.d4{transition-delay:600ms!important}.d5{transition-delay:780ms!important}
+.slide .f{opacity:0;transform:translateY(26px);transition:opacity var(--dur) ease,transform var(--dur) var(--ease)}
+.slide .f.shown{opacity:1;transform:none}
+
+/* type */
+.eyebrow{font-size:22px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:150px;font-weight:800;letter-spacing:-.045em;line-height:.92}
+h2{font-size:84px;font-weight:800;letter-spacing:-.035em;line-height:1}
+h3{font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+p.lead{font-size:34px;line-height:1.38;color:var(--text-2);font-weight:500}
+.mute{color:var(--text-mute)}.acc{color:var(--accent)}
+.hero-num{font-weight:800;letter-spacing:-.045em;line-height:.95}
+.src{position:absolute;left:110px;bottom:40px;font-size:17px;color:var(--text-faint)}
+.pill{display:inline-flex;align-items:center;gap:12px;padding:14px 26px;border-radius:999px;font-size:24px;font-weight:600;background:var(--surface-2);box-shadow:var(--card-shadow);color:var(--text)}
+.pill.sage{background:var(--accent);color:#fff}.pill.blush{background:#fbe3ef}.pill.mint{background:#e1f2ec}.pill.lav{background:#ece6fa}.pill.butter{background:#fff4d3}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 6px var(--accent-soft)}
+.live .dot{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 14px rgba(90,124,106,0)}}
+.card{background:var(--surface-2);border-radius:var(--r-card);box-shadow:var(--card-shadow);padding:44px}
+.row{display:flex;gap:28px;align-items:center}.col{display:flex;flex-direction:column;gap:22px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;height:100%}
+
+/* media */
+.photo{border-radius:var(--r-card);overflow:hidden;box-shadow:var(--card-shadow);position:relative;background:#ddd}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.slide.on .kb img{animation:kb 14s ease-out both}
+@keyframes kb{from{transform:scale(1.12)}to{transform:scale(1)}}
+.browser{border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 2px 0 var(--rule),0 40px 90px rgba(40,60,80,.18)}
+.browser .bar{height:44px;background:#eef1f4;display:flex;align-items:center;gap:9px;padding:0 18px}
+.browser .bar i{width:13px;height:13px;border-radius:50%;background:#f0b4d4}.browser .bar i:nth-child(2){background:#ffe6a7}.browser .bar i:nth-child(3){background:#a8d4c4}
+.browser .bar span{margin-left:16px;font-size:16px;color:var(--text-mute);background:#fff;border-radius:8px;padding:5px 16px}
+.browser img{display:block;width:100%}
+.phone{width:360px;border-radius:52px;padding:14px;background:#1f2429;box-shadow:0 50px 100px rgba(30,40,60,.35)}
+.phone img{border-radius:40px;display:block;width:100%}
+.bubble{background:var(--surface-2);border-radius:30px 30px 30px 8px;padding:30px 36px;font-size:32px;line-height:1.35;font-weight:600;box-shadow:var(--card-shadow)}
+.bubble.me{border-radius:30px 30px 8px 30px;background:var(--accent);color:#fff}
+.tag{position:absolute;padding:18px 28px;border-radius:22px;background:var(--forest);color:#fff;font-weight:800;font-size:44px;box-shadow:0 24px 50px rgba(18,64,47,.35);letter-spacing:-.02em}
+.tag small{display:block;font-size:18px;font-weight:700;opacity:.75;letter-spacing:.1em;text-transform:uppercase}
+.tag b{color:var(--mustard)}
+
+/* slide-specific */
+.full{padding:0}
+.full .photo{position:absolute;inset:0;border-radius:0;box-shadow:none}
+.scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,28,24,.84) 0%,rgba(20,28,24,.58) 45%,rgba(20,28,24,.08) 78%)}
+.on-photo{position:absolute;left:110px;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:28px;color:#fff;max-width:1100px}
+.on-photo .eyebrow{color:var(--mint)}
+.costs{display:flex;flex-wrap:wrap;gap:14px}
+.costs .pill{font-size:26px}
+.stat{padding:38px 40px;display:flex;flex-direction:column;justify-content:center}.stat .hero-num{font-size:120px}.stat p{font-size:26px;color:var(--text-2);margin-top:14px;line-height:1.35;font-weight:500}
+.blind{display:grid;grid-template-columns:repeat(3,1fr);gap:34px;margin-top:64px}
+.blind .card{min-height:430px;display:flex;flex-direction:column;gap:22px}
+.blind .ic{width:96px;height:96px;border-radius:28px;display:grid;place-items:center;font-size:50px;font-weight:800}
+.blind .n{font-size:22px;font-weight:800;color:var(--text-faint);letter-spacing:.12em}
+.blind p{font-size:27px;line-height:1.4;color:var(--text-2);font-weight:500}
+.mic{width:190px;height:190px;flex:none;border-radius:50%;background:var(--mustard);display:grid;place-items:center;box-shadow:0 0 0 26px rgba(240,176,32,.18),0 0 0 54px rgba(240,176,32,.08)}
+.slide.on .mic{animation:breathe 2.4s ease-in-out infinite}
+@keyframes breathe{50%{box-shadow:0 0 0 36px rgba(240,176,32,.14),0 0 0 72px rgba(240,176,32,.05)}}
+.slip{font-size:27px;font-weight:500}.slip div{display:flex;justify-content:space-between;padding:14px 0;border-bottom:2px dashed var(--rule)}
+.slip div:last-child{border:0;font-weight:800;font-size:34px}
+.chain{display:flex;align-items:center;gap:14px;margin-top:34px}
+.chain .node{flex:1;text-align:center;padding:22px 10px;border-radius:24px;background:var(--surface-2);box-shadow:var(--card-shadow);font-size:23px;font-weight:700}
+.chain .node em{display:block;font-style:normal;font-size:44px;margin-bottom:6px}
+.chain .node small{display:block;font-size:16px;color:var(--text-mute);font-weight:600;margin-top:4px}
+.chain .arw{font-size:30px;color:var(--accent);font-weight:800}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.tiles .card{padding:30px 34px}.tiles .hero-num{font-size:74px;color:var(--text)}.tiles p{font-size:22px;color:var(--text-2);font-weight:600;margin-top:10px;line-height:1.3}
+.agents{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
+.agents span{padding:12px 22px;border-radius:999px;font-size:21px;font-weight:600;background:var(--accent-soft);color:var(--accent)}
+.slide.mid{display:flex;flex-direction:column;justify-content:center}
+.rules{display:flex;flex-direction:column;gap:34px;margin-top:50px}
+.rules .card{display:flex;align-items:center;gap:44px;padding:50px 56px}
+.rules .num{font-size:96px;font-weight:800;color:var(--accent);width:90px;letter-spacing:-.05em}
+.rules h3{font-size:50px}.rules p{font-size:26px;color:var(--text-mute);margin-top:8px;font-weight:500}
+.money{display:grid;grid-template-columns:repeat(4,1fr);gap:26px;margin-top:50px}
+.money .card{padding:40px;min-height:380px;display:flex;flex-direction:column;gap:20px;box-shadow:none}
+.money .ic{font-size:60px}.money h3{font-size:36px}.money p{font-size:25px;color:var(--text-2);line-height:1.45;font-weight:500}
+.who{display:flex;flex-wrap:wrap;gap:12px}
+.who span{font-size:20px;font-weight:600;padding:10px 20px;border-radius:999px;background:var(--surface-3)}
+.dia{position:absolute;left:110px;right:150px;top:230px;bottom:60px;display:flex;align-items:center;justify-content:center}
+.dia svg{max-width:100%!important;max-height:100%!important;width:auto!important;height:100%!important}
+.credits{columns:2;column-gap:60px;font-size:28px;line-height:1.9;color:var(--text-2);margin-top:40px}
+
+/* chrome */
+#progress{position:fixed;left:0;bottom:0;height:5px;background:var(--accent);transition:width .5s var(--ease);z-index:20}
+#hint{position:fixed;right:18px;bottom:14px;font:600 13px var(--font);color:#5d6b77;opacity:.75;z-index:20}
+#notes{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);width:min(1100px,94vw);max-height:42vh;overflow:auto;z-index:30;display:none;
+  background:rgba(31,36,41,.95);color:#f4f2ee;border-radius:22px;padding:24px 30px;font:500 20px/1.55 var(--font);box-shadow:0 30px 80px rgba(0,0,0,.35)}
+#notes.show{display:block}#notes b{color:var(--butter)}
+#notes .meta{display:flex;justify-content:space-between;font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:#a8b0b8;margin-bottom:10px}
+#timer{position:fixed;left:18px;top:14px;z-index:30;display:none;font:800 26px var(--font);background:var(--forest);color:#fff;padding:8px 18px;border-radius:14px}
+#timer.show{display:block}#timer.over{background:#b44}
+aside.notes{display:none}
+.blind3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:30px}
+.blind3>div{display:flex;align-items:center;gap:20px;background:var(--surface-2);border-radius:24px;padding:22px 26px;box-shadow:var(--card-shadow)}
+.blind3 .ic{width:68px;height:68px;flex:none;border-radius:20px;display:grid;place-items:center;font-size:36px;font-weight:800}
+.blind3 b{display:block;font-size:26px;letter-spacing:-.01em}.blind3 span{font-size:20px;color:var(--text-mute);font-weight:600}
+.steps{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:14px;margin-top:10px}
+.steps li{counter-increment:s;display:flex;align-items:center;gap:20px;font-size:27px;font-weight:500;color:var(--text-2);line-height:1.3}
+.steps li::before{content:counter(s);flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:800;font-size:24px}
+.steps b{color:var(--text)}
+.rules3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:28px}
+.rules3 .card{display:flex;align-items:center;gap:24px;padding:30px 32px}
+.rules3 .num{font-size:72px;font-weight:800;color:var(--accent);letter-spacing:-.05em}
+.rules3 h3{font-size:31px}.rules3 p{font-size:21px;color:var(--text-mute);margin-top:6px;font-weight:500;line-height:1.35}
+.credit{position:absolute;left:110px;bottom:34px;font-size:16px;color:rgba(255,255,255,.6)}
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+<div class="ribbon"><i style="height:160px;background:var(--blush)"></i><i style="height:220px;background:var(--mint)"></i><i style="height:140px;background:var(--lav)"></i><i style="height:180px;background:var(--butter)"></i></div>
+
+<!-- 1 · HOOK -->
+<section class="slide full" data-t="0:00" data-dark>
+  <div class="photo kb"><img src="assets/photos/farmers-melghat.jpg" alt="Farmers ploughing with bullocks in Maharashtra"></div>
+  <div class="scrim"></div>
+  <div class="on-photo">
+    <div class="r"><span class="pill mint" style="box-shadow:none"><span class="dot"></span>PS 23 · AI Mandi Price Intelligence &amp; Farm-to-Market</span></div>
+    <h2 class="r d1" style="font-size:112px">50 quintals.<br>5 months.<br><span style="color:var(--butter)">1 decision.</span></h2>
+    <p class="f" style="font-size:58px;font-weight:700">“Where do I sell?”</p>
+    <div class="r d3" style="margin-top:26px"><div style="font-size:64px;font-weight:800;letter-spacing:-.03em">KRISHI-X</div><div style="font-size:30px;opacity:.85;margin-top:4px">Know what you keep, before you sell.</div></div>
+  </div>
+  <aside class="notes">Good morning, we're team KRISHI-X. Imagine a farmer near Nashik. Let's call him <b>Ramesh</b>. Fifty quintals of onion on a tractor. Five months of work. And this morning, one decision. (click) <b>Where do I sell?</b> He goes where the board shows the highest price, and that is exactly where he loses money.</aside>
+</section>
+
+<!-- 2 · PROBLEM -->
+<section class="slide mid" data-t="0:30">
+  <div class="eyebrow r">The problem</div>
+  <h2 class="r d1" style="margin-top:16px;font-size:74px">The price on the board isn't the money in his hand.</h2>
+  <div class="costs r d2" style="margin-top:30px"><span class="pill blush">− Transport</span><span class="pill butter">− Hamali</span><span class="pill lav">− Commission</span><span class="pill mint">− Waiting</span><span class="pill blush">− Spoilage</span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1.05fr;gap:28px;margin-top:38px;height:300px">
+    <div class="card stat r d2"><div class="hero-num acc" style="font-size:104px">~⅓</div><p>of what we pay for onion &amp; tomato reaches the farmer</p></div>
+    <div class="card stat r d3"><div class="hero-num" style="font-size:88px">₹1.5<span style="font-size:46px"> lakh cr</span></div><p>of farm produce lost every year between farm and plate</p></div>
+    <div class="photo kb r d3"><img src="assets/photos/veg-waste.jpg" alt="Vegetable waste at a market"></div>
+  </div>
+  <div class="blind3">
+    <div class="f"><span class="ic" style="background:#e1f2ec;color:var(--accent)">₹</span><div><b>Can't see what he'll keep</b><span>net in hand at each mandi</span></div></div>
+    <div class="f"><span class="ic" style="background:#ece6fa">📈</span><div><b>Can't see where price is going</b><span>sell today or hold?</span></div></div>
+    <div class="f"><span class="ic" style="background:#fff4d3">🚚</span><div><b>Can't find a truck, buyer, storage</b><span>the chain doesn't talk</span></div></div>
+  </div>
+  <div class="src">Sources: RBI working paper on farmer share of the consumer rupee (2024) · NABCONS post-harvest loss study for MoFPI (2022)</div>
+  <aside class="notes">Because the board price isn't the money in his hand: transport, hamali, commission, waiting, spoilage. Farmers keep only about <b>a third</b> of what we pay for onions and tomatoes, and India loses about <b>one and a half lakh crore</b> of produce every year between farm and plate. (click ×3) Ramesh can't see three things: <b>what he'll keep</b>, <b>where the price is going</b>, and <b>a truck, a buyer or storage</b> when he needs one.</aside>
+</section>
+
+<!-- 3 · SOLUTION -->
+<section class="slide" data-t="1:05">
+  <div class="grid2" style="grid-template-columns:.9fr 1.1fr;gap:60px">
+    <div class="col" style="gap:24px">
+      <div class="eyebrow r">Meet KRISHI-X</div>
+      <h2 class="r d1" style="font-size:80px">He just <span class="acc">talks</span> to it.</h2>
+      <div class="bubble me r d2" style="font-size:28px">“50 quintal onion, 20 quintal tomato near Nashik.”</div>
+      <div class="card r d3" style="padding:30px 36px">
+        <div style="font-size:24px;color:var(--text-2);font-weight:600">Sell at APMC Pimpalgaon Baswant today. You keep</div>
+        <div class="hero-num acc" style="font-size:120px;margin-top:6px" data-count="206788">₹2,06,788</div>
+        <div style="font-size:22px;color:var(--text-mute);font-weight:600;margin-top:6px">after transport, hamali and every other cost</div>
+      </div>
+      <div class="row r d4" style="gap:12px;flex-wrap:wrap"><span class="pill" style="background:var(--forest);color:#fff">+₹18,905 vs the 2nd-best mandi</span><span class="pill">मराठी · हिंदी · English</span></div>
+    </div>
+    <div style="position:relative;height:860px">
+      <div class="browser r d2" style="position:absolute;left:0;top:30px;width:960px"><div class="bar"><i></i><i></i><i></i><span>every mandi · real road routes · net in hand</span></div><img src="assets/shots/04-map.jpg" alt="Mandi map with best route"></div>
+      <div class="r d4" style="position:absolute;right:-30px;bottom:-30px"><div class="phone" style="width:290px;transform:rotate(4deg)"><img src="assets/shots/11-mobile.jpg" alt="KRISHI-X in Marathi on a phone"></div></div>
+    </div>
+  </div>
+  <aside class="notes">Meet <b>KRISHI-X</b>. No forms, no menus, no English needed. He just <b>talks</b> to it, in Marathi, Hindi or English. He says: fifty quintal onion, twenty quintal tomato near Nashik. And he gets one answer: <b>sell at Pimpalgaon Baswant today, you keep two lakh six thousand seven hundred eighty-eight rupees</b>, after every cost. The second-best mandi is the same distance away, and would have cost him <b>eighteen thousand nine hundred</b>. Let me show you. It's live.</aside>
+</section>
+
+<!-- 4 · LIVE DEMO -->
+<section class="slide" data-t="1:35">
+  <div class="grid2" style="grid-template-columns:1fr 1fr;gap:60px">
+    <div class="col" style="gap:22px">
+      <div class="r"><span class="pill mint live" style="font-size:26px"><span class="dot"></span>Live prototype · real government prices</span></div>
+      <h1 class="r d1" style="font-size:132px">Live demo</h1>
+      <ol class="steps r d2">
+        <li><b>Speak</b> “50 quintal onion, 20 quintal tomato near Nashik”</li>
+        <li><b>Read-back</b> → “yes” · nothing happens without it</li>
+        <li><b>Best mandi</b> + settlement slip: what he keeps</li>
+        <li><b>Map · forecast · weather</b> at his farm</li>
+        <li><b>मराठी</b> — the same answer in his language</li>
+        <li><b>“Create the order”</b> → truck token to transporters</li>
+      </ol>
+    </div>
+    <div style="position:relative;height:860px">
+      <div class="browser r d2" style="position:absolute;left:0;top:0;width:860px"><div class="bar"><i></i><i></i><i></i><span>farmer app</span></div><img src="assets/shots/02-intake.jpg" alt="Read-back with yes/no"></div>
+      <div class="browser r d4" style="position:absolute;right:0;bottom:20px;width:640px"><div class="bar"><i></i><i></i><i></i><span>transporter portal</span></div><img src="assets/shots/13-transporter.jpg" alt="Transporter portal with booking token" style="height:340px;object-fit:cover;object-position:top"></div>
+    </div>
+  </div>
+  <aside class="notes">(Switch to the browser: localhost:3000, fresh session. 2 minutes.) 1) Type or say: <b>I have 50 quintal onion and 20 quintal tomato near Nashik</b>. 2) It asks ready? / can you store? → say <b>yes</b>, then <b>no</b>; read-back → <b>yes</b>. 3) Point at the big number and the settlement slip. 4) Scroll: map with road route, then weather. Ask <b>will the price go up?</b> 5) Tap <b>मरा</b>: everything in Marathi. 6) Say <b>create the order</b> → <b>yes</b>. Switch tab to the transporter portal: the new token is at the top. (If the network fails: come back to slide 3, it's all there.) Do NOT say "book transport" after the order (known rough edge).</aside>
+</section>
+
+<!-- 5 · HOW IT WORKS + TRUST -->
+<section class="slide mid" data-t="3:35">
+  <div class="eyebrow r">Under the hood</div>
+  <h2 class="r d1" style="margin-top:14px;font-size:74px">Twelve agents. One honest answer.</h2>
+  <div class="tiles" style="margin-top:36px">
+    <div class="card r d1"><div class="hero-num acc">12</div><p>AI agents: prices, forecast, transport, spoilage, storage, sell-or-hold</p></div>
+    <div class="card r d2"><div class="hero-num">1,686</div><p>mandis with live data.gov.in prices</p></div>
+    <div class="card r d2"><div class="hero-num">5.6 L</div><p>villages + every pincode, offline</p></div>
+    <div class="card r d3"><div class="hero-num">Local</div><p>own fine-tuned LLM, offline voice, ₹0 API bills</p></div>
+  </div>
+  <div class="rules3">
+    <div class="card f"><div class="num">1</div><div><h3>AI never does the maths</h3><p>every rupee from tested, deterministic code</p></div></div>
+    <div class="card f"><div class="num">2</div><div><h3>Never invents a price</h3><p>source + age on every number; estimates labelled</p></div></div>
+    <div class="card f"><div class="num">3</div><div><h3>Nothing without “yes”</h3><p>orders, trucks, storage confirmed first</p></div></div>
+  </div>
+  <aside class="notes">Under the hood: <b>twelve AI agents</b>, from mandi discovery and price intelligence to forecasting, transport, spoilage and sell-or-hold. <b>Live government prices</b> from 1,686 mandis. An offline map of <b>5.6 lakh villages</b>. Our own small AI model runs <b>locally</b>, with no cloud bill. (click ×3) And three rules we never break: the AI <b>never does the maths</b>, we <b>never invent a price</b>, and <b>nothing happens without the farmer's yes</b>.</aside>
+</section>
+
+<!-- 6 · BUSINESS + CHAIN -->
+<section class="slide mid" data-t="4:15">
+  <div class="eyebrow r">Business model</div>
+  <h2 class="r d1" style="margin-top:14px;font-size:74px">Free for the farmer. Paid by the chain.</h2>
+  <div class="chain r d1">
+    <div class="node"><em>👨‍🌾</em>Farmer</div><span class="arw">→</span>
+    <div class="node"><em>🤝</em>FPO</div><span class="arw">→</span>
+    <div class="node"><em>🚚</em>Transporter</div><span class="arw">→</span>
+    <div class="node"><em>🏬</em>Cold storage</div><span class="arw">→</span>
+    <div class="node"><em>🏭</em>Buyer · Processor</div>
+  </div>
+  <div class="money" style="margin-top:34px">
+    <div class="card r d2" style="background:#e1f2ec"><div class="ic">🛒</div><h3>Marketplace commission</h3><p>small cut on every matched sale</p></div>
+    <div class="card r d2" style="background:#fff4d3"><div class="ic">🚚</div><h3>Logistics fees</h3><p>per booked truck and shared load</p></div>
+    <div class="card r d3" style="background:#ece6fa"><div class="ic">📋</div><h3>FPO &amp; trader plans</h3><p>members, pooled loads, sales pipeline</p></div>
+    <div class="card r d3" style="background:#fbe3ef"><div class="ic">📡</div><h3>Price-intelligence API</h3><p>for processors, lenders, insurers</p></div>
+  </div>
+  <div class="row r d4" style="margin-top:34px;gap:56px">
+    <div><div class="hero-num" style="font-size:80px">7,000+</div><p class="mute" style="font-size:22px;font-weight:600">regulated mandis in India</p></div>
+    <div><div class="hero-num" style="font-size:80px">14 cr</div><p class="mute" style="font-size:22px;font-weight:600">farm holdings</p></div>
+    <p style="font-size:28px;font-weight:600;color:var(--text-2);max-width:620px;line-height:1.35">Every rupee we save a farmer moves through a truck, a store and a buyer, and each one pays for coordination.</p>
+  </div>
+  <aside class="notes">One platform for the whole chain: farmer, FPO, transporter, cold storage, buyer. It's <b>free for the farmer</b>; the chain pays: a small <b>commission</b> on matched sales, <b>logistics fees</b> per booked truck, <b>subscriptions</b> for FPOs and traders, and a <b>price-intelligence API</b> for processors, lenders and insurers. More than 7,000 mandis, 14 crore farm holdings. Even a sliver is huge.</aside>
+</section>
+
+<!-- 7 · CLOSE -->
+<section class="slide full" data-t="4:45" data-dark>
+  <div class="photo kb"><img src="assets/photos/farmer-nashik.jpg" alt="Farmer at dusk near Gangapur dam, Nashik"></div>
+  <div class="scrim" style="background:linear-gradient(90deg,rgba(20,28,24,.86),rgba(20,28,24,.5) 60%,rgba(20,28,24,.2))"></div>
+  <div class="on-photo">
+    <p class="r" style="font-size:44px;font-weight:600;opacity:.85">Farmers don't need more information.</p>
+    <h2 class="r d1" style="font-size:112px">They need one<br><span style="color:var(--butter)">honest answer.</span></h2>
+    <div class="r d3" style="margin-top:30px"><div style="font-size:66px;font-weight:800;letter-spacing:-.03em">KRISHI-X</div><div style="font-size:30px;opacity:.85;margin-top:6px">Know what you keep, before you sell. · Thank you. Questions?</div></div>
+  </div>
+  <div class="credit">Photos: Wikimedia Commons: Alosh Bennett (CC BY 2.0), fraboof (CC BY-SA 2.0), Sushrut.bhore (CC BY-SA 4.0) · Theme: pastel-dream</div>
+  <aside class="notes">Farmers don't need more information. They need <b>one honest answer</b>. <b>KRISHI-X. Know what you keep, before you sell.</b> Thank you. We'd love your questions. (Q&amp;A: open diagrams.html for the journey, architecture and agent workflow.)</aside>
+</section>
+
+</div></div>
+<div id="progress"></div>
+<div id="timer">0:00</div>
+<div id="notes"><div class="meta"><span id="nmeta"></span><span>N notes · T timer · F fullscreen</span></div><div id="ntext"></div></div>
+<div id="hint">← → navigate · N notes · T timer · F fullscreen</div>
+
+<script>
+const stage = document.getElementById("stage"), slides = [...document.querySelectorAll(".slide")];
+let i = 0, step = 0;
+function fit(){ const s = Math.min(innerWidth/1920, innerHeight/1080)*0.98; stage.style.transform = `scale(${s})`; }
+addEventListener("resize", fit); fit();
+const frags = (s) => [...s.querySelectorAll(".f")];
+function countUp(el){ const to=+el.dataset.count, t0=performance.now(), d=1500;
+  const f=(t)=>{ const k=Math.min(1,(t-t0)/d), e=1-Math.pow(1-k,3); el.textContent="₹"+Math.round(to*e).toLocaleString("en-IN"); if(k<1) requestAnimationFrame(f); }; requestAnimationFrame(f); }
+function show(n, st=0){
+  const changed = n !== i;
+  i = Math.max(0, Math.min(slides.length-1, n)); step = st;
+  slides.forEach((s,k)=>s.classList.toggle("on", k===i));
+  frags(slides[i]).forEach((f,k)=>f.classList.toggle("shown", k<step));
+  stage.classList.toggle("dark", slides[i].hasAttribute("data-dark"));
+  if (st===0) slides[i].querySelectorAll("[data-count]").forEach(countUp);
+  document.getElementById("progress").style.width = ((i+1)/slides.length*100)+"%";
+  document.getElementById("ntext").innerHTML = slides[i].querySelector("aside.notes")?.innerHTML || "";
+  document.getElementById("nmeta").textContent = `Slide ${i+1} / ${slides.length} · cue ${slides[i].dataset.t||""}`;
+  try{ history.replaceState(null,"","#"+(i+1)); }catch{}
+}
+function next(){ const fs=frags(slides[i]); if(step<fs.length){ fs[step].classList.add("shown"); step++; } else if(i<slides.length-1) show(i+1); }
+function prev(){ if(step>0){ step--; frags(slides[i])[step].classList.remove("shown"); } else if(i>0) show(i-1, frags(slides[i-1]).length); }
+let t0=null, tick=null;
+function timer(){ const el=document.getElementById("timer"); el.classList.toggle("show");
+  if(el.classList.contains("show")){ t0=Date.now(); tick=setInterval(()=>{ const s=Math.floor((Date.now()-t0)/1000); el.textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`; el.classList.toggle("over", s>300); },500);} else clearInterval(tick); }
+addEventListener("keydown",(e)=>{
+  if(["ArrowRight","ArrowDown","PageDown"," ","Enter"].includes(e.key)){ e.preventDefault(); next(); }
+  else if(["ArrowLeft","ArrowUp","PageUp","Backspace"].includes(e.key)){ e.preventDefault(); prev(); }
+  else if(e.key==="Home") show(0); else if(e.key==="End") show(slides.length-1);
+  else if(e.key==="n"||e.key==="N") document.getElementById("notes").classList.toggle("show");
+  else if(e.key==="t"||e.key==="T") timer();
+  else if(e.key==="f"||e.key==="F") document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
+});
+stage.addEventListener("click",(e)=>{ (e.clientX < innerWidth*0.25) ? prev() : next(); });
+show((parseInt(location.hash.slice(1))||1)-1);
+</script>
+</body>
+</html>

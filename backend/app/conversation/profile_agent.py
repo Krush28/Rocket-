@@ -124,8 +124,17 @@ def _norm(text: str) -> str:
     return " " + " ".join(p for p in _PUNCT.split(t) if p) + " "
 
 
+def answer_part(text: str) -> str:
+    """The mic often catches the end of our own question before the farmer's answer ("...रख सकते हैं? (हाँ या नहीं) हाँ"):
+    drop the offered options and keep only what comes after the last question mark, when something short is there."""
+    t = re.sub(r"\((?:yes or no|हाँ या नहीं|होय किंवा नाही)\)", " ", text, flags=re.I)
+    tail = re.split(r"[?？]", t)[-1].strip(" .।!()")
+    return tail if tail and "?" in t and len(tail.split()) <= 8 else t
+
+
 def hedged(text: str) -> bool:
     """A condition or a question inside the answer ("yes, but first ...", "kitna milega?"): never execute on it."""
+    text = answer_part(text)  # our own echoed question does not count as the farmer asking something
     t = _norm(text)
     return "?" in text or any(f" {w} " in t for w in HEDGE)
 
@@ -137,6 +146,7 @@ def yes_no(text: str):
     """Yes / no / None (unclear) for an answer to a yes-no question, in English, Hinglish, Hindi or Marathi, punctuation-proof.
     Whole words/phrases only (so नाशिक never reads as ना). Mixed answers: a hard refusal wins ("yes but not today" -> no),
     anything else mixed is unclear (the caller may ask the local LLM with the question as context)."""
+    text = answer_part(text)  # "...रख सकते हैं? (हाँ या नहीं) हाँ" -> "हाँ": judge only the farmer's own answer
     t = _norm(text)
     for p in POS_IDIOM:
         t = t.replace(f" {p} ", " yes ")
