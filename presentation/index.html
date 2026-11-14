@@ -129,287 +129,156 @@ p.lead{font-size:34px;line-height:1.38;color:var(--text-2);font-weight:500}
 #timer{position:fixed;left:18px;top:14px;z-index:30;display:none;font:800 26px var(--font);background:var(--forest);color:#fff;padding:8px 18px;border-radius:14px}
 #timer.show{display:block}#timer.over{background:#b44}
 aside.notes{display:none}
+.blind3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:30px}
+.blind3>div{display:flex;align-items:center;gap:20px;background:var(--surface-2);border-radius:24px;padding:22px 26px;box-shadow:var(--card-shadow)}
+.blind3 .ic{width:68px;height:68px;flex:none;border-radius:20px;display:grid;place-items:center;font-size:36px;font-weight:800}
+.blind3 b{display:block;font-size:26px;letter-spacing:-.01em}.blind3 span{font-size:20px;color:var(--text-mute);font-weight:600}
+.steps{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:14px;margin-top:10px}
+.steps li{counter-increment:s;display:flex;align-items:center;gap:20px;font-size:27px;font-weight:500;color:var(--text-2);line-height:1.3}
+.steps li::before{content:counter(s);flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:800;font-size:24px}
+.steps b{color:var(--text)}
+.rules3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:28px}
+.rules3 .card{display:flex;align-items:center;gap:24px;padding:30px 32px}
+.rules3 .num{font-size:72px;font-weight:800;color:var(--accent);letter-spacing:-.05em}
+.rules3 h3{font-size:31px}.rules3 p{font-size:21px;color:var(--text-mute);margin-top:6px;font-weight:500;line-height:1.35}
+.credit{position:absolute;left:110px;bottom:34px;font-size:16px;color:rgba(255,255,255,.6)}
 </style>
 </head>
 <body>
 <div id="viewport"><div id="stage">
 <div class="ribbon"><i style="height:160px;background:var(--blush)"></i><i style="height:220px;background:var(--mint)"></i><i style="height:140px;background:var(--lav)"></i><i style="height:180px;background:var(--butter)"></i></div>
 
-<!-- 1 · TITLE -->
-<section class="slide" data-t="0:00">
-  <div class="grid2" style="grid-template-columns:1.05fr .95fr">
-    <div class="col" style="gap:34px">
-      <div class="r"><span class="pill mint"><span class="dot"></span>PS 23 · AI Mandi Price Intelligence &amp; Farm-to-Market</span></div>
-      <h1 class="r d1">KRISHI-X</h1>
-      <p class="lead r d2" style="font-size:46px;max-width:860px;color:var(--text);font-weight:600">Know what you <span class="acc">keep</span>,<br>before you sell.</p>
-      <div class="row r d3" style="gap:14px;flex-wrap:wrap"><span class="pill">🎙️ Voice-first</span><span class="pill">मराठी · हिंदी · English</span><span class="pill">12 AI agents</span></div>
-    </div>
-    <div style="position:relative;height:860px">
-      <div class="photo kb r d1" style="position:absolute;inset:0 30px 0 60px"><img src="assets/photos/farmer-rice.jpg" alt="Farmer sowing in a Maharashtra field"></div>
-      <div class="r d3" style="position:absolute;left:-40px;bottom:-40px"><div class="phone" style="width:290px;transform:rotate(-5deg)"><img src="assets/shots/11-mobile.jpg" alt="KRISHI-X in Marathi on a phone"></div></div>
-      <div class="tag r d4" style="right:0;top:70px"><small>You take home</small><b>₹2,06,788</b></div>
-    </div>
-  </div>
-  <aside class="notes">(Walk to centre. Wait two seconds. Smile.) <b>Good morning. We're team KRISHI-X.</b></aside>
-</section>
-
-<!-- 2 · HOOK -->
-<section class="slide full" data-t="0:10" data-dark>
+<!-- 1 · HOOK -->
+<section class="slide full" data-t="0:00" data-dark>
   <div class="photo kb"><img src="assets/photos/farmers-melghat.jpg" alt="Farmers ploughing with bullocks in Maharashtra"></div>
   <div class="scrim"></div>
   <div class="on-photo">
-    <div class="eyebrow r">Near Nashik · 6:00 am</div>
-    <h2 class="r d1" style="font-size:108px">50 quintals.<br>5 months.<br><span style="color:var(--butter)">1 decision.</span></h2>
-    <p class="f" style="font-size:56px;font-weight:700">“Where do I sell?”</p>
+    <div class="r"><span class="pill mint" style="box-shadow:none"><span class="dot"></span>PS 23 · AI Mandi Price Intelligence &amp; Farm-to-Market</span></div>
+    <h2 class="r d1" style="font-size:112px">50 quintals.<br>5 months.<br><span style="color:var(--butter)">1 decision.</span></h2>
+    <p class="f" style="font-size:58px;font-weight:700">“Where do I sell?”</p>
+    <div class="r d3" style="margin-top:26px"><div style="font-size:64px;font-weight:800;letter-spacing:-.03em">KRISHI-X</div><div style="font-size:30px;opacity:.85;margin-top:4px">Know what you keep, before you sell.</div></div>
   </div>
-  <aside class="notes">Imagine a farmer near Nashik. Let's call him <b>Ramesh</b>. He has fifty quintals of onion on a tractor. Five months of work. This morning he has to make one decision. (click) <b>Where do I sell?</b> He goes where the board shows the highest price. And that is exactly where he loses money.</aside>
+  <aside class="notes">Good morning, we're team KRISHI-X. Imagine a farmer near Nashik. Let's call him <b>Ramesh</b>. Fifty quintals of onion on a tractor. Five months of work. And this morning, one decision. (click) <b>Where do I sell?</b> He goes where the board shows the highest price, and that is exactly where he loses money.</aside>
 </section>
 
-<!-- 3 · PROBLEM -->
-<section class="slide" data-t="0:40">
+<!-- 2 · PROBLEM -->
+<section class="slide mid" data-t="0:30">
   <div class="eyebrow r">The problem</div>
-  <h2 class="r d1" style="margin-top:20px;max-width:1500px">The price on the board<br>isn't the money in his hand.</h2>
-  <div class="costs r d2" style="margin-top:40px"><span class="pill blush">− Transport</span><span class="pill butter">− Hamali</span><span class="pill lav">− Commission</span><span class="pill mint">− Waiting</span><span class="pill blush">− Spoilage</span></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1.1fr;gap:30px;margin-top:50px;height:400px">
-    <div class="card stat f"><div class="hero-num acc">~⅓</div><p>of what we pay for onion &amp; tomato reaches the farmer</p></div>
-    <div class="card stat f"><div class="hero-num" style="font-size:100px">₹1.5<span style="font-size:52px"> lakh cr</span></div><p>of farm produce lost every year between farm and plate</p></div>
-    <div class="photo kb f"><img src="assets/photos/veg-waste.jpg" alt="Vegetable waste at a market"></div>
+  <h2 class="r d1" style="margin-top:16px;font-size:74px">The price on the board isn't the money in his hand.</h2>
+  <div class="costs r d2" style="margin-top:30px"><span class="pill blush">− Transport</span><span class="pill butter">− Hamali</span><span class="pill lav">− Commission</span><span class="pill mint">− Waiting</span><span class="pill blush">− Spoilage</span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1.05fr;gap:28px;margin-top:38px;height:300px">
+    <div class="card stat r d2"><div class="hero-num acc" style="font-size:104px">~⅓</div><p>of what we pay for onion &amp; tomato reaches the farmer</p></div>
+    <div class="card stat r d3"><div class="hero-num" style="font-size:88px">₹1.5<span style="font-size:46px"> lakh cr</span></div><p>of farm produce lost every year between farm and plate</p></div>
+    <div class="photo kb r d3"><img src="assets/photos/veg-waste.jpg" alt="Vegetable waste at a market"></div>
+  </div>
+  <div class="blind3">
+    <div class="f"><span class="ic" style="background:#e1f2ec;color:var(--accent)">₹</span><div><b>Can't see what he'll keep</b><span>net in hand at each mandi</span></div></div>
+    <div class="f"><span class="ic" style="background:#ece6fa">📈</span><div><b>Can't see where price is going</b><span>sell today or hold?</span></div></div>
+    <div class="f"><span class="ic" style="background:#fff4d3">🚚</span><div><b>Can't find a truck, buyer, storage</b><span>the chain doesn't talk</span></div></div>
   </div>
   <div class="src">Sources: RBI working paper on farmer share of the consumer rupee (2024) · NABCONS post-harvest loss study for MoFPI (2022)</div>
-  <aside class="notes">Because the price on the board isn't the money in his hand. Transport. Hamali. Commission. Waiting. Spoilage. (click) Farmers keep only about <b>a third of what we pay</b> for onions and tomatoes. (click) And India loses about <b>one and a half lakh crore rupees</b> of food every year between the farm and the plate. (click)</aside>
+  <aside class="notes">Because the board price isn't the money in his hand: transport, hamali, commission, waiting, spoilage. Farmers keep only about <b>a third</b> of what we pay for onions and tomatoes, and India loses about <b>one and a half lakh crore</b> of produce every year between farm and plate. (click ×3) Ramesh can't see three things: <b>what he'll keep</b>, <b>where the price is going</b>, and <b>a truck, a buyer or storage</b> when he needs one.</aside>
 </section>
 
-<!-- 4 · BLIND SPOTS -->
+<!-- 3 · SOLUTION -->
 <section class="slide" data-t="1:05">
-  <div class="eyebrow r">Three things Ramesh can't see</div>
-  <h2 class="r d1" style="margin-top:20px">Three blind spots.</h2>
-  <div class="blind">
-    <div class="card f"><div class="ic" style="background:#e1f2ec;color:var(--accent)">₹</div><div class="n">ONE</div><h3>What he'll actually <span class="acc">keep</span></h3><p>Net in hand at every mandi, after transport, handling, commission and spoilage.</p></div>
-    <div class="card f"><div class="ic" style="background:#ece6fa">📈</div><div class="n">TWO</div><h3>Where the price is <span class="acc">going</span></h3><p>Sell today, or hold for a week? And is the forecast even trustworthy?</p></div>
-    <div class="card f"><div class="ic" style="background:#fff4d3">🚚</div><div class="n">THREE</div><h3>A truck, a buyer, <span class="acc">storage</span></h3><p>Transporters, FPOs and cold storage don't talk to each other, or to him.</p></div>
-  </div>
-  <aside class="notes">Ramesh can't see three things. (click) <b>One</b>: what he'll actually keep at each mandi. (click) <b>Two</b>: whether the price will go up next week. (click) <b>Three</b>: a truck, a buyer, or cold storage, when he needs them. Three blind spots. We built one app to fix all three.</aside>
-</section>
-
-<!-- 5 · INTRODUCING -->
-<section class="slide" data-t="1:20">
-  <div class="grid2" style="grid-template-columns:.9fr 1.1fr">
-    <div class="col" style="gap:36px">
-      <div class="eyebrow r">Introducing</div>
-      <h1 class="r d1" style="font-size:136px">KRISHI-X</h1>
-      <p class="lead r d2" style="font-size:40px">No forms. No menus.<br>No English required.<br><b style="color:var(--text)">He just talks to it.</b></p>
-      <div class="row r d3" style="margin-top:30px;margin-left:40px"><div class="mic"><svg width="74" height="74" viewBox="0 0 24 24" fill="none" stroke="#1f2429" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3" fill="#1f2429"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></div>
-        <div class="col" style="gap:12px;margin-left:50px"><span class="pill">मराठी</span><span class="pill">हिंदी</span><span class="pill">English · Hinglish</span></div></div>
-    </div>
-    <div class="browser r d2"><div class="bar"><i></i><i></i><i></i><span>KRISHI-X · farmer assistant</span></div><img src="assets/shots/01-landing.jpg" alt="KRISHI-X voice-first landing screen"></div>
-  </div>
-  <aside class="notes">This is <b>KRISHI-X</b>. No forms. No menus. No English required. He just <b>talks to it</b>, in Marathi, Hindi or English.</aside>
-</section>
-
-<!-- 6 · MOMENT 1: SPEAKS -->
-<section class="slide" data-t="1:40">
-  <div class="grid2" style="grid-template-columns:.85fr 1.15fr">
-    <div class="col" style="gap:30px">
-      <div class="eyebrow r">Moment 1 · He speaks</div>
-      <div class="bubble me r d1">“I have 50 quintal onion and 20 quintal tomato near Nashik.”</div>
-      <div class="bubble r d3">Onion 50 qtl, tomato 20 qtl, farm near Nashik. <span class="acc">Is this correct?</span></div>
-      <div class="row r d4" style="gap:14px;flex-wrap:wrap"><span class="pill mint">2 crops · 2 amounts · 1 village, from one sentence</span><span class="pill butter">Nothing happens without his “yes”</span></div>
-    </div>
-    <div class="browser r d2"><div class="bar"><i></i><i></i><i></i><span>read-back before acting</span></div><img src="assets/shots/02-intake.jpg" alt="Read-back with yes/no buttons"></div>
-  </div>
-  <aside class="notes">Ramesh says: <b>“I have fifty quintal onion and twenty quintal tomato near Nashik.”</b> It understands both crops, both amounts and his village, then reads it back and asks: is this correct? Nothing happens without his <b>yes</b>.</aside>
-</section>
-
-<!-- 7 · MOMENT 2: THE NUMBER -->
-<section class="slide" data-t="1:55">
-  <div class="grid2" style="grid-template-columns:1fr 1fr">
+  <div class="grid2" style="grid-template-columns:.9fr 1.1fr;gap:60px">
     <div class="col" style="gap:24px">
-      <div class="eyebrow r">Moment 2 · The only number that matters</div>
-      <p class="lead r d1" style="font-size:36px">Sell at <b style="color:var(--text)">APMC Pimpalgaon Baswant</b> today.<br>You take home</p>
-      <div class="hero-num r d1 acc" style="font-size:170px" data-count="206788">₹2,06,788</div>
-      <div class="card slip r d3" style="padding:24px 40px">
-        <div><span>Gross sale · 50 qtl</span><span>₹2,08,950</span></div>
-        <div class="mute"><span>− Transport (36 km)</span><span>₹1,412</span></div>
-        <div class="mute"><span>− Hamali</span><span>₹750</span></div>
-        <div><span>= In his hand</span><span class="acc">₹2,06,788</span></div>
+      <div class="eyebrow r">Meet KRISHI-X</div>
+      <h2 class="r d1" style="font-size:80px">He just <span class="acc">talks</span> to it.</h2>
+      <div class="bubble me r d2" style="font-size:28px">“50 quintal onion, 20 quintal tomato near Nashik.”</div>
+      <div class="card r d3" style="padding:30px 36px">
+        <div style="font-size:24px;color:var(--text-2);font-weight:600">Sell at APMC Pimpalgaon Baswant today. You keep</div>
+        <div class="hero-num acc" style="font-size:120px;margin-top:6px" data-count="206788">₹2,06,788</div>
+        <div style="font-size:22px;color:var(--text-mute);font-weight:600;margin-top:6px">after transport, hamali and every other cost</div>
       </div>
+      <div class="row r d4" style="gap:12px;flex-wrap:wrap"><span class="pill" style="background:var(--forest);color:#fff">+₹18,905 vs the 2nd-best mandi</span><span class="pill">मराठी · हिंदी · English</span></div>
     </div>
-    <div class="browser r d2"><div class="bar"><i></i><i></i><i></i><span>settlement slip · live prices</span></div><img src="assets/shots/03-results.jpg" alt="Best option result card"></div>
-  </div>
-  <aside class="notes">And then, the only number that matters. <b>Sell at Pimpalgaon Baswant today. You take home two lakh, six thousand, seven hundred eighty-eight rupees.</b> Not the board price. What's <b>left in his hand</b> after every cost, line by line, like a settlement slip.</aside>
-</section>
-
-<!-- 8 · MOMENT 3: MAP -->
-<section class="slide" data-t="2:20">
-  <div class="eyebrow r">Moment 3 · Every mandi, real roads</div>
-  <div style="position:relative;margin-top:30px;height:840px">
-    <div class="browser r d1" style="position:absolute;left:0;top:0;width:1200px"><div class="bar"><i></i><i></i><i></i><span>OpenStreetMap · OSRM road routes</span></div><img src="assets/shots/04-map.jpg" alt="Mandi map with route"></div>
-    <div class="col" style="position:absolute;left:1250px;top:30px;width:420px;gap:26px">
-      <div class="card r d2" style="padding:32px"><div class="eyebrow" style="font-size:18px">★ Best · 35 km</div><div class="hero-num" style="font-size:68px;margin-top:10px">₹2,06,788</div></div>
-      <div class="card r d3" style="padding:32px"><div class="eyebrow" style="font-size:18px;color:var(--text-mute)">2nd best · 38 km</div><div class="hero-num mute" style="font-size:68px;margin-top:10px">₹1,87,883</div></div>
-      <div class="card f" style="padding:34px;background:var(--forest);color:#fff"><div style="font-size:22px;font-weight:700;opacity:.8">One decision is worth</div><div class="hero-num" style="font-size:96px;color:var(--mustard);margin-top:8px">₹18,905</div></div>
+    <div style="position:relative;height:860px">
+      <div class="browser r d2" style="position:absolute;left:0;top:30px;width:960px"><div class="bar"><i></i><i></i><i></i><span>every mandi · real road routes · net in hand</span></div><img src="assets/shots/04-map.jpg" alt="Mandi map with best route"></div>
+      <div class="r d4" style="position:absolute;right:-30px;bottom:-30px"><div class="phone" style="width:290px;transform:rotate(4deg)"><img src="assets/shots/11-mobile.jpg" alt="KRISHI-X in Marathi on a phone"></div></div>
     </div>
   </div>
-  <aside class="notes">Here's every mandi on a real road map. The second-best mandi is about the same distance away. (click) But choosing it would cost him <b>eighteen thousand, nine hundred rupees</b>. (Pause.) That's one decision. Same morning. Same onions.</aside>
+  <aside class="notes">Meet <b>KRISHI-X</b>. No forms, no menus, no English needed. He just <b>talks</b> to it, in Marathi, Hindi or English. He says: fifty quintal onion, twenty quintal tomato near Nashik. And he gets one answer: <b>sell at Pimpalgaon Baswant today, you keep two lakh six thousand seven hundred eighty-eight rupees</b>, after every cost. The second-best mandi is the same distance away, and would have cost him <b>eighteen thousand nine hundred</b>. Let me show you. It's live.</aside>
 </section>
 
-<!-- 9 · MOMENT 4: SELL OR HOLD + WEATHER -->
-<section class="slide" data-t="2:40">
-  <div class="eyebrow r">Moment 4 · Sell now, or hold?</div>
-  <h2 class="r d1" style="margin-top:18px;font-size:72px">Honest forecasts. <span class="acc">Or none at all.</span></h2>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:44px">
-    <div class="col" style="gap:20px">
-      <div class="browser r d2"><div class="bar"><i></i><i></i><i></i><span>price history · data.gov.in Agmarknet</span></div><img src="assets/shots/07-forecast.jpg" alt="Price history chart" style="height:430px;object-fit:cover;object-position:top"></div>
-      <div class="row r d4" style="gap:12px;flex-wrap:wrap"><span class="pill mint">SARIMA + gradient boosting</span><span class="pill butter">Must beat baselines in backtest</span><span class="pill lav">Else: “insufficient data”</span></div>
+<!-- 4 · LIVE DEMO -->
+<section class="slide" data-t="1:35">
+  <div class="grid2" style="grid-template-columns:1fr 1fr;gap:60px">
+    <div class="col" style="gap:22px">
+      <div class="r"><span class="pill mint live" style="font-size:26px"><span class="dot"></span>Live prototype · real government prices</span></div>
+      <h1 class="r d1" style="font-size:132px">Live demo</h1>
+      <ol class="steps r d2">
+        <li><b>Speak</b> “50 quintal onion, 20 quintal tomato near Nashik”</li>
+        <li><b>Read-back</b> → “yes” · nothing happens without it</li>
+        <li><b>Best mandi</b> + settlement slip: what he keeps</li>
+        <li><b>Map · forecast · weather</b> at his farm</li>
+        <li><b>मराठी</b> — the same answer in his language</li>
+        <li><b>“Create the order”</b> → truck token to transporters</li>
+      </ol>
     </div>
-    <div class="col" style="gap:20px">
-      <div class="browser r d3"><div class="bar"><i></i><i></i><i></i><span>weather at the farm · Open-Meteo</span></div><img src="assets/shots/05-weather.jpg" alt="7-day farm weather" style="height:430px;object-fit:cover;object-position:top"></div>
-      <div class="row r d5" style="gap:12px;flex-wrap:wrap"><span class="pill">☀️ “Good dry weather for harvest and transport.”</span></div>
+    <div style="position:relative;height:860px">
+      <div class="browser r d2" style="position:absolute;left:0;top:0;width:860px"><div class="bar"><i></i><i></i><i></i><span>farmer app</span></div><img src="assets/shots/02-intake.jpg" alt="Read-back with yes/no"></div>
+      <div class="browser r d4" style="position:absolute;right:0;bottom:20px;width:640px"><div class="bar"><i></i><i></i><i></i><span>transporter portal</span></div><img src="assets/shots/13-transporter.jpg" alt="Transporter portal with booking token" style="height:340px;object-fit:cover;object-position:top"></div>
     </div>
   </div>
-  <aside class="notes">Should he wait? KRISHI-X forecasts the price, and it gives a forecast <b>only if it beat simple baselines on past data</b>. If it isn't sure, it says “insufficient data.” We'd rather be honest than confident. And it checks his farm's weather: good dry weather, safe to transport.</aside>
+  <aside class="notes">(Switch to the browser: localhost:3000, fresh session. 2 minutes.) 1) Type or say: <b>I have 50 quintal onion and 20 quintal tomato near Nashik</b>. 2) It asks ready? / can you store? → say <b>yes</b>, then <b>no</b>; read-back → <b>yes</b>. 3) Point at the big number and the settlement slip. 4) Scroll: map with road route, then weather. Ask <b>will the price go up?</b> 5) Tap <b>मरा</b>: everything in Marathi. 6) Say <b>create the order</b> → <b>yes</b>. Switch tab to the transporter portal: the new token is at the top. (If the network fails: come back to slide 3, it's all there.) Do NOT say "book transport" after the order (known rough edge).</aside>
 </section>
 
-<!-- 10 · MOMENT 5: LANGUAGE -->
-<section class="slide" data-t="2:55">
-  <div style="display:grid;grid-template-columns:1.05fr .5fr .85fr;gap:44px;height:100%;align-items:center">
-    <div class="col" style="gap:26px">
-      <div class="eyebrow r">Moment 5 · His language</div>
-      <h2 class="r d1" style="font-size:92px;line-height:1.12">मराठी.<br>हिंदी.<br>English.</h2>
-      <p class="lead r d2" style="font-size:30px">Every reply, every mandi name, every rupee, spoken back in the farmer's own language. On a budget phone.</p>
-      <div class="browser r d4"><img src="assets/shots/09-results-hi.jpg" alt="Results in Hindi"></div>
-    </div>
-    <div class="r d3"><div class="phone" style="width:100%"><img src="assets/shots/11-mobile.jpg" alt="Results in Marathi on a phone"></div></div>
-    <div class="photo kb r d2" style="height:880px"><img src="assets/photos/farmer-woman.jpg" alt="Woman farmer working in a field" style="object-position:30% 50%"></div>
-  </div>
-  <aside class="notes">All of it in <b>Marathi</b>. In <b>Hindi</b>. On a six-thousand-rupee phone.</aside>
-</section>
-
-<!-- 11 · MOMENT 6: CHAIN -->
-<section class="slide" data-t="3:05">
-  <div class="eyebrow r">Moment 6 · He says “yes, create the order”</div>
-  <h2 class="r d1" style="margin-top:16px;font-size:72px">And the whole chain moves.</h2>
-  <div class="chain r d2">
-    <div class="node"><em>👨‍🌾</em>Farmer<small>says “yes”</small></div><span class="arw">→</span>
-    <div class="node"><em>🧾</em>Sale order<small>KX-36EBBB8E</small></div><span class="arw">→</span>
-    <div class="node"><em>🚚</em>Transporters<small>token TR-EF148A</small></div><span class="arw">→</span>
-    <div class="node"><em>🏬</em>Warehouse<small>storage request</small></div><span class="arw">→</span>
-    <div class="node"><em>🤝</em>FPO · Buyer<small>pooled loads</small></div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;margin-top:40px">
-    <div class="browser r d3"><div class="bar"><i></i><i></i><i></i><span>transporter portal · open loads</span></div><img src="assets/shots/13-transporter.jpg" alt="Transporter portal" style="height:470px;object-fit:cover;object-position:top"></div>
-    <div class="browser r d4"><div class="bar"><i></i><i></i><i></i><span>farmer dashboard · order journey</span></div><img src="assets/shots/10-dashboard.jpg" alt="Farmer dashboard" style="height:470px;object-fit:cover;object-position:top"></div>
-  </div>
-  <aside class="notes">He says <b>“yes, create the order.”</b> A truck request goes out to every transporter nearby, with a booking token. FPOs see their members' produce. Warehouses get storage requests. <b>Farmer, FPO, transporter, warehouse, buyer</b>, one platform.</aside>
-</section>
-
-<!-- 12 · HOW IT WORKS -->
-<section class="slide" data-t="3:20">
+<!-- 5 · HOW IT WORKS + TRUST -->
+<section class="slide mid" data-t="3:35">
   <div class="eyebrow r">Under the hood</div>
-  <h2 class="r d1" style="margin-top:16px;font-size:76px">Twelve agents. One honest answer.</h2>
-  <div class="tiles" style="margin-top:46px">
-    <div class="card r d1"><div class="hero-num acc">12</div><p>AI agents in one typed pipeline</p></div>
-    <div class="card r d1"><div class="hero-num">1,686</div><p>mandis with live government prices</p></div>
-    <div class="card r d2"><div class="hero-num">5.6 L</div><p>villages + 1.55 L pincodes, offline</p></div>
-    <div class="card r d2"><div class="hero-num">75+</div><p>crops by local names: kanda, pyaaz, dhaan…</p></div>
-    <div class="card r d3"><div class="hero-num">&lt;0.1 s</div><p>for a full plan (14–93 ms)</p></div>
-    <div class="card r d3"><div class="hero-num">Local</div><p>own fine-tuned LLM · offline voice</p></div>
-    <div class="card r d4"><div class="hero-num">₹0</div><p>map, route, weather &amp; price APIs (free, open)</p></div>
-    <div class="card r d4"><div class="hero-num">110</div><p>automated tests</p></div>
+  <h2 class="r d1" style="margin-top:14px;font-size:74px">Twelve agents. One honest answer.</h2>
+  <div class="tiles" style="margin-top:36px">
+    <div class="card r d1"><div class="hero-num acc">12</div><p>AI agents: prices, forecast, transport, spoilage, storage, sell-or-hold</p></div>
+    <div class="card r d2"><div class="hero-num">1,686</div><p>mandis with live data.gov.in prices</p></div>
+    <div class="card r d2"><div class="hero-num">5.6 L</div><p>villages + every pincode, offline</p></div>
+    <div class="card r d3"><div class="hero-num">Local</div><p>own fine-tuned LLM, offline voice, ₹0 API bills</p></div>
   </div>
-  <div class="agents r d5"><span>Mandi Discovery</span><span>Price Intelligence</span><span>Market Activity</span><span>Buyer Discovery</span><span>Cold Storage</span><span>Transport</span><span>Shared Load</span><span>Spoilage</span><span>Price Forecast</span><span>Sell vs Hold</span><span>Net Realization</span><span>Recommendation</span></div>
-  <aside class="notes">Under the hood, <b>twelve AI agents</b> work together: mandi discovery, price intelligence, forecasting, transport, spoilage, storage, sell-or-hold, net realization. <b>Live government prices</b> from more than <b>1,600 mandis</b>. An offline map of <b>5.6 lakh villages</b> and every pincode. A small AI model that runs <b>locally</b>, with no cloud bill and no data leaving India.</aside>
+  <div class="rules3">
+    <div class="card f"><div class="num">1</div><div><h3>AI never does the maths</h3><p>every rupee from tested, deterministic code</p></div></div>
+    <div class="card f"><div class="num">2</div><div><h3>Never invents a price</h3><p>source + age on every number; estimates labelled</p></div></div>
+    <div class="card f"><div class="num">3</div><div><h3>Nothing without “yes”</h3><p>orders, trucks, storage confirmed first</p></div></div>
+  </div>
+  <aside class="notes">Under the hood: <b>twelve AI agents</b>, from mandi discovery and price intelligence to forecasting, transport, spoilage and sell-or-hold. <b>Live government prices</b> from 1,686 mandis. An offline map of <b>5.6 lakh villages</b>. Our own small AI model runs <b>locally</b>, with no cloud bill. (click ×3) And three rules we never break: the AI <b>never does the maths</b>, we <b>never invent a price</b>, and <b>nothing happens without the farmer's yes</b>.</aside>
 </section>
 
-<!-- 13 · TRUST -->
-<section class="slide mid" data-t="3:45">
-  <div class="eyebrow r">Three rules we never break</div>
-  <h2 class="r d1" style="margin-top:16px;font-size:76px">Trust, built in.</h2>
-  <div class="rules">
-    <div class="card f"><div class="num">1</div><div><h3>The AI never does the maths.</h3><p>Every rupee comes from deterministic, tested code. The model only understands and explains.</p></div></div>
-    <div class="card f"><div class="num">2</div><div><h3>We never invent a price.</h3><p>Every number shows its source and age. An estimate is always labelled an estimate.</p></div></div>
-    <div class="card f"><div class="num">3</div><div><h3>Nothing happens without “yes”.</h3><p>Orders, trucks and storage are confirmed by the farmer first, by voice or by button.</p></div></div>
-  </div>
-  <aside class="notes">And three rules we never break. (click) <b>The AI never does the maths.</b> Every rupee is calculated by deterministic code. (click) <b>We never invent a price.</b> Estimates are labelled as estimates. (click) <b>Nothing happens without the farmer's yes.</b></aside>
-</section>
-
-<!-- 14 · BUSINESS -->
-<section class="slide mid" data-t="4:05">
+<!-- 6 · BUSINESS + CHAIN -->
+<section class="slide mid" data-t="4:15">
   <div class="eyebrow r">Business model</div>
-  <h2 class="r d1" style="margin-top:16px;font-size:76px">Free for the farmer. Paid by the chain.</h2>
-  <div class="money">
-    <div class="card r d1" style="background:#e1f2ec"><div class="ic">🛒</div><h3>Marketplace commission</h3><p>A small cut on every sale order matched through KRISHI-X.</p></div>
-    <div class="card r d2" style="background:#fff4d3"><div class="ic">🚚</div><h3>Logistics fees</h3><p>Coordination fee per booked truck and shared load.</p></div>
-    <div class="card r d3" style="background:#ece6fa"><div class="ic">🤝</div><h3>FPO &amp; trader plans</h3><p>Subscriptions: member produce, pooled loads, sales pipeline.</p></div>
-    <div class="card r d4" style="background:#fbe3ef"><div class="ic">📡</div><h3>Price-intelligence API</h3><p>Premium feeds for processors, lenders, insurers and cold chains.</p></div>
+  <h2 class="r d1" style="margin-top:14px;font-size:74px">Free for the farmer. Paid by the chain.</h2>
+  <div class="chain r d1">
+    <div class="node"><em>👨‍🌾</em>Farmer</div><span class="arw">→</span>
+    <div class="node"><em>🤝</em>FPO</div><span class="arw">→</span>
+    <div class="node"><em>🚚</em>Transporter</div><span class="arw">→</span>
+    <div class="node"><em>🏬</em>Cold storage</div><span class="arw">→</span>
+    <div class="node"><em>🏭</em>Buyer · Processor</div>
   </div>
-  <div class="row r d5" style="margin-top:50px;gap:60px;align-items:flex-end">
-    <div><div class="hero-num" style="font-size:84px">7,000+</div><p class="mute" style="font-size:22px;font-weight:600">regulated mandis in India</p></div>
-    <div><div class="hero-num" style="font-size:84px">14 cr</div><p class="mute" style="font-size:22px;font-weight:600">farm holdings</p></div>
-    <div class="who" style="flex:1"><span>Farmers</span><span>FPOs</span><span>Mandi traders</span><span>Wholesale buyers</span><span>Cold-storage operators</span><span>Food processors</span><span>Logistics fleets</span></div>
+  <div class="money" style="margin-top:34px">
+    <div class="card r d2" style="background:#e1f2ec"><div class="ic">🛒</div><h3>Marketplace commission</h3><p>small cut on every matched sale</p></div>
+    <div class="card r d2" style="background:#fff4d3"><div class="ic">🚚</div><h3>Logistics fees</h3><p>per booked truck and shared load</p></div>
+    <div class="card r d3" style="background:#ece6fa"><div class="ic">📋</div><h3>FPO &amp; trader plans</h3><p>members, pooled loads, sales pipeline</p></div>
+    <div class="card r d3" style="background:#fbe3ef"><div class="ic">📡</div><h3>Price-intelligence API</h3><p>for processors, lenders, insurers</p></div>
   </div>
-  <aside class="notes">How do we make money? Exactly as the problem statement asks. A small <b>commission</b> on marketplace sales. <b>Logistics coordination fees</b> when we fill a truck. <b>Subscriptions</b> for FPOs and traders. And our <b>price-intelligence API</b> for processors, lenders and insurers. India has more than 7,000 regulated mandis and over 14 crore farm families. Even a sliver of that is huge.</aside>
+  <div class="row r d4" style="margin-top:34px;gap:56px">
+    <div><div class="hero-num" style="font-size:80px">7,000+</div><p class="mute" style="font-size:22px;font-weight:600">regulated mandis in India</p></div>
+    <div><div class="hero-num" style="font-size:80px">14 cr</div><p class="mute" style="font-size:22px;font-weight:600">farm holdings</p></div>
+    <p style="font-size:28px;font-weight:600;color:var(--text-2);max-width:620px;line-height:1.35">Every rupee we save a farmer moves through a truck, a store and a buyer, and each one pays for coordination.</p>
+  </div>
+  <aside class="notes">One platform for the whole chain: farmer, FPO, transporter, cold storage, buyer. It's <b>free for the farmer</b>; the chain pays: a small <b>commission</b> on matched sales, <b>logistics fees</b> per booked truck, <b>subscriptions</b> for FPOs and traders, and a <b>price-intelligence API</b> for processors, lenders and insurers. More than 7,000 mandis, 14 crore farm holdings. Even a sliver is huge.</aside>
 </section>
 
-<!-- 15 · ONE MORE THING -->
-<section class="slide" data-t="4:40">
-  <div style="height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:44px">
-    <p class="r" style="font-size:64px;font-weight:600;color:var(--text-mute)">One more thing…</p>
-    <h1 class="f" style="font-size:190px">It's <span class="acc">live.</span></h1>
-    <div class="row f" style="gap:16px"><span class="pill mint live"><span class="dot"></span>Real prices · data.gov.in · this week</span><span class="pill">Running right now</span><span class="pill butter">Not a mock-up</span></div>
-  </div>
-  <aside class="notes">(Step forward.) Oh… <b>one more thing.</b> (click) Everything you saw today is <b>running right now, live</b>, with real prices from this week. (click) Not a mock-up.</aside>
-</section>
-
-<!-- 16 · CLOSE -->
-<section class="slide full" data-t="4:52" data-dark>
+<!-- 7 · CLOSE -->
+<section class="slide full" data-t="4:45" data-dark>
   <div class="photo kb"><img src="assets/photos/farmer-nashik.jpg" alt="Farmer at dusk near Gangapur dam, Nashik"></div>
   <div class="scrim" style="background:linear-gradient(90deg,rgba(20,28,24,.86),rgba(20,28,24,.5) 60%,rgba(20,28,24,.2))"></div>
   <div class="on-photo">
     <p class="r" style="font-size:44px;font-weight:600;opacity:.85">Farmers don't need more information.</p>
     <h2 class="r d1" style="font-size:112px">They need one<br><span style="color:var(--butter)">honest answer.</span></h2>
-    <div class="r d3" style="margin-top:30px"><div style="font-size:66px;font-weight:800;letter-spacing:-.03em">KRISHI-X</div><div style="font-size:30px;opacity:.85;margin-top:6px">Know what you keep, before you sell. · Thank you.</div></div>
+    <div class="r d3" style="margin-top:30px"><div style="font-size:66px;font-weight:800;letter-spacing:-.03em">KRISHI-X</div><div style="font-size:30px;opacity:.85;margin-top:6px">Know what you keep, before you sell. · Thank you. Questions?</div></div>
   </div>
-  <aside class="notes">Farmers don't need more information. They need <b>one honest answer</b>. <b>KRISHI-X. Know what you keep, before you sell.</b> Thank you.</aside>
-</section>
-
-<!-- APPENDIX (Q&A backup) -->
-<section class="slide" data-t="Q&amp;A">
-  <div class="eyebrow r">Appendix A · Farmer journey (UML sequence)</div>
-  <h2 class="r d1" style="margin-top:14px;font-size:58px">From one sentence to a confirmed sale.</h2>
-  <div class="dia r d2" data-mmd="journey"></div>
-  <aside class="notes">Q&amp;A backup: the full farmer journey, from speech to delivered sale.</aside>
-</section>
-<section class="slide" data-t="Q&amp;A">
-  <div class="eyebrow r">Appendix B · System architecture</div>
-  <h2 class="r d1" style="margin-top:14px;font-size:58px">Open data in. One honest answer out.</h2>
-  <div class="dia r d2" data-mmd="arch"></div>
-  <aside class="notes">Q&amp;A backup: architecture. Everything is free or open: data.gov.in, OpenStreetMap, OSRM, Open-Meteo, GeoNames. The LLM and voice run locally.</aside>
-</section>
-<section class="slide" data-t="Q&amp;A">
-  <div class="eyebrow r">Appendix C · Agent workflow (one voice turn)</div>
-  <h2 class="r d1" style="margin-top:14px;font-size:58px">Rules first. LLM only when needed. Maths never.</h2>
-  <div class="dia r d2" data-mmd="agents"></div>
-  <aside class="notes">Q&amp;A backup: one voice turn through the agent system.</aside>
-</section>
-<section class="slide" data-t="Q&amp;A">
-  <div class="eyebrow r">Appendix D · Order lifecycle (UML state)</div>
-  <h2 class="r d1" style="margin-top:14px;font-size:58px">Every step confirmed. Every side notified.</h2>
-  <div class="dia r d2" data-mmd="order"></div>
-  <aside class="notes">Q&amp;A backup: order and transport-job state machine.</aside>
-</section>
-<section class="slide mid" data-t="end">
-  <div class="eyebrow r">Photo credits · Wikimedia Commons</div>
-  <div class="credits r d1">
-    <p>Farmer sowing rice in Western Ghat Maharashtra · Phadke09 · CC BY-SA 4.0</p>
-    <p>Farmers near Melghat · Alosh Bennett · CC BY 2.0</p>
-    <p>Veg waste, Hyderabad market · fraboof · CC BY-SA 2.0</p>
-    <p>Indian farmer woman · Vinoth offl · CC BY-SA 4.0</p>
-    <p>Farmer near Gangapur dam · Sushrut.bhore · CC BY-SA 4.0</p>
-    <p>App screenshots · KRISHI-X running locally, 14 Nov 2026</p>
-    <p>Theme · pastel-dream (garden-skills)</p>
-  </div>
-  <aside class="notes">Credits.</aside>
+  <div class="credit">Photos: Wikimedia Commons: Alosh Bennett (CC BY 2.0), fraboof (CC BY-SA 2.0), Sushrut.bhore (CC BY-SA 4.0) · Theme: pastel-dream</div>
+  <aside class="notes">Farmers don't need more information. They need <b>one honest answer</b>. <b>KRISHI-X. Know what you keep, before you sell.</b> Thank you. We'd love your questions. (Q&amp;A: open diagrams.html for the journey, architecture and agent workflow.)</aside>
 </section>
 
 </div></div>
@@ -418,8 +287,6 @@ aside.notes{display:none}
 <div id="notes"><div class="meta"><span id="nmeta"></span><span>N notes · T timer · F fullscreen</span></div><div id="ntext"></div></div>
 <div id="hint">← → navigate · N notes · T timer · F fullscreen</div>
 
-<script src="vendor/mermaid.min.js"></script>
-<script src="diagrams.js"></script>
 <script>
 const stage = document.getElementById("stage"), slides = [...document.querySelectorAll(".slide")];
 let i = 0, step = 0;
@@ -455,7 +322,6 @@ addEventListener("keydown",(e)=>{
 });
 stage.addEventListener("click",(e)=>{ (e.clientX < innerWidth*0.25) ? prev() : next(); });
 show((parseInt(location.hash.slice(1))||1)-1);
-window.renderDiagrams?.(document.querySelectorAll("[data-mmd]"));
 </script>
 </body>
 </html>

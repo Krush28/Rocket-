@@ -2,10 +2,10 @@
 
 | File | What it is |
 |---|---|
-| `index.html` | The 5-minute pitch deck (16 slides + 4 diagram appendix slides + credits). Theme: **pastel-dream** from garden-skills. |
-| `KRISHI-X-Pitch.pptx` | The same deck for PowerPoint: 21 full-resolution slides, the script in each slide's speaker notes, Pitch / Appendix sections. Slides are images, so edit `index.html` and re-export for changes. |
-| `PITCH-SCRIPT.md` | Steve Jobs-style script with a timing per slide, the sources for every number, and answers for judges' questions. |
-| `diagrams.html` | Standalone page: farmer journey (UML sequence), system architecture, agent workflow, order lifecycle (UML state). |
+| `index.html` | The pitch deck: **7 slides** (organiser limit), built for 5 min incl. a 2-min live demo on slide 4. Theme: **pastel-dream** from garden-skills. |
+| `KRISHI-X-Pitch.pptx` | The same 7 slides for PowerPoint, with the script and demo steps in each slide's speaker notes. Slides are images, so edit `index.html` and re-export for changes. |
+| `PITCH-SCRIPT.md` | Timed script (5:00 incl. demo), the exact demo steps with a fallback, Q&A answers for the 3-min round, and sources for every number. |
+| `diagrams.html` | For Q&A (not in the 7 slides): farmer journey (UML sequence), architecture, agent workflow, order lifecycle (UML state). |
 | `diagrams.js` | Mermaid sources for the diagrams, shared by both pages. |
 | `assets/shots/` | Screenshots of the running app (14 Nov 2026, live prices). |
 | `assets/photos/` | Farmer and mandi photos from Wikimedia Commons (credits on the last slide). |
