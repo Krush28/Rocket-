@@ -3,6 +3,7 @@
 | File | What it is |
 |---|---|
 | `index.html` | The 5-minute pitch deck (16 slides + 4 diagram appendix slides + credits). Theme: **pastel-dream** from garden-skills. |
+| `KRISHI-X-Pitch.pptx` | The same deck for PowerPoint: 21 full-resolution slides, the script in each slide's speaker notes, Pitch / Appendix sections. Slides are images, so edit `index.html` and re-export for changes. |
 | `PITCH-SCRIPT.md` | Steve Jobs-style script with a timing per slide, the sources for every number, and answers for judges' questions. |
 | `diagrams.html` | Standalone page: farmer journey (UML sequence), system architecture, agent workflow, order lifecycle (UML state). |
 | `diagrams.js` | Mermaid sources for the diagrams, shared by both pages. |
